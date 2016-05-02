@@ -6746,6 +6746,15 @@ public final class Settings {
          */
         public static final String FLASHLIGHT_ON_CALL_WAITING = "flashlight_on_call_waiting";
 
+       /**
+         * Should we listen for fingerprints when the screen is off?  Devices
+         * with a rear-mounted sensor want this, but certain devices have
+         * the sensor embedded in the power key and listening all the time
+         * causes a poor experience.
+         * @hide
+         */
+        public static final String FP_WAKE_UNLOCK = "fp_wake_unlock";
+
         /**
          * Whether flashlight_on_call ignores DND (Zen Mode)
          * @hide
@@ -6813,6 +6822,7 @@ public final class Settings {
          * @hide
          */
         public static final String RIGHT_LONG_BACK_SWIPE_ACTION = "right_long_back_swipe_action";
+
 
         /**
          * Gestures nav: right long back swipe app action

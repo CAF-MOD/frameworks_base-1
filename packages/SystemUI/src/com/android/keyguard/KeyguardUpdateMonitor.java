@@ -91,9 +91,11 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.settingslib.WirelessUtils;
 import com.android.settingslib.fuelgauge.BatteryStatus;
+import com.android.systemui.Dependency;
 import com.android.systemui.DejankUtils;
 import com.android.systemui.Dumpable;
 import com.android.systemui.R;
+import com.android.systemui.arrow.ArrowSettingsService;
 import com.android.systemui.broadcast.BroadcastDispatcher;
 import com.android.systemui.dagger.qualifiers.Background;
 import com.android.systemui.dagger.qualifiers.Main;
@@ -133,7 +135,8 @@ import javax.inject.Singleton;
  * to be updated.
  */
 @Singleton
-public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpable {
+public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpable,
+        ArrowSettingsService.ArrowSettingsObserver {
 
     private static final String TAG = "KeyguardUpdateMonitor";
     private static final boolean DEBUG = KeyguardConstants.DEBUG;
@@ -290,7 +293,9 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
     private int mActiveMobileDataSubscription = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     private final Executor mBackgroundExecutor;
 
-    private final boolean mFingerprintWakeAndUnlock;
+    private boolean mFingerprintWakeAndUnlock;
+
+    private boolean mBouncerFullyShown;
 
     /**
      * Short delay before restarting fingerprint authentication after a successful try. This should
@@ -1600,8 +1605,9 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
         mSubscriptionManager = SubscriptionManager.from(context);
         mDeviceProvisioned = isDeviceProvisionedInSettingsDb();
         mStrongAuthTracker = new StrongAuthTracker(context, this::notifyStrongAuthStateChanged);
-        mFingerprintWakeAndUnlock = mContext.getResources().getBoolean(
-                com.android.systemui.R.bool.config_fingerprintWakeAndUnlock);
+        mFingerprintWakeAndUnlock = Settings.System.getIntForUser(
+                mContext.getContentResolver(), Settings.System.FP_WAKE_UNLOCK, 0,
+                UserHandle.USER_CURRENT) == 0;
         mBackgroundExecutor = backgroundExecutor;
         mBroadcastDispatcher = broadcastDispatcher;
         mRingerModeTracker = ringerModeTracker;
@@ -1857,6 +1863,12 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
                 }
             }
         }
+        Dependency.get(ArrowSettingsService.class).addIntObserver(this, Settings.System.FP_WAKE_UNLOCK);
+    }
+
+    @Override
+    public void onIntSettingChanged(String key, Integer newValue) {
+        mFingerprintWakeAndUnlock = (newValue == 0);
     }
 
     private final UserSwitchObserver mUserSwitchObserver = new UserSwitchObserver() {
