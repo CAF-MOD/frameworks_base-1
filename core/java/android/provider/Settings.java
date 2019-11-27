@@ -6769,6 +6769,11 @@ public final class Settings {
          * AICP System Settings end
          ***************************/
 
+        /**
+         * @hide
+         */
+        public static final String USE_OLD_MOBILETYPE = "use_old_mobiletype";
+
         private static final int BOOLEAN_VALIDATOR = 0;
         private static final int ANY_INTEGER_VALIDATOR = 1;
         private static final int ANY_STRING_VALIDATOR = 2;
