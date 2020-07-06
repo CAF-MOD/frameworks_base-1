@@ -808,7 +808,8 @@ public class NotificationIconContainer extends AlphaOptimizedFrameLayout {
                     }
                 }
                 icon.setVisibleState(visibleState, animationsAllowed);
-                icon.setIconColor(iconColor, needsCannedAnimation && animationsAllowed);
+                if (icon.getStatusBarIcon().pkg.contains("systemui"))
+                    icon.setIconColor(iconColor, needsCannedAnimation && animationsAllowed);
                 if (animate) {
                     animateTo(icon, animationProperties);
                 } else {
@@ -831,9 +832,10 @@ public class NotificationIconContainer extends AlphaOptimizedFrameLayout {
             super.initFrom(view);
             if (view instanceof StatusBarIconView) {
                 StatusBarIconView icon = (StatusBarIconView) view;
-                if (icon.getStatusBarIcon().pkg.contains("systemui") || !mColorizedIcons) {
+                if (icon.getStatusBarIcon().pkg.contains("systemui"))
                     iconColor = ((StatusBarIconView) view).getStaticDrawableColor();
-                }
+                else
+                    return;
             }
         }
     }
