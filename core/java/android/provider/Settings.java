@@ -11196,6 +11196,12 @@ public final class Settings {
         public static final String TETHERING_ALLOW_VPN_UPSTREAMS = "tethering_allow_vpn_upstreams";
 
         /**
+         * Position of gesture bar length slider.
+         * @hide
+         */
+        public static final String GESTURE_NAVBAR_LENGTH = "gesture_navbar_length";
+
+        /**
          * Pulse navbar music visualizer
          *
          * @hide
