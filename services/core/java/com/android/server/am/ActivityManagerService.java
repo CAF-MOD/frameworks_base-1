@@ -379,6 +379,11 @@ import com.android.server.wm.WindowManagerInternal;
 import com.android.server.wm.WindowManagerService;
 import com.android.server.wm.WindowProcessController;
 
+import com.android.internal.baikalos.Actions;
+import com.android.internal.baikalos.AppProfile;
+import com.android.internal.baikalos.AppProfileSettings;
+import com.android.internal.baikalos.BaikalSettings;
+
 import dalvik.system.VMRuntime;
 
 import libcore.util.EmptyArray;
@@ -1678,6 +1683,7 @@ public class ActivityManagerService extends IActivityManager.Stub
     private boolean mIsSwipeToScrenshotEnabled;
 
     private GamingModeController mGamingModeController;
+    BaikalActivityService mBaikalActivityService;
 
     /**
      * Used to notify activity lifecycle events.
@@ -2718,6 +2724,8 @@ public class ActivityManagerService extends IActivityManager.Stub
         mPendingStartActivityUids = new PendingStartActivityUids(mContext);
 
         mSwipeToScreenshotObserver = new SwipeToScreenshotObserver(mHandler, mContext);
+        mBaikalActivityService = new BaikalActivityService(mHandler,mContext);
+
     }
 
     public void setSystemServiceManager(SystemServiceManager mgr) {
