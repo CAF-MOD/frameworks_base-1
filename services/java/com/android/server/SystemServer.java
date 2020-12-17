@@ -1238,9 +1238,9 @@ public final class SystemServer {
             SignedConfigService.registerUpdateReceiver(mSystemContext);
             t.traceEnd();
 
-            traceBeginAndSlog("BaikalSystemService");
+            t.traceBegin("BaikalSystemService");
             mSystemServiceManager.startService(BaikalSystemService.class);
-            traceEnd();
+            t.traceEnd();
 
             t.traceBegin("AppIntegrityService");
             mSystemServiceManager.startService(AppIntegrityManagerService.class);
