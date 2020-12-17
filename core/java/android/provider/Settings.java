@@ -10949,6 +10949,18 @@ public final class Settings {
          *****************************/
 
         /**
+         * Setting to allow setting rounded corner size and content padding
+         */
+        public static final String SYSUI_ROUNDED_SIZE = "sysui_rounded_size";
+        public static final String SYSUI_ROUNDED_CONTENT_PADDING = "sysui_rounded_content_padding";
+
+        /**
+         * Setting to disable rounded corner preferences and use frameworks values instead
+         * @hide
+         */
+        public static final String SYSUI_ROUNDED_FWVALS = "sysui_rounded_fwvals";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *
