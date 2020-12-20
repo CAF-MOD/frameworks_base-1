@@ -112,6 +112,8 @@ import com.android.server.am.ActivityManagerService.ItemMatcher;
 import com.android.server.uri.NeededUriGrants;
 import com.android.server.wm.ActivityServiceConnectionsHolder;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -543,11 +545,35 @@ public final class ActiveServices {
 
         // If this isn't a direct-to-foreground start, check our ability to kick off an
         // arbitrary service
-        if (forcedStandby || (!r.startRequested && !fgRequired)) {
+        if (forcedStandby || ((!r.startRequested || BaikalSettings.getExtremeIdleActive() || BaikalSettings.getStaminaMode()) && !fgRequired)) {
             // Before going further -- if this app is not allowed to start services in the
             // background, then at this point we aren't going to let it period.
-            final int allowed = mAm.getAppStartModeLocked(r.appInfo.uid, r.packageName,
+            int allowed = ActivityManager.APP_START_MODE_NORMAL;
+
+            if( BaikalSettings.getAppRestricted(callingUid, callingPackage) ) {
+
+                Slog.w(TAG, "Background start restricted: service "
+                        + service + " to " + r.shortInstanceName
+                        + " from pid=" + callingPid + " uid=" + callingUid
+                        + " pkg=" + callingPackage + " startFg?=" + fgRequired);
+                r.stopIfKilled = true;
+                return null;
+            }
+
+            if( BaikalActivityServiceStatic.isServiceWhitelisted(mAm, r, callingUid, callingPid, callingPackage, true) ) {
+                allowed = ActivityManager.APP_START_MODE_NORMAL;
+            } else if( BaikalActivityServiceStatic.isServiceBlacklisted(mAm, r, callingUid, callingPid, callingPackage, true) ) {
+                forcedStandby = true;
+                if( r.appInfo.targetSdkVersion >= Build.VERSION_CODES.O ) {
+                    allowed = ActivityManager.APP_START_MODE_DELAYED_RIGID;
+                } else {
+                    allowed = ActivityManager.APP_START_MODE_DELAYED;
+                    forceSilentAbort = true;
+                }
+            } else {
+                allowed = mAm.getAppStartModeLocked(r.appInfo.uid, r.packageName,
                     r.appInfo.targetSdkVersion, callingPid, false, false, forcedStandby);
+            }
             if (allowed != ActivityManager.APP_START_MODE_NORMAL) {
                 Slog.w(TAG, "Background start not allowed: service "
                         + service + " to " + r.shortInstanceName
@@ -556,6 +582,7 @@ public final class ActiveServices {
                 if (allowed == ActivityManager.APP_START_MODE_DELAYED || forceSilentAbort) {
                     // In this case we are silently disabling the app, to disrupt as
                     // little as possible existing apps.
+                    r.stopIfKilled = true;
                     return null;
                 }
                 if (forcedStandby) {
@@ -566,11 +593,13 @@ public final class ActiveServices {
                         if (DEBUG_BACKGROUND_CHECK) {
                             Slog.v(TAG, "Silently dropping foreground service launch due to FAS");
                         }
+                        r.stopIfKilled = true;
                         return null;
                     }
                 }
                 // This app knows it is in the new model where this operation is not
                 // allowed, so tell it what has happened.
+                r.stopIfKilled = true;
                 UidRecord uidRec = mAm.mProcessList.getUidRecordLocked(r.appInfo.uid);
                 return new ComponentName("?", "app is in background uid " + uidRec);
             }

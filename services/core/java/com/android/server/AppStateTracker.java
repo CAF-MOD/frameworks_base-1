@@ -60,6 +60,8 @@ import com.android.server.AppStateTrackerProto.RunAnyInBackgroundRestrictedPacka
 import com.android.server.usage.AppStandbyInternal;
 import com.android.server.usage.AppStandbyInternal.AppIdleStateChangeListener;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
@@ -1106,6 +1108,7 @@ public class AppStateTracker {
         synchronized (mLock) {
             // Whitelisted?
             final int appId = UserHandle.getAppId(uid);
+            if( BaikalSettings.getAppRestricted(uid,packageName) ) return true;
             if (ArrayUtils.contains(mPowerWhitelistedAllAppIds, appId)) {
                 return false;
             }
@@ -1205,6 +1208,7 @@ public class AppStateTracker {
      */
     public boolean isUidPowerSaveWhitelisted(int uid) {
         synchronized (mLock) {
+            if( BaikalSettings.getAppRestricted(uid) ) return false;
             return ArrayUtils.contains(mPowerWhitelistedAllAppIds, UserHandle.getAppId(uid));
         }
     }
@@ -1215,6 +1219,7 @@ public class AppStateTracker {
      */
     public boolean isUidPowerSaveUserWhitelisted(int uid) {
         synchronized (mLock) {
+            if( BaikalSettings.getAppRestricted(uid) ) return false;
             return ArrayUtils.contains(mPowerWhitelistedUserAppIds, UserHandle.getAppId(uid));
         }
     }

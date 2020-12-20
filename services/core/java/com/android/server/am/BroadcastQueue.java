@@ -1523,9 +1523,16 @@ public final class BroadcastQueue {
                 info.activityInfo.applicationInfo.uid, false);
 
         if (!skip) {
-            final int allowed = mService.getAppStartModeLocked(
+            int allowed = mService.getAppStartModeLocked(
                     info.activityInfo.applicationInfo.uid, info.activityInfo.packageName,
                     info.activityInfo.applicationInfo.targetSdkVersion, -1, true, false, false);
+
+            if( BaikalActivityServiceStatic.isBroadcastBlacklisted(mService, r, info) ) {
+                    allowed = ActivityManager.APP_START_MODE_DISABLED;
+            } else if( BaikalActivityServiceStatic.isBroadcastWhitelisted(mService, r, info) ) {
+                    allowed = ActivityManager.APP_START_MODE_NORMAL;
+	        }
+
             if (allowed != ActivityManager.APP_START_MODE_NORMAL) {
                 // We won't allow this receiver to be launched if the app has been
                 // completely disabled from launches, or it was not explicitly sent

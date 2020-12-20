@@ -119,6 +119,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import com.android.internal.baikalos.Actions;
+import com.android.internal.baikalos.BaikalSettings;
+
+
 /**
  * The power manager service is responsible for coordinating power management
  * functions on the device.
@@ -140,6 +144,8 @@ public final class PowerManagerService extends SystemService
     private static final int MSG_CHECK_FOR_LONG_WAKELOCKS = 4;
     // Message: Sent when an attentive timeout occurs to update the power state.
     private static final int MSG_ATTENTIVE_TIMEOUT = 5;
+
+    private static final int MSG_UPDATE_POWERSTATE = 8;
 
     // Dirty bit: mWakeLocks changed
     private static final int DIRTY_WAKE_LOCKS = 1 << 0;
@@ -171,6 +177,8 @@ public final class PowerManagerService extends SystemService
     private static final int DIRTY_VR_MODE_CHANGED = 1 << 13;
     // Dirty bit: attentive timer may have timed out
     private static final int DIRTY_ATTENTIVE = 1 << 14;
+    // Dirty bit: Reader Mode enabled changed
+    private static final int DIRTY_READER_MODE_CHANGED = 1 << 15;
 
     // Summarizes the state of all active wakelocks.
     private static final int WAKE_LOCK_CPU = 1 << 0;
@@ -284,6 +292,11 @@ public final class PowerManagerService extends SystemService
 
     private final Object mLock = LockGuard.installNewLock(LockGuard.INDEX_POWER);
 
+    private PowerManager.WakeLock mReaderModeWakeLock;
+    private int mBrightnessOverrideFromBaikalService = -1;
+    private long mLastInteractiveHint = 0;
+    private long mLastLaunchHint = 0;
+
     // A bitfield that indicates what parts of the power state have
     // changed and need to be recalculated.
     private int mDirty;
@@ -387,6 +400,7 @@ public final class PowerManagerService extends SystemService
 
     // True if the device is plugged into a power source.
     private boolean mIsPowered;
+    private boolean mIsPoweredInitialized = false;
 
     // The current plug type, such as BatteryManager.BATTERY_PLUGGED_WIRELESS.
     private int mPlugType;
@@ -401,6 +415,8 @@ public final class PowerManagerService extends SystemService
 
     // The current dock state.
     private int mDockState = Intent.EXTRA_DOCK_STATE_UNDOCKED;
+
+    private boolean mReaderMode = false;
 
     // True to decouple auto-suspend mode from the display state.
     private boolean mDecoupleHalAutoSuspendModeFromDisplayConfig;
@@ -1229,6 +1245,15 @@ public final class PowerManagerService extends SystemService
         filter = new IntentFilter();
         filter.addAction(Intent.ACTION_DOCK_EVENT);
         mContext.registerReceiver(new DockReceiver(), filter, null, mHandler);
+
+        filter = new IntentFilter();
+        filter.addAction(com.android.internal.baikalos.Actions.ACTION_READER_MODE_CHANGED);
+        mContext.registerReceiver(new ReaderModeReceiver(), filter, null, mHandler);
+
+        filter = new IntentFilter();
+        filter.addAction(com.android.internal.baikalos.Actions.ACTION_BRIGHTNESS_OVERRIDE);
+        mContext.registerReceiver(new BrightnessOverrideReceiver(), filter, null, mHandler);
+
     }
 
     @VisibleForTesting
@@ -1275,6 +1300,10 @@ public final class PowerManagerService extends SystemService
                 com.android.internal.R.fraction.config_maximumScreenDimRatio, 1, 1);
         mSupportsDoubleTapWakeConfig = resources.getBoolean(
                 com.android.internal.R.bool.config_supportDoubleTapWake);
+
+        mReaderModeWakeLock = ((PowerManager) mContext.getSystemService(Context.POWER_SERVICE))
+                    .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "*baikal_readermode*");
+
     }
 
     private void updateSettingsLocked() {
@@ -1596,6 +1625,38 @@ public final class PowerManagerService extends SystemService
             wakeLock.mNotifiedLong = true;
             mNotifier.onLongPartialWakeLockStart(wakeLock.mTag, wakeLock.mOwnerUid,
                     wakeLock.mWorkSource, wakeLock.mHistoryTag);
+
+            if ((wakeLock.mFlags & PowerManager.WAKE_LOCK_LEVEL_MASK) == PowerManager.PARTIAL_WAKE_LOCK ) {
+                int appid = UserHandle.getAppId(wakeLock.mOwnerUid);
+                int wsid = appid;
+
+                if (wakeLock.mWorkSource != null && !wakeLock.mWorkSource.isEmpty()) {
+                    WorkSource workSource = wakeLock.mWorkSource;
+                    WorkChain workChain = getFirstNonEmptyWorkChain(workSource);
+                    if (workChain != null) {
+                        wsid = workChain.getAttributionUid();
+                    } else {
+                        wsid = workSource.get(0);
+                    }
+
+                    Slog.d(TAG, "notifyWakeLockLongStartedLocked: ws " + wakeLock);
+                } else {
+                    Slog.d(TAG, "notifyWakeLockLongStartedLocked: own " + wakeLock);
+                }
+
+                if (appid >= Process.FIRST_APPLICATION_UID) {
+                    if( BaikalSettings.getAppRestricted(appid) ||
+                        (Arrays.binarySearch(mDeviceIdleWhitelist, appid) < 0 && 
+                        Arrays.binarySearch(mDeviceIdleWhitelist, wsid) < 0 )) {
+                        wakeLock.mDisabled = true;
+                        notifyWakeLockReleasedLocked(wakeLock);
+                        Slog.d(TAG, "notifyWakeLockLongStartedLocked: disabled " + wakeLock);
+                        mDirty |= DIRTY_WAKE_LOCKS;
+                        updatePowerStateLocked();
+                    }
+                }
+            }
+
         }
     }
 
@@ -1720,6 +1781,9 @@ public final class PowerManagerService extends SystemService
                         mDirty |= DIRTY_QUIESCENT;
                     }
 
+                    mLastInteractiveHint = SystemClock.elapsedRealtime();
+                    if( isReaderMode() ) scheduleUpdatePowerState(1000);
+
                     return true;
                 }
             } else {
@@ -1735,6 +1799,10 @@ public final class PowerManagerService extends SystemService
                     if (event == PowerManager.USER_ACTIVITY_EVENT_BUTTON) {
                         mDirty |= DIRTY_QUIESCENT;
                     }
+
+                    mLastInteractiveHint = SystemClock.elapsedRealtime();
+                    if( isReaderMode() ) scheduleUpdatePowerState(1000);
+
                     return true;
                 }
             }
@@ -1774,6 +1842,17 @@ public final class PowerManagerService extends SystemService
         Trace.asyncTraceBegin(Trace.TRACE_TAG_POWER, TRACE_SCREEN_ON, 0);
 
         Trace.traceBegin(Trace.TRACE_TAG_POWER, "wakeUp");
+
+        mLastInteractiveHint = SystemClock.elapsedRealtime();
+        if( isReaderMode() ) scheduleUpdatePowerState(2000);
+
+        try {
+            SystemProperties.set("baikal.perf.profile", "boost");
+        } catch( Exception e )  {
+            Slog.e(TAG, "Can' set BOOST profile for wakeup: ", e);
+        } finally {
+        }
+
         try {
             Slog.i(TAG, "Waking up from "
                     + PowerManagerInternal.wakefulnessToString(getWakefulnessLocked())
@@ -2090,14 +2169,14 @@ public final class PowerManagerService extends SystemService
                         + ", mBatteryLevel=" + mBatteryLevel);
             }
 
-            if (wasPowered != mIsPowered || oldPlugType != mPlugType) {
+            if ( !mIsPoweredInitialized || wasPowered != mIsPowered || oldPlugType != mPlugType) {
                 mDirty |= DIRTY_IS_POWERED;
 
                 // Update wireless dock detection state.
                 final boolean dockedOnWirelessCharger = mWirelessChargerDetector.update(
                         mIsPowered, mPlugType);
 
-                if (mDozeOnChargeEnabled) {
+                if (mDozeOnChargeEnabled || !mIsPowered) {
                     Settings.System.putIntForUser(mContext.getContentResolver(),
                             Settings.System.OMNI_DOZE_ON_CHARGE_NOW, mIsPowered ? 1 : 0,
                             UserHandle.USER_CURRENT);
@@ -2127,6 +2206,9 @@ public final class PowerManagerService extends SystemService
                         mNotifier.onWirelessChargingStarted(mBatteryLevel, mUserId);
                     }
                 }
+
+                Actions.sendChargerModeChanged(mIsPowered);
+        		mIsPoweredInitialized = true;
             }
 
             mBatterySaverStateMachine.setBatteryStatus(mIsPowered, mBatteryLevel, mBatteryLevelLow);
@@ -2961,6 +3043,7 @@ public final class PowerManagerService extends SystemService
                 sQuiescent = false;
             }
 
+            int oldDisplayPolicy = mDisplayPowerRequest.policy;
             mDisplayPowerRequest.policy = getDesiredScreenPolicyLocked();
 
             // Determine appropriate screen brightness and auto-brightness adjustments.
@@ -3024,6 +3107,12 @@ public final class PowerManagerService extends SystemService
                         + ", mIsVrModeEnabled= " + mIsVrModeEnabled
                         + ", sQuiescent=" + sQuiescent);
             }
+            if( oldDisplayPolicy != mDisplayPowerRequest.policy ) {
+        		boolean mode = (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_BRIGHT) | 
+			       (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DIM) | 
+			       (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_VR);
+        		Actions.sendScreenModeChanged(mode);
+    	    }
         }
         return mDisplayReady && !oldDisplayReady;
     }
@@ -3254,11 +3343,14 @@ public final class PowerManagerService extends SystemService
             // sensor may not be correctly configured as a wake-up source.
             if (!mDisplayPowerRequest.useProximitySensor || !mProximityPositive
                     || !mSuspendWhenScreenOffDueToProximityConfig) {
-                return true;
+                if( !isReaderMode() || mDisplayPowerRequest.useProximitySensor ) {
+                    return true;
+                }
             }
         }
 
         if (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE
+                && getWakefulnessLocked() != WAKEFULNESS_DOZING
                 && mDisplayPowerRequest.dozeScreenState == Display.STATE_ON) {
             // Although we are in DOZE and would normally allow the device to suspend,
             // the doze service has explicitly requested the display to remain in the ON
@@ -3280,6 +3372,51 @@ public final class PowerManagerService extends SystemService
 
         // Let the system suspend if the screen is off or dozing.
         return false;
+    }
+
+    private boolean isReaderMode() {
+        return mReaderMode && !mIsPowered && mDisplayPowerRequest.isBrightOrDim();
+    }
+
+    private void handleUpdatePowerState() {
+        synchronized (mLock) {
+            ReaderModeReleaseWakelock();
+            updateSuspendBlockerLocked();
+        }
+    }
+
+    private long mReaderModeDelayed = 0;
+
+    private void scheduleUpdatePowerState(int delay) {
+        if(DEBUG_SPEW) {
+            Slog.i(TAG,"mReaderModeWakeLock: scheduleUpdatePowerState=" + delay);
+        }
+        if( (SystemClock.elapsedRealtime() + delay) > mReaderModeDelayed ) {
+            ReaderModeAcquireWakelock();
+
+            mReaderModeDelayed = SystemClock.elapsedRealtime() + delay;
+            mHandler.removeMessages(MSG_UPDATE_POWERSTATE);
+            Message msg = mHandler.obtainMessage(MSG_UPDATE_POWERSTATE);
+            mHandler.sendMessageDelayed(msg, delay);
+        }
+    }
+
+    private void ReaderModeReleaseWakelock() {
+        if (mReaderModeWakeLock.isHeld()) {
+            if(DEBUG_SPEW) {
+                Slog.i(TAG,"mReaderModeWakeLock: ReleaseWakelock()");
+            }
+            mReaderModeWakeLock.release();
+        }
+    }
+
+    private void ReaderModeAcquireWakelock() {
+        if (!mReaderModeWakeLock.isHeld()) {
+            if(DEBUG_SPEW) {
+                Slog.i(TAG,"mReaderModeWakeLock: AcquireWakelock()");
+            }
+            mReaderModeWakeLock.acquire();
+        }
     }
 
     private void setHalAutoSuspendModeLocked(boolean enable) {
@@ -3630,7 +3767,7 @@ public final class PowerManagerService extends SystemService
                                     != ActivityManager.PROCESS_STATE_NONEXISTENT &&
                             wakeLock.mUidState.mProcState > ActivityManager.PROCESS_STATE_RECEIVER);
                 }
-                if (mDeviceIdleMode) {
+                if (mDeviceIdleMode || isReaderMode()) {
                     // If we are in idle mode, we will also ignore all partial wake locks that are
                     // for application uids that are not whitelisted.
                     final UidState state = wakeLock.mUidState;
@@ -4535,6 +4672,39 @@ public final class PowerManagerService extends SystemService
         }
     }
 
+    private final class ReaderModeReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            synchronized (mLock) {
+                String action = intent.getAction();
+                boolean mode = (boolean)intent.getExtra(com.android.internal.baikalos.Actions.EXTRA_BOOL_MODE);
+                if (mReaderMode != mode) {
+                    if(DEBUG) Slog.i(TAG,"ReaderModeChanged mode=" + mode);
+                    mReaderMode = mode;
+                    updatePowerStateLocked();
+                    mLastInteractiveHint = SystemClock.elapsedRealtime();
+                    updateDisplayPowerStateLocked(DIRTY_READER_MODE_CHANGED);  
+                    if( isReaderMode() ) scheduleUpdatePowerState(2000);
+                }
+            }
+        }
+    }
+
+    private final class BrightnessOverrideReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            synchronized (mLock) {
+                String action = intent.getAction();
+                int brightness = (int)intent.getExtra(com.android.internal.baikalos.Actions.EXTRA_INT_BRIGHTNESS);
+                if (mBrightnessOverrideFromBaikalService != brightness) {
+                    if(DEBUG) Slog.i(TAG,"BrightnessOverride brightness=" + brightness);
+                    mBrightnessOverrideFromBaikalService = brightness;
+                    updateDisplayPowerStateLocked(DIRTY_READER_MODE_CHANGED);  
+                }
+            }
+        }
+    }
+
     private final class SettingsObserver extends ContentObserver {
         public SettingsObserver(Handler handler) {
             super(handler);
@@ -4584,6 +4754,9 @@ public final class PowerManagerService extends SystemService
                     break;
                 case MSG_ATTENTIVE_TIMEOUT:
                     handleAttentiveTimeout();
+                    break;
+                case MSG_UPDATE_POWERSTATE:
+                    handleUpdatePowerState();
                     break;
             }
 

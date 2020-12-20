@@ -62,8 +62,8 @@ import android.os.SystemClock;
 
 import com.android.server.SystemService;
 
-import com.android.internal.custom.hardware.LineageHardwareManager;
-import com.android.internal.custom.hardware.DisplayMode;
+//import com.android.internal.custom.hardware.LineageHardwareManager;
+//import com.android.internal.custom.hardware.DisplayMode;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
@@ -78,7 +78,7 @@ public class BaikalSystemService extends SystemService {
 
     private final Context mContext;
 
-    private LineageHardwareManager mHardware;
+    //private LineageHardwareManager mHardware;
 
 
     final MyHandler mHandler;
@@ -164,7 +164,7 @@ public class BaikalSystemService extends SystemService {
 
                 mBaikalSettings = new BaikalSettings(mHandler,mContext);
 
-                mHardware = LineageHardwareManager.getInstance(mContext);
+                //mHardware = LineageHardwareManager.getInstance(mContext);
 
                 IntentFilter topAppFilter = new IntentFilter();
                 topAppFilter.addAction(Actions.ACTION_TOP_APP_CHANGED);
@@ -278,6 +278,7 @@ public class BaikalSystemService extends SystemService {
         @Override
         public void onReceive(Context context, Intent intent) {
             synchronized (BaikalSystemService.this) {
+                /*  Require Lineage Hardware Manager. Postpone.
                 String action = intent.getAction();
                 String packageName = (String)intent.getExtra(Actions.EXTRA_PACKAGENAME);
                 int uid = (int)intent.getExtra(Actions.EXTRA_UID);
@@ -296,7 +297,7 @@ public class BaikalSystemService extends SystemService {
                             }, 1000);
                         }
                     }
-                }                                
+                }*/
             }
         }
     };

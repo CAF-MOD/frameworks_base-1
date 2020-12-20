@@ -117,8 +117,8 @@ public class BaikalActivityServiceStatic {
         if( BaikalSettings.getAppRestricted(appId,app.info.packageName) ) {
 
                 try {
-                    for (int is = app.services.size()-1;is >= 0; is--) {
-                        ServiceRecord s = app.services.valueAt(is);
+                    for (int is = app.mServices.size()-1;is >= 0; is--) {
+                        ServiceRecord s = app.mServices.valueAt(is);
     	                s.delayed = false;
                         s.stopIfKilled = true;
                     } 
@@ -205,8 +205,8 @@ public class BaikalActivityServiceStatic {
                 if( DEBUG ) Slog.i(TAG,"applyOomAdjLocked: killing active app: " + app.info.packageName + "/" + app.info.uid);
 
                 try {
-                    for (int is = app.services.size()-1;is >= 0; is--) {
-                        ServiceRecord s = app.services.valueAt(is);
+                    for (int is = app.mServices.size()-1;is >= 0; is--) {
+                        ServiceRecord s = app.mServices.valueAt(is);
     	                s.delayed = false;
                         s.stopIfKilled = true;
                     } 
@@ -256,8 +256,8 @@ public class BaikalActivityServiceStatic {
 
                 if( DEBUG ) Slog.i(TAG,"applyOomAdjLocked: killing cached app: " + app.info.packageName + "/" + app.info.uid);
                 try {
-                    for (int is = app.services.size()-1;is >= 0; is--) {
-                        ServiceRecord s = app.services.valueAt(is);
+                    for (int is = app.mServices.size()-1;is >= 0; is--) {
+                        ServiceRecord s = app.mServices.valueAt(is);
     	                s.delayed = false;
                         s.stopIfKilled = true;
                     } 
