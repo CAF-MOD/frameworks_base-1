@@ -33,6 +33,8 @@ import com.android.systemui.plugins.qs.QSTile.BooleanState;
 import com.android.systemui.qs.QSHost;
 import com.android.systemui.qs.tileimpl.QSTileImpl;
 
+import javax.inject.Inject;
+
 public class BaikalExtrasTile extends QSTileImpl<BooleanState> {
     private boolean mListening;
     private final ActivityStarter mActivityStarter;
@@ -45,6 +47,7 @@ public class BaikalExtrasTile extends QSTileImpl<BooleanState> {
         .setComponent(new ComponentName(BE_PKG_NAME,
         "ru.baikalos.extras.SettingsActivity"));
 
+    @Inject
     public BaikalExtrasTile(QSHost host) {
         super(host);
         mActivityStarter = Dependency.get(ActivityStarter.class);

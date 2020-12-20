@@ -27,6 +27,7 @@ import com.android.systemui.plugins.qs.QSTileView;
 import com.android.systemui.qs.QSHost;
 import com.android.systemui.qs.external.CustomTile;
 import com.android.systemui.qs.tiles.AicpExtrasTile;
+import com.android.systemui.qs.tiles.BaikalExtrasTile;
 import com.android.systemui.qs.tiles.AirplaneModeTile;
 import com.android.systemui.qs.tiles.AODTile;
 import com.android.systemui.qs.tiles.BatterySaverTile;
@@ -69,6 +70,9 @@ import com.android.systemui.qs.tiles.WeatherTile;
 import com.android.systemui.qs.tiles.WifiTile;
 import com.android.systemui.qs.tiles.WorkModeTile;
 import com.android.systemui.util.leak.GarbageMonitor;
+
+import com.android.systemui.qs.tiles.IdleModeTile;
+import com.android.systemui.qs.tiles.StaminaModeTile;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -124,6 +128,10 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<GamingModeTile> mGamingModeTileProvider;
     private final Provider<FPSInfoTile> mFPSInfoTileProvider;
     private final Provider<KillappTile> mKillappTileProvider;
+    private final Provider<IdleModeTile> mIdleModeTileProvider;
+    private final Provider<StaminaModeTile> mStaminaModeTileProvider;
+    private final Provider<BaikalExtrasTile> mBaikalExtrasTileProvider;
+
 
     private final Lazy<QSHost> mQsHostLazy;
 
@@ -171,7 +179,10 @@ public class QSFactoryImpl implements QSFactory {
             Provider<HWKeysTile> hwkeysTileProvider,
             Provider<GamingModeTile> gamingModeTileProvider,
             Provider<FPSInfoTile> fpsInfoTileProvider,
-            Provider<KillappTile> killappTileProvider) {
+            Provider<KillappTile> killappTileProvider,
+            Provider<IdleModeTile> idleModeTileProvider,
+            Provider<StaminaModeTile> staminaModeTileProvider,
+            Provider<BaikalExtrasTile> baikalExtrasTileProvider) {
         mQsHostLazy = qsHostLazy;
         mWifiTileProvider = wifiTileProvider;
         mBluetoothTileProvider = bluetoothTileProvider;
@@ -216,6 +227,10 @@ public class QSFactoryImpl implements QSFactory {
         mGamingModeTileProvider = gamingModeTileProvider;
         mFPSInfoTileProvider = fpsInfoTileProvider;
         mKillappTileProvider = killappTileProvider;
+        mIdleModeTileProvider = idleModeTileProvider;
+        mStaminaModeTileProvider = staminaModeTileProvider;
+        mBaikalExtrasTileProvider = baikalExtrasTileProvider;
+
     }
 
     public QSTile createTile(String tileSpec) {
@@ -314,6 +329,13 @@ public class QSFactoryImpl implements QSFactory {
                 return mFPSInfoTileProvider.get();
             case "killapp":
                 return mKillappTileProvider.get();
+
+            case "idle_mode":
+                return mIdleModeTileProvider.get();
+            case "stamina_mode":
+                return mStaminaModeTileProvider.get();
+            case "baikal_extras":
+                return mBaikalExtrasTileProvider.get();
         }
 
         // Custom tiles
