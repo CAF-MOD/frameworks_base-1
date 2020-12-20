@@ -27,6 +27,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -135,6 +136,9 @@ public class StatusBarMobileView extends FrameLayout implements DarkReceiver,
     }
 
     public void applyMobileState(MobileIconState state, boolean oldStyleType) {
+
+        Log.e(TAG, "applyMobileState: state=" + state + ", tyle=" + oldStyleType);
+
         boolean requestLayout = false;
         if (state == null) {
             requestLayout = getVisibility() != View.GONE;
