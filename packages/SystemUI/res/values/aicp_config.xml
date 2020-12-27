@@ -26,28 +26,6 @@
         idle_mode,stamina_mode,baikal_extras,cpuinfo,compass,music,reboot,usb_tether,caffeine,aicp_extras,heads_up,smartpixels,aod,locale,sound,volume_panel,dataswitch,sync,onthego,soundsearch,screenshot,weather,hwkeys,gaming,fpsinfo,killapp
     </string>
 
-    <!-- The CPU temperature sensor path, defaults to empty -->
-    <string name="config_cpuTempSensor" translatable="false"></string>
-
-    <!-- The CPU temperature divider, if needed -->
-    <integer name="config_cpuTempDivider" translatable="false">1</integer>
-
-    <!-- The SYS temperature divider, if needed -->
-    <integer name="config_sysTempDivider" translatable="false">1</integer>
-
-    <!-- The BAT temperature divider, if needed -->
-    <integer name="config_batTempDivider" translatable="false">1</integer>
-
-    <!-- The SYS temperature sensor path, defaults to empty -->
-    <string name="config_sysTempSensor" translatable="false"></string>
-
-    <!-- The BAT temperature sensor path, defaults to empty -->
-    <string name="config_batTempSensor" translatable="false"></string>
-
-    <!-- The GPU frequency sensor path, defaults to empty -->
-    <string name="config_gpuFreqSensor" translatable="false"></string>
-
-
     <!-- Color of the FOD view -->
     <color name="config_fodColor">#00ff00</color>
     <color name="config_fodColorBackground">#20000000</color>
