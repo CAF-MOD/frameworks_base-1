@@ -10957,6 +10957,13 @@ public final class Settings {
          */
         public static final String NAVIGATION_HANDLE_WIDTH = "navigation_handle_width";
 
+        /**
+         * Whether tethering is allowed to use VPN upstreams
+         * 0 = false, 1 = true
+         * @hide
+         */
+        public static final String TETHERING_ALLOW_VPN_UPSTREAMS = "tethering_allow_vpn_upstreams";
+
         /*****************************
          * AICP Secure Settings end
          *****************************/

@@ -66,6 +66,7 @@ import com.android.systemui.qs.tiles.SmartPixelsTile;
 import com.android.systemui.qs.tiles.ScreenshotTile;
 import com.android.systemui.qs.tiles.UserTile;
 import com.android.systemui.qs.tiles.VolumeTile;
+import com.android.systemui.qs.tiles.VpnTile;
 import com.android.systemui.qs.tiles.WeatherTile;
 import com.android.systemui.qs.tiles.WifiTile;
 import com.android.systemui.qs.tiles.WorkModeTile;
@@ -128,10 +129,14 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<GamingModeTile> mGamingModeTileProvider;
     private final Provider<FPSInfoTile> mFPSInfoTileProvider;
     private final Provider<KillappTile> mKillappTileProvider;
+<<<<<<< HEAD
     private final Provider<IdleModeTile> mIdleModeTileProvider;
     private final Provider<StaminaModeTile> mStaminaModeTileProvider;
     private final Provider<BaikalExtrasTile> mBaikalExtrasTileProvider;
 
+=======
+    private final Provider<VpnTile> mVpnTileProvider;
+>>>>>>> aicp/r11.1
 
     private final Lazy<QSHost> mQsHostLazy;
 
@@ -180,9 +185,13 @@ public class QSFactoryImpl implements QSFactory {
             Provider<GamingModeTile> gamingModeTileProvider,
             Provider<FPSInfoTile> fpsInfoTileProvider,
             Provider<KillappTile> killappTileProvider,
+<<<<<<< HEAD
             Provider<IdleModeTile> idleModeTileProvider,
             Provider<StaminaModeTile> staminaModeTileProvider,
             Provider<BaikalExtrasTile> baikalExtrasTileProvider) {
+=======
+            Provider<VpnTile> vpnTileProvider) {
+>>>>>>> aicp/r11.1
         mQsHostLazy = qsHostLazy;
         mWifiTileProvider = wifiTileProvider;
         mBluetoothTileProvider = bluetoothTileProvider;
@@ -227,10 +236,14 @@ public class QSFactoryImpl implements QSFactory {
         mGamingModeTileProvider = gamingModeTileProvider;
         mFPSInfoTileProvider = fpsInfoTileProvider;
         mKillappTileProvider = killappTileProvider;
+<<<<<<< HEAD
         mIdleModeTileProvider = idleModeTileProvider;
         mStaminaModeTileProvider = staminaModeTileProvider;
         mBaikalExtrasTileProvider = baikalExtrasTileProvider;
 
+=======
+        mVpnTileProvider = vpnTileProvider;
+>>>>>>> aicp/r11.1
     }
 
     public QSTile createTile(String tileSpec) {
@@ -329,6 +342,8 @@ public class QSFactoryImpl implements QSFactory {
                 return mFPSInfoTileProvider.get();
             case "killapp":
                 return mKillappTileProvider.get();
+            case "vpn":
+                return mVpnTileProvider.get();
 
             case "idle_mode":
                 return mIdleModeTileProvider.get();
