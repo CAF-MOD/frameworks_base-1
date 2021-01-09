@@ -129,14 +129,11 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<GamingModeTile> mGamingModeTileProvider;
     private final Provider<FPSInfoTile> mFPSInfoTileProvider;
     private final Provider<KillappTile> mKillappTileProvider;
-<<<<<<< HEAD
+    private final Provider<VpnTile> mVpnTileProvider;
+
     private final Provider<IdleModeTile> mIdleModeTileProvider;
     private final Provider<StaminaModeTile> mStaminaModeTileProvider;
     private final Provider<BaikalExtrasTile> mBaikalExtrasTileProvider;
-
-=======
-    private final Provider<VpnTile> mVpnTileProvider;
->>>>>>> aicp/r11.1
 
     private final Lazy<QSHost> mQsHostLazy;
 
@@ -185,13 +182,12 @@ public class QSFactoryImpl implements QSFactory {
             Provider<GamingModeTile> gamingModeTileProvider,
             Provider<FPSInfoTile> fpsInfoTileProvider,
             Provider<KillappTile> killappTileProvider,
-<<<<<<< HEAD
+            Provider<VpnTile> vpnTileProvider,
+
             Provider<IdleModeTile> idleModeTileProvider,
             Provider<StaminaModeTile> staminaModeTileProvider,
             Provider<BaikalExtrasTile> baikalExtrasTileProvider) {
-=======
-            Provider<VpnTile> vpnTileProvider) {
->>>>>>> aicp/r11.1
+
         mQsHostLazy = qsHostLazy;
         mWifiTileProvider = wifiTileProvider;
         mBluetoothTileProvider = bluetoothTileProvider;
@@ -236,14 +232,11 @@ public class QSFactoryImpl implements QSFactory {
         mGamingModeTileProvider = gamingModeTileProvider;
         mFPSInfoTileProvider = fpsInfoTileProvider;
         mKillappTileProvider = killappTileProvider;
-<<<<<<< HEAD
+        mVpnTileProvider = vpnTileProvider;
+
         mIdleModeTileProvider = idleModeTileProvider;
         mStaminaModeTileProvider = staminaModeTileProvider;
         mBaikalExtrasTileProvider = baikalExtrasTileProvider;
-
-=======
-        mVpnTileProvider = vpnTileProvider;
->>>>>>> aicp/r11.1
     }
 
     public QSTile createTile(String tileSpec) {
