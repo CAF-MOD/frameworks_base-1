@@ -311,7 +311,13 @@ public class Sensors extends MessageHandler {
         void Initialize() {
             mHallSensor = mSensorManager.getDefaultSensor(SENSOR_HALL_TYPE, true);
             if( Constants.DEBUG_SENSORS ) {
-                Slog.i(TAG,"Hall Initialize: sensor=" + mHallSensor);
+                Slog.i(TAG,"Hall Initialize (wakeup): sensor=" + mHallSensor);
+            }
+            if( mHallSensor == null ) {
+                mHallSensor = mSensorManager.getDefaultSensor(SENSOR_HALL_TYPE,false);
+                if( Constants.DEBUG_SENSORS ) {
+                    Slog.i(TAG,"Hall Initialize (non-wake): sensor=" + mHallSensor);
+                }
             }
         }
 
