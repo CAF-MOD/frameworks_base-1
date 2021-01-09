@@ -114,19 +114,6 @@ public class BaikalActivityServiceStatic {
 
         final int appId = UserHandle.getAppId(app.info.uid);
 
-        if( BaikalSettings.getAppRestricted(appId,app.info.packageName) ) {
-
-                try {
-                    for (int is = app.mServices.size()-1;is >= 0; is--) {
-                        ServiceRecord s = app.mServices.valueAt(is);
-    	                s.delayed = false;
-                        s.stopIfKilled = true;
-                    } 
-                } catch (Exception e) {
-                }
-                return 2;
-        }
-
         if( BaikalSettings.getStaminaMode() )  {
             if( app.curAdj <= 50 ) return 0;
         } else if( BaikalSettings.getExtremeIdleActive() ) {
@@ -161,6 +148,20 @@ public class BaikalActivityServiceStatic {
             case ActivityManager.PROCESS_STATE_CACHED_ACTIVITY:
             case ActivityManager.PROCESS_STATE_CACHED_ACTIVITY_CLIENT:
             case ActivityManager.PROCESS_STATE_CACHED_RECENT:
+
+                if( BaikalSettings.getAppRestricted(appId,app.info.packageName) ) {
+                    Slog.i(TAG,"applyOomAdjLocked: killing restricted app: " + app.info.packageName + "/" + app.info.uid);
+                    try {
+                        for (int is = app.mServices.size()-1;is >= 0; is--) {
+                            ServiceRecord s = app.mServices.valueAt(is);
+        	                s.delayed = false;
+                            s.stopIfKilled = true;
+                        } 
+                    } catch (Exception e) {
+                    }
+                    return 2;
+                }
+
 
                 if( app.info.uid < 10000 &&  app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ) ) return 0;
  
@@ -202,7 +203,7 @@ public class BaikalActivityServiceStatic {
                     }
                 }
 
-                if( DEBUG ) Slog.i(TAG,"applyOomAdjLocked: killing active app: " + app.info.packageName + "/" + app.info.uid);
+                /*if( DEBUG )*/ Slog.i(TAG,"applyOomAdjLocked: killing active app: " + app.info.packageName + "/" + app.info.uid);
 
                 try {
                     for (int is = app.mServices.size()-1;is >= 0; is--) {
@@ -215,6 +216,20 @@ public class BaikalActivityServiceStatic {
                 return 2;
 
             case ActivityManager.PROCESS_STATE_CACHED_EMPTY: {
+
+                if( BaikalSettings.getAppRestricted(appId,app.info.packageName) ) {
+                    Slog.i(TAG,"applyOomAdjLocked: killing restricted cached app: " + app.info.packageName + "/" + app.info.uid);
+                    try {
+                        for (int is = app.mServices.size()-1;is >= 0; is--) {
+                            ServiceRecord s = app.mServices.valueAt(is);
+        	                s.delayed = false;
+                            s.stopIfKilled = true;
+                        } 
+                    } catch (Exception e) {
+                    }
+                    return 2;
+                }
+
 
                 if ( BaikalSettings.getStaminaMode() && (app.lastActivityTime > oldTimeStamina) ) {
                     if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: CEM stamina: active " + app.info.packageName + "/" + app.info.uid);
@@ -254,7 +269,7 @@ public class BaikalActivityServiceStatic {
                     }
                 } 
 
-                if( DEBUG ) Slog.i(TAG,"applyOomAdjLocked: killing cached app: " + app.info.packageName + "/" + app.info.uid);
+                /*if( DEBUG ) */ Slog.i(TAG,"applyOomAdjLocked: killing cached app: " + app.info.packageName + "/" + app.info.uid);
                 try {
                     for (int is = app.mServices.size()-1;is >= 0; is--) {
                         ServiceRecord s = app.mServices.valueAt(is);
