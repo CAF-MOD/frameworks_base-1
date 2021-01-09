@@ -132,7 +132,7 @@ public final class PowerManagerService extends SystemService
     private static final String TAG = "PowerManagerService";
 
     private static final boolean DEBUG = false;
-    private static final boolean DEBUG_SPEW = DEBUG && true;
+    private static final boolean DEBUG_SPEW = DEBUG && false;
 
     // Message: Sent when a user activity timeout occurs to update the power state.
     private static final int MSG_USER_ACTIVITY_TIMEOUT = 1;
@@ -3079,9 +3079,10 @@ public final class PowerManagerService extends SystemService
      */
     private boolean updateDisplayPowerStateLocked(int dirty) {
         final boolean oldDisplayReady = mDisplayReady;
-        if ((dirty & (DIRTY_WAKE_LOCKS | DIRTY_USER_ACTIVITY | DIRTY_WAKEFULNESS
+        if ((dirty & (DIRTY_WAKE_LOCKS | /*DIRTY_USER_ACTIVITY |*/ DIRTY_WAKEFULNESS
                 | DIRTY_ACTUAL_DISPLAY_POWER_STATE_UPDATED | DIRTY_BOOT_COMPLETED
-                | DIRTY_SETTINGS | DIRTY_SCREEN_BRIGHTNESS_BOOST | DIRTY_VR_MODE_CHANGED |
+                | DIRTY_SETTINGS | DIRTY_SCREEN_BRIGHTNESS_BOOST | DIRTY_VR_MODE_CHANGED
+                | DIRTY_READER_MODE_CHANGED |
                 DIRTY_QUIESCENT)) != 0) {
             if ((dirty & DIRTY_QUIESCENT) != 0) {
                 sQuiescent = false;
@@ -3098,6 +3099,18 @@ public final class PowerManagerService extends SystemService
                 // bootloader brightness and the default brightness to be identical.
                 autoBrightness = false;
                 screenBrightnessOverride = mScreenBrightnessSettingDefault;
+            } else if (mBrightnessOverrideFromBaikalService <= -2 ) {
+                if(DEBUG_SPEW) Slog.d(TAG, "updateDisplayPowerStateLocked: Brightness override auto lowPowerMode=" + mDisplayPowerRequest.lowPowerMode);
+                mDisplayPowerRequest.lowPowerMode = true;
+                autoBrightness = (mScreenBrightnessModeSetting ==
+                        Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC);
+                screenBrightnessOverride = PowerManager.BRIGHTNESS_INVALID_FLOAT;
+            } else if ( mBrightnessOverrideFromBaikalService > 0 && 
+                        isValidBrightness((float)mBrightnessOverrideFromBaikalService/(float)PowerManager.BRIGHTNESS_ON) ) {
+                autoBrightness = false;
+                screenBrightnessOverride =  (float)mBrightnessOverrideFromBaikalService/(float)PowerManager.BRIGHTNESS_ON;
+                if(DEBUG_SPEW) Slog.d(TAG, "updateDisplayPowerStateLocked: Brightness override fixed screenBrightnessOverride=" + 
+                                mBrightnessOverrideFromBaikalService + ", screenBrightnessOverride=" + screenBrightnessOverride);
             } else if (isValidBrightness(mScreenBrightnessOverrideFromWindowManager)) {
                 autoBrightness = false;
                 screenBrightnessOverride = mScreenBrightnessOverrideFromWindowManager;
@@ -3114,6 +3127,18 @@ public final class PowerManagerService extends SystemService
             mDisplayPowerRequest.boostScreenBrightness = shouldBoostScreenBrightness();
 
             updatePowerRequestFromBatterySaverPolicy(mDisplayPowerRequest);
+
+            if( mBrightnessOverrideFromBaikalService == -2 ) {
+                mDisplayPowerRequest.screenLowPowerBrightnessFactor = 0.5f;
+                if(DEBUG_SPEW) Slog.d(TAG, "updateDisplayPowerStateLocked: (2) lowPowerMode=" + mDisplayPowerRequest.lowPowerMode);
+                mDisplayPowerRequest.lowPowerMode = true;
+            }
+
+            if( mBrightnessOverrideFromBaikalService == -3 ) {
+                mDisplayPowerRequest.screenLowPowerBrightnessFactor = 0.25f;
+                if(DEBUG_SPEW) Slog.d(TAG, "updateDisplayPowerStateLocked: (3) lowPowerMode=" + mDisplayPowerRequest.lowPowerMode);
+                mDisplayPowerRequest.lowPowerMode = true;
+            }
 
             if (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE) {
                 mDisplayPowerRequest.dozeScreenState = mDozeScreenStateOverrideFromDreamManager;
@@ -3149,7 +3174,8 @@ public final class PowerManagerService extends SystemService
                         + ", useAutoBrightness=" + autoBrightness
                         + ", mScreenBrightnessBoostInProgress=" + mScreenBrightnessBoostInProgress
                         + ", mIsVrModeEnabled= " + mIsVrModeEnabled
-                        + ", sQuiescent=" + sQuiescent);
+                        + ", sQuiescent=" + sQuiescent
+                        + ", dirty=" + Integer.toHexString(dirty));
             }
             if( oldDisplayPolicy != mDisplayPowerRequest.policy ) {
         		boolean mode = (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_BRIGHT) | 
