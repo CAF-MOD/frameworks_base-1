@@ -598,6 +598,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     DisplayRotation mDefaultDisplayRotation;
     DisplayPolicy mDefaultDisplayPolicy;
 
+    // The volume key answer
+    boolean mVolumeAnswer;
+
     // What we do when the user long presses on home
     private int mLongPressOnHomeBehavior;
 
@@ -950,6 +953,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.VOLUME_ROCKER_WAKE), false, this,
+                    UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.ANSWER_VOLUME_BUTTON_BEHAVIOR_ANSWER), false, this,
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.VOLUME_BUTTON_MUSIC_CONTROL), false, this,
@@ -2617,6 +2623,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mVolumeMusicControl = Settings.System.getIntForUser(resolver,
                     Settings.System.VOLUME_BUTTON_MUSIC_CONTROL, 0,
                     UserHandle.USER_CURRENT) != 0;
+
+            // volume rocker answer
+            mVolumeAnswer = (Settings.System.getIntForUser(resolver,
+                    Settings.System.ANSWER_VOLUME_BUTTON_BEHAVIOR_ANSWER, 0,
+                    UserHandle.USER_CURRENT) != 0);
 
             // Configure wake gesture.
             boolean wakeGestureEnabledSetting = Settings.Secure.getIntForUser(resolver,
@@ -4770,7 +4781,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
                             // Silence the ringer.  (It's safe to call this
                             // even if the ringer has already been silenced.)
-                            telecomManager.silenceRinger();
+
+                            if (mVolumeAnswer) {
+                                 telecomManager.acceptRingingCall();
+                            } else {
+                                telecomManager.silenceRinger();
+                            }
 
                             // And *don't* pass this key thru to the current activity
                             // (which is probably the InCallScreen.)
