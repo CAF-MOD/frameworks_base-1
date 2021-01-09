@@ -56,7 +56,7 @@ import java.util.List;
 public class CPUInfoService extends Service {
     private View mView;
     private Thread mCurCPUThread;
-    private final String TAG = "CPUInfoService";
+    private final static String TAG = "CPUInfoService";
     private PowerManager mPowerManager;
     private int mNumCpus = 1;
     private String[] mCurrFreq=null;
@@ -88,6 +88,8 @@ public class CPUInfoService extends Service {
     private boolean mBatTempAvail;
     private boolean mPowerProfileAvail = true;
     private boolean mThermalProfileAvail = true;
+
+    private static boolean mIsolationSupported = true;
 
     private class CPUView extends View {
         private Paint mOnlinePaint;
@@ -254,50 +256,58 @@ public class CPUInfoService extends Service {
 
             int y = mPaddingTop - (int)mAscent;
 
-            if(!mCpuTemp.equals("0")) {
+            if(!mCpuTemp.equals("-")) {
                 canvas.drawText("CPU " + getCpuTemp(mCpuTemp) + "°C",
                         RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
                 y += mFH;
             }
-            if(!mSysTemp.equals("0")) {
+            if(!mSysTemp.equals("-")) {
                 canvas.drawText("SYS " + getSysTemp(mSysTemp) + "°C",
                         RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
                 y += mFH;
             }
-            if(!mBatTemp.equals("0")) {
+            if(!mBatTemp.equals("-")) {
                 canvas.drawText("BAT " + getBatTemp(mBatTemp) + "°C",
                         RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
                 y += mFH;
             }
 
-            canvas.drawText("PWR " + mPowerProfile,
-                    RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
-            y += mFH;
+            if(!mPowerProfile.equals("-")) {
+                canvas.drawText("PWR " + mPowerProfile,
+                        RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
+                y += mFH;
+            }
 
-            canvas.drawText("TRM " + mThermalProfile,
-                    RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
-            y += mFH;
+            if(!mThermalProfile.equals("-")) {
+                canvas.drawText("TRM " + mThermalProfile,
+                        RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
+                y += mFH;
+            }
 
             
-            canvas.drawText("gpu:" + mGpuFreq + " MHz",
-                    RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
-            y += mFH;
+            if(!mGpuFreq.equals("-")) {
+                canvas.drawText("gpu:" + mGpuFreq + " MHz",
+                        RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
+                y += mFH;
+            }
 
             for(int i=0; i<mCurrFreq.length; i++){
                 String s=getCPUInfoString(i);
                 String freq=mCurrFreq[i];
-                if(freq.equals("0") || freq.equals("off") ){
-                    canvas.drawText(s, RIGHT-mPaddingRight-mMaxWidth,
-                        y-1, mOfflinePaint);
+                if(!freq.equals("-")) {
+                    if(freq.equals("0") || freq.equals("off") ){
+                        canvas.drawText(s, RIGHT-mPaddingRight-mMaxWidth,
+                            y-1, mOfflinePaint);
 
-                } else if ( freq.equals("iso") ) {
-                    canvas.drawText(s, RIGHT-mPaddingRight-mMaxWidth,
-                        y-1, mIsolatedPaint);
-                } else {
-                    canvas.drawText(s, RIGHT-mPaddingRight-mMaxWidth,
-                        y-1, mOnlinePaint);
+                    } else if ( freq.equals("iso") ) {
+                        canvas.drawText(s, RIGHT-mPaddingRight-mMaxWidth,
+                            y-1, mIsolatedPaint);
+                    } else {
+                        canvas.drawText(s, RIGHT-mPaddingRight-mMaxWidth,
+                            y-1, mOnlinePaint);
+                    }
+                    y += mFH;
                 }
-                y += mFH;
             }
         }
 
@@ -395,14 +405,21 @@ public class CPUInfoService extends Service {
                     sb.append(sGpuFreq == null ? "-" : sGpuFreq);
                     sb.append(";");
                     
+                    
 
                     for(int i=0; i<mNumCpus; i++){
                         final String freqFile=CPU_ROOT+i+CPU_CUR_TAIL;
                         String currFreq = CPUInfoService.readOneLine(freqFile);
                         final String govFile=CPU_ROOT+i+CPU_GOV_TAIL;
                         String currGov = CPUInfoService.readOneLine(govFile);
+
                         final String isoFile=CPU_ROOT+i+CPU_ISO_TAIL;
-                        String currIso = CPUInfoService.readOneLine(isoFile);
+                        String currIso = "-";
+                        if( mIsolationSupported ) currIso = CPUInfoService.readOneLine(isoFile);
+                        if( currIso == null && i == 0 ) {
+                            mIsolationSupported = false;
+                        }
+
                         final String offFile=CPU_ROOT+i+CPU_OFF_TAIL;
                         String currOff = CPUInfoService.readOneLine(offFile);
 
@@ -456,6 +473,8 @@ public class CPUInfoService extends Service {
         Log.e(TAG, "CPU_TEMP_SENSOR_NUMBER " + CPU_TEMP_SENSOR_NUMBER);
 
         Log.e(TAG, "CPU_TEMP_SENSOR " + CPU_TEMP_SENSOR);
+        Log.e(TAG, "BAT_TEMP_SENSOR " + BAT_TEMP_SENSOR);
+        Log.e(TAG, "SYS_TEMP_SENSOR " + SYS_TEMP_SENSOR);
 
         Log.e(TAG, "GPU_FREQ_SENSOR " + GPU_FREQ_SENSOR);
 
@@ -538,6 +557,7 @@ public class CPUInfoService extends Service {
                 br.close();
             }
         } catch (Exception e) {
+            //Log.e(TAG, "Can't read: " + fname, e);
             return null;
         }
         return line;
