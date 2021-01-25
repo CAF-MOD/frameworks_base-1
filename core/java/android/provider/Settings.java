@@ -6498,12 +6498,6 @@ public final class Settings {
         public static final String KEY_CAMERA_DOUBLE_TAP_ACTION = "key_camera_double_tap_action";
 
         /**
-         * Whether to show arrow keys in navigation bar
-         * @hide
-         */
-        public static final String NAVIGATION_BAR_ARROW_KEYS = "navigation_bar_menu_arrow_keys";
-
-        /**
         * Whether to show battery light when DND mode is active
         * @hide
         */
@@ -6779,6 +6773,48 @@ public final class Settings {
          */
         public static final String RIGHT_VERTICAL_BACK_SWIPE_APP_ACTIVITY_ACTION = "right_vertical_back_swipe_app_activity_action";
 
+        /**
+         * Whether to change the transparency of the qs panel
+         * @hide
+         */
+        public static final String QS_PANEL_BG_ALPHA = "qs_panel_bg_alpha";
+
+        /**
+         * Show the pending notification counts as overlays on the status bar
+         * @hide
+         */
+        public static final String STATUS_BAR_NOTIF_COUNT = "status_bar_notif_count";
+
+        /**
+         * Adaptive playback
+         * Automatically pause media when the volume is muted and
+         * will resume automatically when volume is restored.
+         *   0 = disabled
+         *   1 = enabled
+         * @hide
+         */
+        public static final String ADAPTIVE_PLAYBACK_ENABLED = "adaptive_playback_enabled";
+
+        /**
+         * Adaptive playback's timeout in ms
+         * @hide
+         */
+        public static final String ADAPTIVE_PLAYBACK_TIMEOUT = "adaptive_playback_timeout";
+
+        /**
+         * Disable QSMediaPlayer horizontal layout
+         * @hide
+         */
+        public static final String QS_MEDIAPLAYER_IGNORE_LAYOUT_CHANGE = "qsmplayer_ignore_layout_change";
+
+        /**
+         * Whether to show Fahrenheit or Celsius with battery info on the
+         * lockscreen while charging
+         *
+         * @hide
+         */
+        public static final String LOCKSCREEN_BATTERY_INFO_TEMP_UNIT = "lockscreen_charge_temp_unit";
+
         /***************************
          * AICP System Settings end
          ***************************/
@@ -6991,7 +7027,6 @@ public final class Settings {
             AICP_SETTINGS_VALIDATORS.put(KEY_APP_SWITCH_DOUBLE_TAP_CUSTOM_APP_FR_NAME, ANY_STRING_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(KEY_CAMERA_LONG_PRESS_ACTION, ANY_INTEGER_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(KEY_CAMERA_DOUBLE_TAP_ACTION, ANY_INTEGER_VALIDATOR);
-            AICP_SETTINGS_VALIDATORS.put(NAVIGATION_BAR_ARROW_KEYS, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(BATTERY_LIGHT_ALLOW_ON_DND, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(BATTERY_LIGHT_LOW_BLINKING, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(BATTERY_LIGHT_LOW_COLOR, ANY_INTEGER_VALIDATOR);
@@ -7018,6 +7053,12 @@ public final class Settings {
             AICP_SETTINGS_VALIDATORS.put(CAMERA_SLEEP_ON_RELEASE, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(CAMERA_LAUNCH, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(OFF_GESTURE_HAPTIC_ENABLE, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(QS_PANEL_BG_ALPHA, ANY_INTEGER_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(STATUS_BAR_NOTIF_COUNT, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(ADAPTIVE_PLAYBACK_ENABLED, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(ADAPTIVE_PLAYBACK_TIMEOUT, ANY_INTEGER_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(QS_MEDIAPLAYER_IGNORE_LAYOUT_CHANGE, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(LOCKSCREEN_BATTERY_INFO_TEMP_UNIT, BOOLEAN_VALIDATOR);
         }
 
         /**
@@ -10615,7 +10656,8 @@ public final class Settings {
 
         /**
          * What behavior should be invoked when the volume hush gesture is triggered
-         * One of VOLUME_HUSH_OFF, VOLUME_HUSH_VIBRATE, VOLUME_HUSH_MUTE, VOLUME_HUSH_MUTE_NO_MEDIA.
+         * One of VOLUME_HUSH_OFF, VOLUME_HUSH_VIBRATE, VOLUME_HUSH_MUTE,
+         * VOLUME_HUSH_MUTE_NO_MEDIA, VOLUME_HUSH_CYCLE
          *
          * @hide
          */
@@ -10634,6 +10676,9 @@ public final class Settings {
         /** @hide */
         @SystemApi
         public static final int VOLUME_HUSH_MUTE_NO_MEDIA = 3;
+        /** @hide */
+        @SystemApi
+        public static final int VOLUME_HUSH_CYCLE = 4;
 
         /**
          * The number of times (integer) the user has manually enabled battery saver.
@@ -10958,17 +11003,135 @@ public final class Settings {
          */
         public static final String SHOW_BACK_ARROW_GESTURE = "show_back_arrow_gesture";
 
-        /** Width of the navigation handle.
-         *  @hide
-         */
-        public static final String NAVIGATION_HANDLE_WIDTH = "navigation_handle_width";
-
         /**
          * Whether tethering is allowed to use VPN upstreams
          * 0 = false, 1 = true
          * @hide
          */
         public static final String TETHERING_ALLOW_VPN_UPSTREAMS = "tethering_allow_vpn_upstreams";
+
+        /**
+         * Pulse navbar music visualizer
+         *
+         * @hide
+         */
+        public static final String PULSE_ENABLED = "navbar_pulse_enabled";
+
+        /**
+         * Pulse lockscreen music visualizer
+         * @hide
+         */
+        public static final String LOCKSCREEN_PULSE_ENABLED = "lockscreen_pulse_enabled";
+
+        /**
+         * Pulse navbar music visualizer color type
+         *
+         * @hide
+         */
+        public static final String PULSE_COLOR_TYPE = "navbar_pulse_color_type";
+
+        /**
+         * Pulse music visualizer user defined color
+         *
+         * @hide
+         */
+        public static final String PULSE_COLOR_USER = "navbar_pulse_color_user";
+
+        /**
+         * Pulse lavalamp animation speed
+         *
+         * @hide
+         */
+        public static final String PULSE_LAVALAMP_SPEED = "navbar_pulse_lavalamp_speed";
+
+        /**
+         * Pulse renderer implementation
+         *
+         * @hide
+         */
+        public static final String PULSE_RENDER_STYLE_URI = "navbar_pulse_render_style";
+
+        /**
+         * Custom Pulse Widths
+         * @hide
+         */
+        public static final String PULSE_CUSTOM_DIMEN = "pulse_custom_dimen";
+
+        /**
+         * Custom Spacing Between Pulse Bars
+         * @hide
+         */
+        public static final String PULSE_CUSTOM_DIV = "pulse_custom_div";
+
+        /**
+         * Custom Pulse Block Size
+         * @hide
+         */
+        public static final String PULSE_FILLED_BLOCK_SIZE = "pulse_filled_block_size";
+
+        /**
+         * Custom Spacing Between Pulse Blocks
+         * @hide
+         */
+        public static final String PULSE_EMPTY_BLOCK_SIZE = "pulse_empty_block_size";
+
+        /**
+         * Custom Pulse Sanity Levels
+         * @hide
+         */
+        public static final String PULSE_CUSTOM_FUDGE_FACTOR = "pulse_custom_fudge_factor";
+
+        /**
+         * Pulse Fudge Factor
+         * @hide
+         */
+        public static final String PULSE_SOLID_FUDGE_FACTOR = "pulse_solid_fudge_factor";
+
+        /**
+         * Pulse Solid units count
+         * @hide
+         */
+        public static final String PULSE_SOLID_UNITS_COUNT = "pulse_solid_units_count";
+
+        /**
+         * Pulse Solid units opacity
+         * @hide
+         */
+        public static final String PULSE_SOLID_UNITS_OPACITY = "pulse_solid_units_opacity";
+
+        /**
+         * Pulse uses FFT averaging
+         * @hide
+         */
+        public static final String PULSE_SMOOTHING_ENABLED = "pulse_smoothing_enabled";
+
+        /**
+         * Pulse ambient music visualizer
+         * @hide
+         */
+        public static final String AMBIENT_PULSE_ENABLED = "ambient_pulse_enabled";
+
+        /**
+         * boolean value. toggles swipe up hint in gestural nav mode
+         * @hide
+         */
+        public static final String NAVIGATION_BAR_HINT = "navigation_bar_hint";
+
+        /**
+         * Width of the navigation handle.
+         * @hide
+         */
+        public static final String NAVIGATION_HANDLE_WIDTH = "navigation_handle_width";
+
+        /**
+         * @hide
+         */
+        public static final String ADVANCED_REBOOT = "advanced_reboot_in_power_menu";
+
+        /**
+         * @hide
+         */
+        public static final String  SCREENSHOT_IN_POWER_MENU = "screenshot_in_power_menu";
 
         /*****************************
          * AICP Secure Settings end

@@ -17,7 +17,6 @@
 package com.android.systemui.statusbar.phone;
 
 import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_GESTURAL;
-import static android.view.WindowManagerPolicyConstants.NAV_BAR_MODE_GESTURAL_OVERLAY;
 
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_HOME_DISABLED;
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_NOTIFICATION_PANEL_EXPANDED;
@@ -39,7 +38,6 @@ import android.annotation.DrawableRes;
 import android.annotation.Nullable;
 import android.app.StatusBarManager;
 import android.content.Context;
-import android.content.om.IOverlayManager;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Point;
@@ -47,8 +45,6 @@ import android.graphics.Rect;
 import android.graphics.Region;
 import android.graphics.Region.Op;
 import android.os.Bundle;
-import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.AttributeSet;
@@ -87,7 +83,6 @@ import com.android.systemui.statusbar.CommandQueue;
 import com.android.systemui.statusbar.NavigationBarController;
 import com.android.systemui.statusbar.policy.DeadZone;
 import com.android.systemui.statusbar.policy.KeyButtonDrawable;
-import com.android.systemui.statusbar.policy.KeyButtonView;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -128,8 +123,6 @@ public class NavigationBarView extends FrameLayout implements
     private KeyButtonDrawable mHomeDefaultIcon;
     private KeyButtonDrawable mRecentIcon;
     private KeyButtonDrawable mDockedIcon;
-    private KeyButtonDrawable mArrowLeftIcon;
-    private KeyButtonDrawable mArrowRightIcon;
 
     private EdgeBackGestureHandler mEdgeBackGestureHandler;
     private final DeadZone mDeadZone;
@@ -162,7 +155,7 @@ public class NavigationBarView extends FrameLayout implements
     private FloatingRotationButton mFloatingRotationButton;
     private RotationButtonController mRotationButtonController;
 
-    private final IOverlayManager mOverlayManager;
+    private boolean mHomeHandleForceHidden;
 
     /**
      * Helper that is responsible for showing the right toast when a disallowed activity operation
@@ -345,8 +338,6 @@ public class NavigationBarView extends FrameLayout implements
                         .getDimensionPixelSize(R.dimen.navigation_handle_sample_horizontal_margin);
         mEdgeBackGestureHandler = new EdgeBackGestureHandler(context, mOverviewProxyService,
                 mSysUiFlagContainer, mPluginManager, this::updateStates);
-        mOverlayManager = IOverlayManager.Stub.asInterface(
-                ServiceManager.getService(Context.OVERLAY_SERVICE));
         mRegionSamplingHelper = new RegionSamplingHelper(this,
                 new RegionSamplingHelper.SamplingCallback() {
                     @Override
@@ -509,10 +500,6 @@ public class NavigationBarView extends FrameLayout implements
         return mOverviewProxyService.shouldShowSwipeUpUI() && isOverviewEnabled();
     }
 
-    public KeyButtonView getKeyButtonViewById(int id) {
-          return (KeyButtonView) getCurrentView().findViewById(id);
-    }
-
     private void reloadNavIcons() {
         updateIcons(Configuration.EMPTY);
     }
@@ -533,8 +520,6 @@ public class NavigationBarView extends FrameLayout implements
         if (orientationChange || densityChange || dirChange) {
             mBackIcon = getBackDrawable();
         }
-        mArrowLeftIcon = getDrawable(R.drawable.ic_navbar_chevron_left);
-        mArrowRightIcon = getDrawable(R.drawable.ic_navbar_chevron_right);
     }
 
     public KeyButtonDrawable getBackDrawable() {
@@ -656,7 +641,6 @@ public class NavigationBarView extends FrameLayout implements
         mImeVisible = visible;
         mEdgeBackGestureHandler.setImeVisible(mImeVisible);
         mRotationButtonController.getRotationButton().setCanShowRotationButton(!mImeVisible);
-        mFloatingRotationButton.setCanShowRotationButton(!mImeVisible);
     }
 
     public void setDisabledFlags(int disabledFlags) {
@@ -693,21 +677,9 @@ public class NavigationBarView extends FrameLayout implements
 
         updateRecentsIcon();
 
-        // Update arrow buttons
-        if (showDpadArrowKeys()) {
-            getKeyButtonViewById(R.id.dpad_left).setImageDrawable(mArrowLeftIcon);
-            getKeyButtonViewById(R.id.dpad_right).setImageDrawable(mArrowRightIcon);
-            updateDpadKeys();
-        }
-
         // Update IME button visibility, a11y and rotate button always overrides the appearance
         mContextualButtonGroup.setButtonVisibility(R.id.ime_switcher,
                 (mNavigationIconHints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN) != 0);
-
-        // right arrow overrules ime in 3 button mode cause there is not enough space
-        if (QuickStepContract.isLegacyMode(mNavBarMode) && showDpadArrowKeys()) {
-            mContextualButtonGroup.setButtonVisibility(R.id.ime_switcher, false);
-        }
 
         mBarTransitions.reapplyDarkIntensity();
 
@@ -751,8 +723,26 @@ public class NavigationBarView extends FrameLayout implements
         getBackButton().setVisibility(disableBack       ? View.INVISIBLE : View.VISIBLE);
         getHomeButton().setVisibility(disableHome       ? View.INVISIBLE : View.VISIBLE);
         getRecentsButton().setVisibility(disableRecent  ? View.INVISIBLE : View.VISIBLE);
-        getHomeHandle().setVisibility(disableHomeHandle ? View.INVISIBLE : View.VISIBLE);
+        getHomeHandle().setVisibility(disableHomeHandle|| mHomeHandleForceHidden || !isHintEnabled()
+                ? View.INVISIBLE : View.VISIBLE);
         notifyActiveTouchRegions();
+    }
+
+    public void hideHomeHandle(boolean hide) {
+        mHomeHandleForceHidden = hide;
+        boolean disableRecent = isRecentsButtonDisabled() | !QuickStepContract.isLegacyMode(mNavBarMode);
+        boolean disableHomeHandle = disableRecent
+                && ((mDisabledFlags & View.STATUS_BAR_DISABLE_HOME) != 0);
+        getHomeHandle().setVisibility(disableHomeHandle || hide || !isHintEnabled()
+                ? View.INVISIBLE : View.VISIBLE);
+    }
+
+    public boolean isHintEnabled() {
+        return mNavigationInflaterView.isHintEnabled();
+    }
+
+    public boolean isHomeHandleForceHidden() {
+        return mHomeHandleForceHidden;
     }
 
     @VisibleForTesting
@@ -926,15 +916,8 @@ public class NavigationBarView extends FrameLayout implements
 
     @Override
     public void onSettingsChanged() {
-        if (isGesturalMode(mNavBarMode)) {
-            try {
-                mOverlayManager.setEnabled(NAV_BAR_MODE_GESTURAL_OVERLAY, false, UserHandle.USER_CURRENT);
-                mOverlayManager.setEnabledExclusiveInCategory(NAV_BAR_MODE_GESTURAL_OVERLAY, UserHandle.USER_CURRENT);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failed to refresh navbar.");
-            }
-        }
         mEdgeBackGestureHandler.onSettingsChanged();
+        getHomeHandle().getCurrentView().invalidate();
     }
 
     public void setAccessibilityButtonState(final boolean visible, final boolean longClickable) {
@@ -990,7 +973,7 @@ public class NavigationBarView extends FrameLayout implements
     private void updateSamplingRect() {
         mSamplingBounds.setEmpty();
         // TODO: Extend this to 2/3 button layout as well
-        View view = getHomeHandle().getCurrentView();
+        View view = isHintEnabled() ? getHomeHandle().getCurrentView() : null;
 
         if (view != null) {
             int[] pos = new int[2];
@@ -1106,6 +1089,10 @@ public class NavigationBarView extends FrameLayout implements
     public void showPinningEscapeToast() {
         mScreenPinningNotify.showEscapeToast(
                 mNavBarMode == NAV_BAR_MODE_GESTURAL, isRecentsButtonVisible());
+    }
+
+    public NavigationBarFrame getNavbarFrame() {
+        return ((NavigationBarFrame) getRootView());
     }
 
     public boolean isVertical() {
@@ -1382,24 +1369,4 @@ public class NavigationBarView extends FrameLayout implements
         mDockedStackExists = exists;
         updateRecentsIcon();
     });
-
-    private void updateDpadKeys() {
-        final int visibility = showDpadArrowKeys() && (mNavigationIconHints
-                & StatusBarManager.NAVIGATION_HINT_BACK_ALT) != 0 ? View.VISIBLE : View.GONE;
-
-        getKeyButtonViewById(R.id.dpad_left).setVisibility(visibility);
-        getKeyButtonViewById(R.id.dpad_right).setVisibility(visibility);
-    }
-
-    public void setDpadDarkIntensity(float darkIntensity) {
-        if (showDpadArrowKeys()) {
-            getKeyButtonViewById(R.id.dpad_left).setDarkIntensity(darkIntensity);
-            getKeyButtonViewById(R.id.dpad_right).setDarkIntensity(darkIntensity);
-        }
-    }
-
-    private boolean showDpadArrowKeys() {
-        return Settings.System.getIntForUser(getContext().getContentResolver(),
-                Settings.System.NAVIGATION_BAR_ARROW_KEYS, 0, UserHandle.USER_CURRENT) != 0;
-    }
 }

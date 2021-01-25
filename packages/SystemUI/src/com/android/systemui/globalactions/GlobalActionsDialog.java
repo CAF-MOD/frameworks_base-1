@@ -706,11 +706,15 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             } else if (GLOBAL_ACTION_KEY_RESTART.equals(actionKey)) {
                 addIfShouldShowAction(tempActions, restartAction);
                 // if Restart action is available, add advanced restart actions too
-                addIfShouldShowAction(tempActions, restartBootloaderAction);
-                addIfShouldShowAction(tempActions, restartRecoveryAction);
-                addIfShouldShowAction(tempActions, restartSystemUiAction);
+                if (advancedRebootEnabled(mContext)) {
+                    addIfShouldShowAction(tempActions, restartBootloaderAction);
+                    addIfShouldShowAction(tempActions, restartRecoveryAction);
+                    addIfShouldShowAction(tempActions, restartSystemUiAction);
+                }
             } else if (GLOBAL_ACTION_KEY_SCREENSHOT.equals(actionKey)) {
-                addIfShouldShowAction(tempActions, new ScreenshotAction());
+                if (screenshotEnabled(mContext)) {
+                    addIfShouldShowAction(tempActions, new ScreenshotAction());
+                }
             } else if (GLOBAL_ACTION_KEY_LOGOUT.equals(actionKey)) {
                 if (mDevicePolicyManager.isLogoutEnabled()
                         && currentUser.get() != null
@@ -731,7 +735,7 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             addedKeys.add(actionKey);
         }
 
-        if (tempActions.contains(restartAction)) {
+        if (tempActions.contains(restartAction) && advancedRebootEnabled(mContext)) {
             // transfer restart and advanced restart to their own list of power actions
             // and position it where Reset button was supposed to be
             int powerOptionsIndex = tempActions.indexOf(restartAction);
@@ -748,12 +752,26 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             // add the PowerOptionsAction after Emergency and Shutdown action, if present
             tempActions.add(powerOptionsIndex, new PowerOptionsAction());
         }
+        // replace power and restart with a single power options action, if needed
+        if (tempActions.contains(shutdownAction) && tempActions.contains(restartAction)
+                && tempActions.size() > getMaxShownPowerItems()) {
+            // transfer shutdown and restart to their own list of power actions
+            int powerOptionsIndex = Math.min(tempActions.indexOf(restartAction),
+                    tempActions.indexOf(shutdownAction));
+            tempActions.remove(shutdownAction);
+            tempActions.remove(restartAction);
+            mPowerItems.add(shutdownAction);
+            mPowerItems.add(restartAction);
+            // add the PowerOptionsAction after Emergency and Shutdown action, if present
+            tempActions.add(powerOptionsIndex, new PowerOptionsAction());
+        }
+
         // Add also Power to power actions list, if needed
         if (tempActions.contains(shutdownAction) && mPowerItems.size() > 1
                 /*tempActions.size gets in count already PowerOptionsAction if added*/
                 && tempActions.size() > getMaxShownPowerItems()) {
             tempActions.remove(shutdownAction);
-        } else {
+        } else if (tempActions.contains(shutdownAction) && mPowerItems.contains(shutdownAction)) {
             mPowerItems.remove(shutdownAction);
         }
         for (Action action : tempActions) {
@@ -823,6 +841,17 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
         int state = mLockPatternUtils.getStrongAuthForUser(userId);
         return (state == STRONG_AUTH_NOT_REQUIRED
                 || state == SOME_AUTH_REQUIRED_AFTER_USER_REQUEST);
+    }
+
+    private boolean advancedRebootEnabled(Context context) {
+        boolean advancedRebootEnabled = Settings.Secure.getIntForUser(context.getContentResolver(),
+                Settings.Secure.ADVANCED_REBOOT, 0, UserHandle.USER_CURRENT) == 1;
+        return advancedRebootEnabled;
+    }
+
+    private boolean screenshotEnabled(Context context) {
+        return Settings.Secure.getIntForUser(context.getContentResolver(),
+                Settings.Secure.SCREENSHOT_IN_POWER_MENU, 1, UserHandle.USER_CURRENT) == 1;
     }
 
     @VisibleForTesting

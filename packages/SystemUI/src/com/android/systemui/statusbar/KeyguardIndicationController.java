@@ -551,6 +551,11 @@ public class KeyguardIndicationController implements StateListener,
                             ? R.string.keyguard_indication_vooc_charging_time
                             : R.string.keyguard_plugged_in_vooc_charging;
                     break;
+                case BatteryStatus.CHARGING_TURBO_POWER:
+                    chargingId = hasChargingTime
+                            ? R.string.keyguard_indication_turbo_power_time
+                            : R.string.keyguard_plugged_in_turbo_charging;
+                    break;
                 case BatteryStatus.CHARGING_SLOWLY:
                     chargingId = hasChargingTime
                             ? R.string.keyguard_indication_charging_time_slowly
@@ -571,6 +576,8 @@ public class KeyguardIndicationController implements StateListener,
         String batteryInfo = "";
         boolean showbatteryInfo = Settings.System.getIntForUser(mContext.getContentResolver(),
             Settings.System.LOCKSCREEN_BATTERY_INFO, 0, UserHandle.USER_CURRENT) == 1;
+        boolean batteryTempUnit = Settings.System.getIntForUser(mContext.getContentResolver(),
+            Settings.System.LOCKSCREEN_BATTERY_INFO_TEMP_UNIT, 1, UserHandle.USER_CURRENT) == 0;
 
         if (showbatteryInfo) {
             if (mChargingCurrent > 0) {
@@ -579,12 +586,17 @@ public class KeyguardIndicationController implements StateListener,
                           mChargingCurrent : (mChargingCurrent / 1000))) + "mA" ;
             }
             if (mChargingVoltage > 0) {
-                batteryInfo = (batteryInfo == "" ? "" : batteryInfo + " · ") +
+                batteryInfo = (batteryInfo == "" ? "" : batteryInfo + " • ") +
                         String.format("%.1f", (mChargingVoltage / 1000 / 1000)) + "V";
             }
             if (mTemperature > 0) {
-                batteryInfo = (batteryInfo == "" ? "" : batteryInfo + " · ") +
-                        mTemperature / 10 + "°C";
+                if (batteryTempUnit) {
+                    batteryInfo = (batteryInfo == "" ? "" : batteryInfo + " • ") +
+                            Math.round(mTemperature / 10 * 9f / 5f + 32) + "°F";
+                } else {
+                    batteryInfo = (batteryInfo == "" ? "" : batteryInfo + " • ") +
+                            mTemperature / 10 + "°C";
+                }
             }
             if (batteryInfo != "") {
                 batteryInfo = "\n" + batteryInfo;

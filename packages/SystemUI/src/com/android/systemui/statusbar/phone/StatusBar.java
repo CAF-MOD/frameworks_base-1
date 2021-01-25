@@ -217,6 +217,7 @@ import com.android.systemui.statusbar.StatusBarState;
 import com.android.systemui.statusbar.SuperStatusBarViewFactory;
 import com.android.systemui.statusbar.SysuiStatusBarStateController;
 import com.android.systemui.statusbar.VibratorHelper;
+import com.android.systemui.navigation.pulse.VisualizerView;
 import com.android.systemui.statusbar.notification.ActivityLaunchAnimator;
 import com.android.systemui.statusbar.notification.DynamicPrivacyController;
 import com.android.systemui.statusbar.notification.NotificationActivityStarter;
@@ -245,6 +246,7 @@ import com.android.systemui.statusbar.policy.FlashlightController;
 import com.android.systemui.statusbar.policy.KeyguardUserSwitcher;
 import com.android.systemui.statusbar.policy.NetworkController;
 import com.android.systemui.statusbar.policy.OnHeadsUpChangedListener;
+import com.android.systemui.statusbar.policy.PulseController;
 import com.android.systemui.statusbar.policy.RemoteInputQuickSettingsDisabler;
 import com.android.systemui.statusbar.policy.TaskHelper;
 import com.android.systemui.statusbar.policy.UserInfoControllerImpl;
@@ -590,6 +592,8 @@ public class StatusBar extends SystemUI implements DemoMode,
     private final NotificationLockscreenUserManager mLockscreenUserManager;
     private final NotificationRemoteInputManager mRemoteInputManager;
     private boolean mWallpaperSupported;
+
+    private VisualizerView mVisualizerView;
 
     private final BroadcastReceiver mWallpaperChangedReceiver = new BroadcastReceiver() {
         @Override
@@ -1138,6 +1142,9 @@ public class StatusBar extends SystemUI implements DemoMode,
         mAicpSettingsObserver.observe();
         mAicpSettingsObserver.update();
 
+        // this will initialize Pulse and begin listening for media events
+        mMediaManager.addCallback(Dependency.get(PulseController.class));
+
         mPluginManager.addPluginListener(
                 new PluginListener<OverlayPlugin>() {
                     private ArraySet<OverlayPlugin> mOverlays = new ArraySet<>();
@@ -1357,6 +1364,9 @@ public class StatusBar extends SystemUI implements DemoMode,
         });
 
         mNotificationPanelViewController.setUserSetupComplete(mUserSetup);
+
+        mVisualizerView = (VisualizerView) mNotificationShadeWindowView.findViewById(R.id.visualizerview);
+
         if (UserManager.get(mContext).isUserSwitcherEnabled()) {
             createUserSwitcher();
         }
@@ -1742,7 +1752,7 @@ public class StatusBar extends SystemUI implements DemoMode,
                 && !mDozing
                 && !ONLY_CORE_APPS;
         mNotificationPanelViewController.setQsExpansionEnabled(expandEnabled);
-        Log.d(TAG, "updateQsExpansionEnabled - QS Expand enabled: " + expandEnabled);
+        if (DEBUG) Log.d(TAG, "updateQsExpansionEnabled - QS Expand enabled: " + expandEnabled);
     }
 
     public void addQsTile(ComponentName tile) {
@@ -3681,6 +3691,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         mKeyguardIndicationController.setVisible(false);
         mKeyguardStateController.notifyKeyguardGoingAway(true);
         mCommandQueue.appTransitionPending(mDisplayId, true /* forced */);
+        Dependency.get(PulseController.class).notifyKeyguardGoingAway();
     }
 
     /**
@@ -3737,6 +3748,7 @@ public class StatusBar extends SystemUI implements DemoMode,
                 || (mDozing && mDozeServiceHost.shouldAnimateScreenOff() && visibleNotOccluded);
 
         mNotificationPanelViewController.setDozing(mDozing, animate, mWakeUpTouchLocation);
+        Dependency.get(PulseController.class).setDozing(mDozing);
         updateQsExpansionEnabled();
         Trace.endSection();
     }
@@ -3871,6 +3883,8 @@ public class StatusBar extends SystemUI implements DemoMode,
         checkBarModes();
         updateScrimController();
         mPresenter.updateMediaMetaData(false, mState != StatusBarState.KEYGUARD);
+        Dependency.get(PulseController.class).setKeyguardShowing(mState == StatusBarState.KEYGUARD);
+
         updateKeyguardState();
         Trace.endSection();
     }
@@ -3939,6 +3953,10 @@ public class StatusBar extends SystemUI implements DemoMode,
         mKeyguardIndicationController.showTransientIndication(R.string.phone_hint);
     }
 
+    public void onCustomHintStarted() {
+        mKeyguardIndicationController.showTransientIndication(R.string.custom_hint);
+    }
+
     public void onTrackingStopped(boolean expand) {
         if (mState == StatusBarState.KEYGUARD || mState == StatusBarState.SHADE_LOCKED) {
             if (!expand && !mKeyguardStateController.canDismissLockScreen()) {
@@ -3950,6 +3968,14 @@ public class StatusBar extends SystemUI implements DemoMode,
     // TODO: Figure out way to remove these.
     public NavigationBarView getNavigationBarView() {
         return mNavigationBarController.getNavigationBarView(mDisplayId);
+    }
+
+    public VisualizerView getLsVisualizer() {
+        return mVisualizerView;
+    }
+
+    public VisualizerView getAmVisualizer() {
+        return mVisualizerView;
     }
 
     /**
@@ -4139,6 +4165,9 @@ public class StatusBar extends SystemUI implements DemoMode,
         public void onScreenTurnedOff() {
             mFalsingManager.onScreenOff();
             mScrimController.onScreenTurnedOff();
+            if (mNotificationPanelViewController.isQsExpanded()) {
+                mNotificationPanelViewController.closeQs();
+            }
             updateIsKeyguard();
         }
     };
@@ -4196,7 +4225,7 @@ public class StatusBar extends SystemUI implements DemoMode,
             mLaunchCameraOnFinishedGoingToSleep = true;
             return;
         }
-        if (!mNotificationPanelViewController.canCameraGestureBeLaunched()) {
+        if (!mNotificationPanelViewController.canCameraGestureBeLaunched(source)) {
             if (DEBUG_CAMERA_LIFT) Slog.d(TAG, "Can't launch camera right now");
             return;
         }
@@ -4288,7 +4317,8 @@ public class StatusBar extends SystemUI implements DemoMode,
 
         boolean launchingAffordanceWithPreview =
                 mNotificationPanelViewController.isLaunchingAffordanceWithPreview();
-        mScrimController.setLaunchingAffordanceWithPreview(true);
+        mScrimController.setLaunchingAffordanceWithPreview(launchingAffordanceWithPreview
+                || mBiometricUnlockController.isWakeAndUnlock());
 
         if (mBouncerShowing) {
             // Bouncer needs the front scrim when it's on top of an activity,

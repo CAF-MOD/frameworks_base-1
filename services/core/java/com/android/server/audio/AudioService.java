@@ -22,6 +22,7 @@ import static android.media.AudioManager.RINGER_MODE_SILENT;
 import static android.media.AudioManager.RINGER_MODE_VIBRATE;
 import static android.media.AudioManager.STREAM_SYSTEM;
 import static android.os.Process.FIRST_APPLICATION_UID;
+import static android.provider.Settings.Secure.VOLUME_HUSH_CYCLE;
 import static android.provider.Settings.Secure.VOLUME_HUSH_MUTE;
 import static android.provider.Settings.Secure.VOLUME_HUSH_MUTE_NO_MEDIA;
 import static android.provider.Settings.Secure.VOLUME_HUSH_OFF;
@@ -619,6 +620,16 @@ public class AudioService extends IAudioService.Stub
     public static String makeAlsaAddressString(int card, int device) {
         return "card=" + card + ";device=" + device + ";";
     }
+
+    // only these packages are allowed to override Pulse visualizer lock
+    private static final String[] VISUALIZER_WHITELIST = new String[] {
+            "android",
+            "com.android.systemui",
+            "com.android.keyguard",
+            "com.google.android.googlequicksearchbox"
+    };
+
+    private boolean mVisualizerLocked;
 
     public static final class Lifecycle extends SystemService {
         private AudioService mService;
@@ -3595,6 +3606,25 @@ public class AudioService extends IAudioService.Stub
                 ringerMode = AudioManager.RINGER_MODE_VIBRATE;
                 toastText = com.android.internal.R.string.volume_dialog_ringer_guidance_vibrate;
                 break;
+            case VOLUME_HUSH_CYCLE:
+                switch (mRingerMode) {
+                    case AudioManager.RINGER_MODE_NORMAL:
+                        effect = VibrationEffect.get(VibrationEffect.EFFECT_HEAVY_CLICK);
+                        ringerMode = AudioManager.RINGER_MODE_VIBRATE;
+                        toastText = com.android.internal.R.string.volume_dialog_ringer_guidance_vibrate;
+                        break;
+                    case AudioManager.RINGER_MODE_VIBRATE:
+                        effect = VibrationEffect.get(VibrationEffect.EFFECT_DOUBLE_CLICK);
+                        ringerMode = AudioManager.RINGER_MODE_SILENT;
+                        toastText = com.android.internal.R.string.volume_dialog_ringer_guidance_silent;
+                        break;
+                    case AudioManager.RINGER_MODE_SILENT:
+                        effect = VibrationEffect.get(VibrationEffect.EFFECT_HEAVY_CLICK);
+                        ringerMode = AudioManager.RINGER_MODE_NORMAL;
+                        toastText = com.android.internal.R.string.volume_dialog_ringer_guidance_normal;
+                        break;
+                }
+                break;
         }
         maybeVibrate(effect, reason);
         setRingerModeInternal(ringerMode, reason);
@@ -4795,6 +4825,27 @@ public class AudioService extends IAudioService.Stub
     @Override
     public boolean isStreamAffectedByMute(int streamType) {
         return (mMuteAffectedStreams & (1 << streamType)) != 0;
+    }
+
+    /** @hide */
+    @Override
+    public boolean isVisualizerLocked(String callingPackage) {
+        boolean isSystem = false;
+        for (int i = 0; i < VISUALIZER_WHITELIST.length; i++) {
+            if (TextUtils.equals(callingPackage, VISUALIZER_WHITELIST[i])) {
+                isSystem = true;
+                break;
+            }
+        }
+        return !isSystem && mVisualizerLocked;
+    }
+
+    /** @hide */
+    @Override
+    public void setVisualizerLocked(boolean doLock) {
+        if (mVisualizerLocked != doLock) {
+            mVisualizerLocked = doLock;
+        }
     }
 
     private void ensureValidDirection(int direction) {

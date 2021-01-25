@@ -304,8 +304,8 @@ public class LightsService extends SystemService {
                 // Ideally, we'd like to set the brightness mode through the SF/HWC as well, but
                 // right now we just fall back to the old path through Lights brightessMode is
                 // anything but USER or the device shouldBeInLowPersistenceMode().
-                if (mHwLight.id == LightsManager.LIGHT_ID_BACKLIGHT &&
-                        brightnessMode == BRIGHTNESS_MODE_USER && !shouldBeInLowPersistenceMode()
+                if (brightnessMode == BRIGHTNESS_MODE_USER && !shouldBeInLowPersistenceMode()
+                        && mHwLight.type == LightsManager.LIGHT_ID_BACKLIGHT
                         && mSurfaceControlMaximumBrightness == 255) {
                     // New system
                     // TODO: the last check should be mSurfaceControlMaximumBrightness != 0; the
