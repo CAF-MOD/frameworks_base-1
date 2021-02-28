@@ -121,6 +121,7 @@ import java.util.Objects;
 
 import com.android.internal.baikalos.Actions;
 import com.android.internal.baikalos.BaikalSettings;
+import com.android.internal.baikalos.BaikalUtils;
 
 
 /**
@@ -131,7 +132,7 @@ public final class PowerManagerService extends SystemService
         implements Watchdog.Monitor {
     private static final String TAG = "PowerManagerService";
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final boolean DEBUG_SPEW = DEBUG && false;
 
     // Message: Sent when a user activity timeout occurs to update the power state.
@@ -1352,8 +1353,9 @@ public final class PowerManagerService extends SystemService
                 Settings.Global.WAKE_WHEN_PLUGGED_OR_UNPLUGGED,
                 (mWakeUpWhenPluggedOrUnpluggedConfig ? 1 : 0));
 
-        mDozeOnChargeEnabled = Settings.System.getIntForUser(resolver,
-                Settings.System.OMNI_DOZE_ON_CHARGE, 0, UserHandle.USER_CURRENT) != 0;
+        updateDozeOnChargeEnabledLocked(Settings.System.getIntForUser(resolver,
+                Settings.System.OMNI_DOZE_ON_CHARGE, 0, UserHandle.USER_CURRENT) != 0);
+
         if (mSupportsDoubleTapWakeConfig) {
             boolean doubleTapWakeEnabled = Settings.Secure.getIntForUser(resolver,
                     Settings.Secure.DOUBLE_TAP_TO_WAKE, DEFAULT_DOUBLE_TAP_TO_WAKE,
@@ -1862,12 +1864,7 @@ public final class PowerManagerService extends SystemService
         mLastInteractiveHint = SystemClock.elapsedRealtime();
         if( isReaderMode() ) scheduleUpdatePowerState(2000);
 
-        try {
-            SystemProperties.set("baikal.perf.profile", "boost");
-        } catch( Exception e )  {
-            Slog.e(TAG, "Can' set BOOST profile for wakeup: ", e);
-        } finally {
-        }
+        BaikalUtils.boost();
 
         try {
             Slog.i(TAG, "Waking up from "
@@ -2192,17 +2189,22 @@ public final class PowerManagerService extends SystemService
                 final boolean dockedOnWirelessCharger = mWirelessChargerDetector.update(
                         mIsPowered, mPlugType);
 
-                if (mDozeOnChargeEnabled || !mIsPowered) {
-                    Settings.System.putIntForUser(mContext.getContentResolver(),
-                            Settings.System.OMNI_DOZE_ON_CHARGE_NOW, mIsPowered ? 1 : 0,
-                            UserHandle.USER_CURRENT);
-                }
+                updateDozeOnChargeLocked();
+
                 // Treat plugging and unplugging the devices as a user activity.
                 // Users find it disconcerting when they plug or unplug the device
                 // and it shuts off right away.
                 // Some devices also wake the device when plugged or unplugged because
                 // they don't have a charging LED.
                 final long now = mClock.uptimeMillis();
+
+                if( wasPowered != mIsPowered && (getWakefulnessLocked() == WAKEFULNESS_ASLEEP || getWakefulnessLocked() == WAKEFULNESS_DOZING ) ) {
+                    mSandmanSummoned = true;
+                    mWakefulnessRaw = WAKEFULNESS_AWAKE;
+                    setWakefulnessLocked(WAKEFULNESS_DOZING, 0, now);
+                }
+
+
                 if (shouldWakeUpWhenPluggedOrUnpluggedLocked(wasPowered, oldPlugType,
                         dockedOnWirelessCharger)) {
                     wakeUpNoUpdateLocked(now, PowerManager.WAKE_REASON_PLUGGED_IN,
@@ -2228,6 +2230,25 @@ public final class PowerManagerService extends SystemService
             }
 
             mBatterySaverStateMachine.setBatteryStatus(mIsPowered, mBatteryLevel, mBatteryLevelLow);
+        }
+    }
+
+    private void updateDozeOnChargeEnabledLocked(boolean enabled) {
+        if( mDozeOnChargeEnabled != enabled ) {
+            mDozeOnChargeEnabled = enabled;
+            updateDozeOnChargeLocked();
+        }
+    }
+
+    private void updateDozeOnChargeLocked() {
+        if (mDozeOnChargeEnabled) {
+            Settings.System.putIntForUser(mContext.getContentResolver(),
+                Settings.System.OMNI_DOZE_ON_CHARGE_NOW, mIsPowered ? 1 : 0,
+                UserHandle.USER_CURRENT);
+        } else {
+            Settings.System.putIntForUser(mContext.getContentResolver(),
+                Settings.System.OMNI_DOZE_ON_CHARGE_NOW, 0,
+                UserHandle.USER_CURRENT);
         }
     }
 
@@ -2352,9 +2373,9 @@ public final class PowerManagerService extends SystemService
         // Infer implied wake locks where necessary based on the current state.
         if ((wakeLockSummary & (WAKE_LOCK_SCREEN_BRIGHT | WAKE_LOCK_SCREEN_DIM)) != 0) {
             if (getWakefulnessLocked() == WAKEFULNESS_AWAKE) {
-                wakeLockSummary |= WAKE_LOCK_CPU | WAKE_LOCK_STAY_AWAKE;
+                wakeLockSummary |= /*WAKE_LOCK_CPU |*/ WAKE_LOCK_STAY_AWAKE;
             } else if (getWakefulnessLocked() == WAKEFULNESS_DREAMING) {
-                wakeLockSummary |= WAKE_LOCK_CPU;
+                //wakeLockSummary |= WAKE_LOCK_CPU;
             }
         }
         if ((wakeLockSummary & WAKE_LOCK_DRAW) != 0) {
@@ -2504,7 +2525,7 @@ public final class PowerManagerService extends SystemService
                                 } else {
                                     if ((!mButtonLightOnKeypressOnly || mButtonPressed) &&
                                             !mProximityPositive) {
-                                        mButtonsLight.setBrightness(buttonBrightness);
+                                        if( !isReaderMode() ) mButtonsLight.setBrightness(buttonBrightness);
                                         mButtonPressed = false;
                                         if (buttonBrightness != PowerManager.BRIGHTNESS_OFF_FLOAT &&
                                                 mButtonTimeout != 0) {
@@ -5473,6 +5494,14 @@ public final class PowerManagerService extends SystemService
 
         @Override // Binder call
         public boolean isDeviceIdleMode() {
+
+            final int uid = Binder.getCallingUid();
+
+            if( BaikalSettings.getHideGmsEnabled() && 
+                com.android.internal.baikalos.Runtime.isGmsUid(uid) ) {
+                return false;
+            }
+
             final long ident = Binder.clearCallingIdentity();
             try {
                 return isDeviceIdleModeInternal();
@@ -5483,6 +5512,14 @@ public final class PowerManagerService extends SystemService
 
         @Override // Binder call
         public boolean isLightDeviceIdleMode() {
+
+            final int uid = Binder.getCallingUid();
+
+            if( BaikalSettings.getHideGmsEnabled() && 
+                com.android.internal.baikalos.Runtime.isGmsUid(uid) ) {
+                return false;
+            }
+
             final long ident = Binder.clearCallingIdentity();
             try {
                 return isLightDeviceIdleModeInternal();
