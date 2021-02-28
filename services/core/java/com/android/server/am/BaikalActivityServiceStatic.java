@@ -27,7 +27,10 @@ import com.android.internal.baikalos.AppProfileManager;
 import com.android.internal.baikalos.DevProfileManager;
 
 import com.android.internal.baikalos.BaikalSettings;
+import com.android.internal.baikalos.BaikalUtils;
+
 import com.android.server.BaikalStaticService;
+
 
 import android.os.SystemClock;
 
@@ -355,7 +358,7 @@ public class BaikalActivityServiceStatic {
     public static int getAppStartModeLocked(int uid, String packageName, int packageTargetSdk,
             int callingPid, boolean alwaysRestrict, boolean disabledOnly, boolean forcedStandby) {
 
-        if( BaikalStaticService.isDolbyUid(uid) ) {
+        if( BaikalUtils.isDolbyUid(uid) ) {
             if( !SystemProperties.getBoolean("persist.baikal.dolby.enable",false) ) {
                 return ActivityManager.APP_START_MODE_DISABLED;
             }

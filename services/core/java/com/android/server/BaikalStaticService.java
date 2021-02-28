@@ -119,72 +119,10 @@ public class BaikalStaticService {
     private static boolean mHideIdleFromGms;
     private static boolean mUnrestrictedNetwork;
 	
-    private static int mGmsUid = -1;
-    static void setGmsUid(int uid) {
-        synchronized(mStaticMembersLock) {
-            mGmsUid = uid;
-        }
-    }
-
-
-    public static boolean isGmsUid(int uid) {
-        synchronized(mStaticMembersLock) {
-            return mGmsUid == uid;
-        }
-    }
-
-
-
-    public static boolean isGmsAppid(int appid) {
-        synchronized(mStaticMembersLock) {
-            return UserHandle.getAppId(mGmsUid) == appid;
-        }
-    }
-
-    public static int gmsAppid() {
-        synchronized(mStaticMembersLock) {
-            return UserHandle.getAppId(mGmsUid);
-        }
-    }
-
-    public static int gmsUid() {
-        synchronized(mStaticMembersLock) {
-            return mGmsUid;
-        }
-    }
-
-    public static boolean gmsHideIdle() {
-        synchronized(mStaticMembersLock) {
-            return BaikalSettings.getHideGmsEnabled();
-        }
-    }
-
-    public static boolean idleUnrestrictedNetwork() {
-        synchronized(mStaticMembersLock) {
-            return BaikalSettings.getUnrestrictedNetEnabled();
-        }
-    }
 
     public static boolean isEnergySaveMode() {
-        synchronized(mStaticMembersLock) {
 	    return BaikalSettings.getAggressiveIdleEnabled() ||
 		   BaikalSettings.getExtremeIdleEnabled();
-        }
-    }
-
-
-    private static int mDolbyUid = -1;
-    static void setDolbyUid(int uid) {
-        synchronized(mStaticMembersLock) {
-            mDolbyUid = uid;
-        }
-    }
-
-
-    public static boolean isDolbyUid(int uid) {
-        synchronized(mStaticMembersLock) {
-            return mDolbyUid == uid;
-        }
     }
 
     public static boolean processAlarmLocked(AlarmManagerService.Alarm a, AlarmManagerService.Alarm pendingUntil) {

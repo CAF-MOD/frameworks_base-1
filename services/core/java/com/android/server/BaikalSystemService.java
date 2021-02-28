@@ -31,6 +31,8 @@ import com.android.internal.baikalos.DevProfileManager;
 
 
 import com.android.internal.baikalos.BaikalSettings;
+import com.android.internal.baikalos.BaikalUtils;
+
 
 import android.util.Slog;
 
@@ -189,13 +191,13 @@ public class BaikalSystemService extends SystemService {
                 int uid = getPackageUidLocked("com.google.android.gms");
 
                 Runtime.setGmsUid(uid);
-		        BaikalStaticService.setGmsUid(uid);
+		        BaikalUtils.setGmsUid(uid);
 
                 uid = getPackageUidLocked("com.android.vending");
                 Runtime.setGpsUid(uid);
 
                 uid = getPackageUidLocked("com.dolby.daxservice");
-                BaikalStaticService.setDolbyUid(uid);
+                BaikalUtils.setDolbyUid(uid);
 
                 //mConstants.updateConstantsLocked();
 
