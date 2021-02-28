@@ -53,6 +53,7 @@ public class AppProfile {
         mPerfProfile = "default";
         mThermalProfile = "default";
         mPackageName = "";
+        mFrameRate = 0;
     }
 
     public boolean isDefault() {
@@ -62,6 +63,7 @@ public class AppProfile {
             !mRestricted &&
             !mRestrictedIdle &&
             !mStamina &&
+            mFrameRate == 0 &&
             mPerfProfile.equals("default") &&
             mThermalProfile.equals("default") ) return true;
         return false;

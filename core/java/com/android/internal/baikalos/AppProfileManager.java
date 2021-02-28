@@ -40,6 +40,10 @@ import android.telephony.PreciseDataConnectionState;
 import android.telephony.DataConnectionRealTimeInfo;
 import android.telephony.VoLteServiceState;
 
+import android.os.Parcel;
+import android.os.RemoteException;
+import android.os.ServiceManager;
+
 
 public class AppProfileManager extends MessageHandler { 
 
@@ -49,16 +53,16 @@ public class AppProfileManager extends MessageHandler {
 
     private AppProfileSettings mAppSettings;
 
-    private boolean mOnCharger;
+    private boolean mOnCharger=false;
     private boolean mDeviceIdleMode = false;
     private boolean mScreenMode = true;
-    private int mTopUid;
+    private int mTopUid=-1;
     private String mTopPackageName;
     private boolean mReaderMode;
 
     private boolean mIdleProfileActive;
-    private String mActivePerfProfile = "default";
-    private String mActiveThermProfile = "default";
+    private String mActivePerfProfile = "";
+    private String mActiveThermProfile = "";
 
     private String mScreenOffPerfProfile = "screen_off";
     private String mScreenOffThermProfile = "screen_off";
@@ -66,7 +70,9 @@ public class AppProfileManager extends MessageHandler {
     private String mIdlePerfProfile = "idle";
     private String mIdleThermProfile = "idle";
 
-    private int mActiveFrameRate=0;
+    private int mActiveFrameRate=-2;
+
+    private boolean mReaderModeAvailable = false;
 
     TelephonyManager mTelephonyManager;
 
@@ -99,6 +105,8 @@ public class AppProfileManager extends MessageHandler {
 
             mTelephonyManager = (TelephonyManager) getContext().getSystemService(Context.TELEPHONY_SERVICE);
             mTelephonyManager.listen(mPhoneStateListener, 0xFFFFFFF);
+
+            mReaderModeAvailable  = SystemProperties.get("sys.baikal.reader", "1").equals("1");
         }
     }
 
@@ -149,13 +157,8 @@ public class AppProfileManager extends MessageHandler {
                          callState.getBackgroundCallState() > 0;
 
         if( state ) {
-            //if( getIdlePerformanceMode() ) {
-            //    setIdlePerformanceMode(false);
-            //}
-            setHwPerfProfileLocked("boost",true);
-        } else {
-            restoreProfileForCurrentMode();
-        }
+            BaikalUtils.boost();
+        } 
     }
 
 
@@ -200,14 +203,15 @@ public class AppProfileManager extends MessageHandler {
 
             AppProfile profile = mAppSettings.getProfile(uid,packageName);
             if( profile == null || uid < Process.FIRST_APPLICATION_UID ) {
+                setReaderModeLocked(false);
                 setActivePerfProfileLocked("default");
                 setActiveThermProfileLocked("default");
-                setReaderModeLocked(false);
+                setActiveFrameRateLocked(-1);
                 Actions.sendBrightnessOverrideChanged(setBrightnessOverrideLocked(0));
             } else {
                 setActivePerfProfileLocked(profile.mPerfProfile);
                 setActiveThermProfileLocked(profile.mThermalProfile);
-                setActiveFrameRateLocked(profile.mFrameRate);
+                setActiveFrameRateLocked(profile.mFrameRate-1);
                 setReaderModeLocked(profile.mReader);
                 Actions.sendBrightnessOverrideChanged(setBrightnessOverrideLocked(profile.mBrightness));
             }
@@ -221,9 +225,11 @@ public class AppProfileManager extends MessageHandler {
     }
 
     protected void setReaderModeLocked(boolean mode) {
-        if( mReaderMode != mode ) {
-            mReaderMode = mode;
-            Actions.sendReaderModeChanged(mode);
+        if( mReaderModeAvailable ) {
+            if( mReaderMode != mode ) {
+                mReaderMode = mode;
+                Actions.sendReaderModeChanged(mode);
+            }
         }
     }
    
@@ -301,6 +307,16 @@ public class AppProfileManager extends MessageHandler {
 
     private void setHwFrameRateLocked(int fps, boolean override) {
         if( mIdleProfileActive && !override ) return;
+        Parcel data = Parcel.obtain();
+        data.writeInterfaceToken("android.ui.ISurfaceComposer");
+        if( fps == -1 ) fps = 3;
+        data.writeInt(fps);
+        try {
+            ServiceManager.getService("SurfaceFlinger").transact(1035, data, (Parcel) null, 0);
+        } catch (RemoteException e) {
+            // nothing we can do
+        }
+        data.recycle();
         SystemPropertiesSet("baikal.fps_override", Integer.toString(fps));
     }
 
