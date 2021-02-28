@@ -62,6 +62,7 @@ import android.os.ServiceManager;
 import android.os.ShellCallback;
 import android.os.ShellCommand;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.ArrayMap;
@@ -111,6 +112,7 @@ import java.util.stream.Collectors;
 
 import com.android.internal.baikalos.Actions;
 import com.android.internal.baikalos.BaikalSettings;
+import com.android.internal.baikalos.BaikalUtils;
 
 /**
  * Keeps track of device idleness and drives low power mode based on that.
@@ -2110,6 +2112,9 @@ public class DeviceIdleController extends SystemService
                 @Override
                 public void onKeyguardStateChanged(boolean isShowing) {
                     synchronized (DeviceIdleController.this) {
+                        if( mScreenLocked && !isShowing && mScreenOn ) {
+                            BaikalUtils.boost();
+                        }
                         DeviceIdleController.this.keyguardShowingLocked(isShowing);
                     }
                 }
