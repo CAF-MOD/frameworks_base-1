@@ -480,7 +480,7 @@ public class PackageManagerService extends IPackageManager.Stub
     private static final boolean DEBUG_INTENT_MATCHING = false;
     public static final boolean DEBUG_PACKAGE_SCANNING = false;
     private static final boolean DEBUG_VERIFY = false;
-    public static final boolean DEBUG_PERMISSIONS = false;
+    public static final boolean DEBUG_PERMISSIONS = true;
     private static final boolean DEBUG_SHARED_LIBRARIES = false;
     public static final boolean DEBUG_COMPRESSION = Build.IS_DEBUGGABLE;
 
@@ -20700,6 +20700,18 @@ public class PackageManagerService extends IPackageManager.Stub
         if (matches.size() == 1) {
             return matches.get(0).getComponentInfo().packageName;
         } else {
+    	    for( ResolveInfo rinfo1:matches ) {
+	        	if( rinfo1.getComponentInfo().packageName.equals("com.google.android.setupwizard") ) {
+        			return rinfo1.getComponentInfo().packageName;
+        		}
+    	    }
+
+	        for( ResolveInfo rinfo2:matches ) {
+		        if( rinfo2.getComponentInfo().packageName.equals("com.android.provision") ) {
+        			return rinfo2.getComponentInfo().packageName;
+		        }
+    	    }
+
             Slog.e(TAG, "There should probably be exactly one setup wizard; found " + matches.size()
                     + ": matches=" + matches);
             return null;
