@@ -238,14 +238,10 @@ public class QSFactoryImpl implements QSFactory {
         mFPSInfoTileProvider = fpsInfoTileProvider;
         mKillappTileProvider = killappTileProvider;
         mVpnTileProvider = vpnTileProvider;
-<<<<<<< HEAD
-
         mIdleModeTileProvider = idleModeTileProvider;
         mStaminaModeTileProvider = staminaModeTileProvider;
         mBaikalExtrasTileProvider = baikalExtrasTileProvider;
-=======
         mMonoToggleTileProvider = monoToggleTileProvider;
->>>>>>> aicp/r11.1
     }
 
     public QSTile createTile(String tileSpec) {
@@ -348,18 +344,14 @@ public class QSFactoryImpl implements QSFactory {
                 return mKillappTileProvider.get();
             case "vpn":
                 return mVpnTileProvider.get();
-<<<<<<< HEAD
-
             case "idle_mode":
                 return mIdleModeTileProvider.get();
             case "stamina_mode":
                 return mStaminaModeTileProvider.get();
             case "baikal_extras":
                 return mBaikalExtrasTileProvider.get();
-=======
             case "mono":
                 return mMonoToggleTileProvider.get();
->>>>>>> aicp/r11.1
         }
 
         // Custom tiles
