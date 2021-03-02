@@ -27,7 +27,6 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -135,10 +134,7 @@ public class StatusBarMobileView extends FrameLayout implements DarkReceiver,
         addView(mDotView, lp);
     }
 
-    public void applyMobileState(MobileIconState state, boolean oldStyleType) {
-
-        Log.e(TAG, "applyMobileState: state=" + state + ", tyle=" + oldStyleType);
-
+    public void applyMobileState(MobileIconState state) {
         boolean requestLayout = false;
         if (state == null) {
             requestLayout = getVisibility() != View.GONE;
@@ -147,10 +143,9 @@ public class StatusBarMobileView extends FrameLayout implements DarkReceiver,
         } else if (mState == null) {
             requestLayout = true;
             mState = state.copy();
-            mOldStyleType = oldStyleType;
             initViewState();
-        } else if (!mState.equals(state) || mOldStyleType != oldStyleType) {
-            requestLayout = updateState(state.copy(), oldStyleType);
+        } else if (!mState.equals(state)) {
+            requestLayout = updateState(state.copy());
         }
 
         if (requestLayout) {
@@ -173,7 +168,6 @@ public class StatusBarMobileView extends FrameLayout implements DarkReceiver,
         } else {
             mMobile.setVisibility(View.GONE);
         }
-        boolean showRoamingSpace = false;
         if (mState.typeId > 0) {
             if (mOldStyleType) {
                 showOldStyle(mState);
@@ -269,11 +263,9 @@ public class StatusBarMobileView extends FrameLayout implements DarkReceiver,
 
         needsLayout |= state.roaming != mState.roaming
                 || state.activityIn != mState.activityIn
-                || state.activityOut != mState.activityOut
-                || mOldStyleType != oldStyleType;
+                || state.activityOut != mState.activityOut;
 
         mState = state;
-        mOldStyleType = oldStyleType;
         return needsLayout;
     }
 
@@ -314,7 +306,6 @@ public class StatusBarMobileView extends FrameLayout implements DarkReceiver,
         mOut.setImageTintList(list);
         mMobileType.setImageTintList(list);
         mMobileRoaming.setImageTintList(list);
-        mMobileTypeSmall.setImageTintList(list);
         mVolte.setImageTintList(list);
         mMobileTypeSmall.setImageTintList(list);
         mDotView.setDecorColor(color);

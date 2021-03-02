@@ -310,7 +310,7 @@ public interface StatusBarIconController {
         @VisibleForTesting
         protected StatusBarMobileView addMobileIcon(int index, String slot, MobileIconState state) {
             StatusBarMobileView view = onCreateStatusBarMobileView(slot);
-            view.applyMobileState(state, useOldStyleMobileDataIcons());
+            view.applyMobileState(state);
             mGroup.addView(view, index, onCreateLayoutParams());
             Dependency.get(TunerService.class).addTunable(this, OMNI_USE_OLD_MOBILETYPE);
 
@@ -420,7 +420,7 @@ public interface StatusBarIconController {
         public void onSetMobileIcon(int viewIndex, MobileIconState state) {
             StatusBarMobileView view = (StatusBarMobileView) mGroup.getChildAt(viewIndex);
             if (view != null) {
-                view.applyMobileState(state, useOldStyleMobileDataIcons());
+                view.applyMobileState(state);
             }
 
             if (mIsInDemoMode) {
