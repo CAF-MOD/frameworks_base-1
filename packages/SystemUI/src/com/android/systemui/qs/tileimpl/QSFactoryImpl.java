@@ -50,6 +50,8 @@ import com.android.systemui.qs.tiles.HWKeysTile;
 import com.android.systemui.qs.tiles.LocaleTile;
 import com.android.systemui.qs.tiles.KillappTile;
 import com.android.systemui.qs.tiles.LocationTile;
+import com.android.systemui.qs.tiles.LiveDisplayTile;
+import com.android.systemui.qs.tiles.MonoToggleTile;
 import com.android.systemui.qs.tiles.MusicTile;
 import com.android.systemui.qs.tiles.NfcTile;
 import com.android.systemui.qs.tiles.NightDisplayTile;
@@ -118,6 +120,7 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<AODTile> mAODTileProvider;
     private final Provider<LocaleTile> mLocaleTileProvider;
     private final Provider<SoundTile> mSoundTileProvider;
+    private final Provider<LiveDisplayTile> mLiveDisplayTileProvider;
     private final Provider<VolumeTile> mVolumeTileProvider;
     private final Provider<DataSwitchTile> mDataSwitchTileProvider;
     private final Provider<SyncTile> mSyncTileProvider;
@@ -130,6 +133,7 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<FPSInfoTile> mFPSInfoTileProvider;
     private final Provider<KillappTile> mKillappTileProvider;
     private final Provider<VpnTile> mVpnTileProvider;
+    private final Provider<MonoToggleTile> mMonoToggleTileProvider;
 
     private final Provider<IdleModeTile> mIdleModeTileProvider;
     private final Provider<StaminaModeTile> mStaminaModeTileProvider;
@@ -173,6 +177,7 @@ public class QSFactoryImpl implements QSFactory {
             Provider<SoundTile> soundTileProvider,
             Provider<VolumeTile> volumeTileProvider,
             Provider<DataSwitchTile> dataSwitchTileProvider,
+            Provider<LiveDisplayTile> liveDisplayTileProvider,
             Provider<SyncTile> syncTileProvider,
             Provider<OnTheGoTile> onTheGoTileProvider,
             Provider<SoundSearchTile> soundSearchTileProvider,
@@ -183,11 +188,10 @@ public class QSFactoryImpl implements QSFactory {
             Provider<FPSInfoTile> fpsInfoTileProvider,
             Provider<KillappTile> killappTileProvider,
             Provider<VpnTile> vpnTileProvider,
-
             Provider<IdleModeTile> idleModeTileProvider,
             Provider<StaminaModeTile> staminaModeTileProvider,
-            Provider<BaikalExtrasTile> baikalExtrasTileProvider) {
-
+            Provider<BaikalExtrasTile> baikalExtrasTileProvider,
+            Provider<MonoToggleTile> monoToggleTileProvider) {
         mQsHostLazy = qsHostLazy;
         mWifiTileProvider = wifiTileProvider;
         mBluetoothTileProvider = bluetoothTileProvider;
@@ -221,6 +225,7 @@ public class QSFactoryImpl implements QSFactory {
         mAODTileProvider = aodTileProvider;
         mLocaleTileProvider = localeTileProvider;
         mSoundTileProvider = soundTileProvider;
+        mLiveDisplayTileProvider = liveDisplayTileProvider;
         mVolumeTileProvider = volumeTileProvider;
         mDataSwitchTileProvider = dataSwitchTileProvider;
         mSyncTileProvider = syncTileProvider;
@@ -233,10 +238,14 @@ public class QSFactoryImpl implements QSFactory {
         mFPSInfoTileProvider = fpsInfoTileProvider;
         mKillappTileProvider = killappTileProvider;
         mVpnTileProvider = vpnTileProvider;
+<<<<<<< HEAD
 
         mIdleModeTileProvider = idleModeTileProvider;
         mStaminaModeTileProvider = staminaModeTileProvider;
         mBaikalExtrasTileProvider = baikalExtrasTileProvider;
+=======
+        mMonoToggleTileProvider = monoToggleTileProvider;
+>>>>>>> aicp/r11.1
     }
 
     public QSTile createTile(String tileSpec) {
@@ -313,6 +322,8 @@ public class QSFactoryImpl implements QSFactory {
                 return mLocaleTileProvider.get();
             case "sound":
                 return mSoundTileProvider.get();
+            case "livedisplay":
+                return mLiveDisplayTileProvider.get();
             case "volume_panel":
                 return mVolumeTileProvider.get();
             case "dataswitch":
@@ -337,6 +348,7 @@ public class QSFactoryImpl implements QSFactory {
                 return mKillappTileProvider.get();
             case "vpn":
                 return mVpnTileProvider.get();
+<<<<<<< HEAD
 
             case "idle_mode":
                 return mIdleModeTileProvider.get();
@@ -344,6 +356,10 @@ public class QSFactoryImpl implements QSFactory {
                 return mStaminaModeTileProvider.get();
             case "baikal_extras":
                 return mBaikalExtrasTileProvider.get();
+=======
+            case "mono":
+                return mMonoToggleTileProvider.get();
+>>>>>>> aicp/r11.1
         }
 
         // Custom tiles

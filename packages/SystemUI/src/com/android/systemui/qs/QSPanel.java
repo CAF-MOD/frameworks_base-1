@@ -257,9 +257,6 @@ public class QSPanel extends LinearLayout implements Tunable, Callback, Brightne
 
     protected void onMediaVisibilityChanged(Boolean visible) {
         switchTileLayout();
-        if (getTileLayout() != null) {
-            getTileLayout().setMinRows(visible ? 2 : 3);
-        }
         if (mMediaVisibilityChangedListener != null) {
             mMediaVisibilityChangedListener.accept(visible);
         }
@@ -687,6 +684,13 @@ public class QSPanel extends LinearLayout implements Tunable, Callback, Brightne
                 mDivider.setVisibility(View.VISIBLE);
             } else {
                 mDivider.setVisibility(View.GONE);
+            }
+        }
+        if (mTileLayout != null && mTileLayout instanceof PagedTileLayout) {
+            if (horizontal && mUsingMediaPlayer && mMediaHost.getVisible()) {
+                ((PagedTileLayout) mTileLayout).setHorizontalWithQsMediaPlayer(true);
+            } else {
+                ((PagedTileLayout) mTileLayout).setHorizontalWithQsMediaPlayer(false);
             }
         }
         if (horizontal != mUsingHorizontalLayout || force) {
@@ -1343,6 +1347,7 @@ public class QSPanel extends LinearLayout implements Tunable, Callback, Brightne
         int getNumRows();
         void updateSettings();
         boolean isShowTitles();
+        void setHorizontalWithQsMediaPlayer(boolean horizontalWithQSMediaPlayer);
 
         void setListening(boolean listening);
 
