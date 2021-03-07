@@ -44,6 +44,7 @@ import com.android.systemui.qs.tiles.DndTile;
 import com.android.systemui.qs.tiles.FlashlightTile;
 import com.android.systemui.qs.tiles.FPSInfoTile;
 import com.android.systemui.qs.tiles.GamingModeTile;
+import com.android.systemui.qs.tiles.GoogleServicesTile;
 import com.android.systemui.qs.tiles.HeadsUpTile;
 import com.android.systemui.qs.tiles.HotspotTile;
 import com.android.systemui.qs.tiles.HWKeysTile;
@@ -138,6 +139,7 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<IdleModeTile> mIdleModeTileProvider;
     private final Provider<StaminaModeTile> mStaminaModeTileProvider;
     private final Provider<BaikalExtrasTile> mBaikalExtrasTileProvider;
+    private final Provider<GoogleServicesTile> mGoogleServicesTileProvider;
 
     private final Lazy<QSHost> mQsHostLazy;
 
@@ -191,6 +193,7 @@ public class QSFactoryImpl implements QSFactory {
             Provider<IdleModeTile> idleModeTileProvider,
             Provider<StaminaModeTile> staminaModeTileProvider,
             Provider<BaikalExtrasTile> baikalExtrasTileProvider,
+            Provider<GoogleServicesTile> googleServicesTileProvider,
             Provider<MonoToggleTile> monoToggleTileProvider) {
         mQsHostLazy = qsHostLazy;
         mWifiTileProvider = wifiTileProvider;
@@ -242,6 +245,7 @@ public class QSFactoryImpl implements QSFactory {
         mStaminaModeTileProvider = staminaModeTileProvider;
         mBaikalExtrasTileProvider = baikalExtrasTileProvider;
         mMonoToggleTileProvider = monoToggleTileProvider;
+        mGoogleServicesTileProvider = googleServicesTileProvider;
     }
 
     public QSTile createTile(String tileSpec) {
@@ -352,6 +356,8 @@ public class QSFactoryImpl implements QSFactory {
                 return mBaikalExtrasTileProvider.get();
             case "mono":
                 return mMonoToggleTileProvider.get();
+            case "gms":
+                return mGoogleServicesTileProvider.get();
         }
 
         // Custom tiles

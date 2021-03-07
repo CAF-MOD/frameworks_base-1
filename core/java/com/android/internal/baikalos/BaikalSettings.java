@@ -21,6 +21,7 @@ import android.util.Slog;
 import android.os.UserHandle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Process;
 
 import android.content.Context;
 import android.content.ContentResolver;
@@ -55,6 +56,7 @@ public class BaikalSettings extends ContentObserver {
     private static boolean mStaminaOiMode;
     private static boolean mDisableHeadphonesDetect;
 
+    private static boolean mIsGmsBlocked;
     private static boolean mIsGmsRestricted;
     private static boolean mIsGmsRestrictedIdle;
     private static boolean mIsGmsRestrictedStamina;
@@ -107,7 +109,12 @@ public class BaikalSettings extends ContentObserver {
 
 	public static boolean getStaminaMode() {
 
-        return ( mStaminaMode || (mStaminaOiMode && Runtime.isIdleMode()) );
+        if( mStaminaMode || (mStaminaOiMode && Runtime.isIdleMode()) ) {
+            Slog.e(TAG, "getStaminaMode: ret=true");
+            return true;
+        }
+        return false;
+        //return ( mStaminaMode || (mStaminaOiMode && Runtime.isIdleMode()) );
 	    //return mStaminaMode;
 	}
 
@@ -122,10 +129,48 @@ public class BaikalSettings extends ContentObserver {
     public static boolean getAppRestricted(int uid, String packageName) {
         boolean ret = getAppRestrictedInternal(uid,packageName);
 
-        if( Constants.DEBUG_RAW ) {
+        if( ret /*Constants.DEBUG_RAW*/ ) {
             Slog.e(TAG, "getAppRestricted: ret=" + ret + ", uid=" + uid + ", pkg=" + packageName + ", top=" + mTopAppUid );
         }
         return ret;
+    }
+
+    public static boolean getAppBlocked(int uid, String packageName) {
+        boolean ret = getAppBlockedInternal(uid,packageName);
+
+        if( ret /*Constants.DEBUG_RAW*/ ) {
+            Slog.e(TAG, "getAppBlocked: ret=" + ret + ", uid=" + uid + ", pkg=" + packageName + ", top=" + mTopAppUid );
+        }
+        return ret;
+    }
+                          
+    public static boolean getAppBlockedInternal(int uid, String packageName) {
+
+        if( isGmsBlocked() && /*packageName.startsWith("com.google.android.gms") */  Runtime.isGmsUid(uid) ) {
+            return true;
+        }
+
+        if( uid == mTopAppUid ) return false;
+
+        if( uid < Process.FIRST_APPLICATION_UID ) return false;
+
+        AppProfile profile = null; 
+        if( packageName == null ) profile = AppProfileSettings.getProfileStatic(uid);
+        else profile = AppProfileSettings.getProfileStatic(packageName);
+        if( profile == null ) {
+            if( getStaminaMode() ) return true;
+            return false;
+        }
+
+        if( getStaminaMode() )  {
+            if(profile.mStamina) return false;
+            return true;
+        }
+
+        if( profile.mBackground > 1 && Runtime.isIdleMode() ) return true;
+        if( profile.mBackground == 3 ) return true;
+
+        return false;
     }
 
 
@@ -141,18 +186,32 @@ public class BaikalSettings extends ContentObserver {
         else profile = AppProfileSettings.getProfileStatic(packageName);
         if( profile == null ) return false;
 
-        if( profile.mRestricted ) return true;
-        if( profile.mRestrictedIdle && Runtime.isIdleMode() ) return true;
+        if( profile.mBackground > 1 ) return true;
+        if( profile.mBackground > 0 && Runtime.isIdleMode() ) return true;
 
         return false;
     }
 
     public static boolean isGmsRestricted() {
+        AppProfile profile = AppProfileManager.getCurrentProfile();
+        if( profile != null && profile.mRequireGms ) return false;
+
         if( mIsGmsRestricted ) return true;
         if( mIsGmsRestrictedIdle && Runtime.isIdleMode() ) return true;
         if( mIsGmsRestrictedStamina && getStaminaMode() ) return true;
         return false;
     }
+
+    public static boolean isGmsBlocked() {
+
+        AppProfile profile = AppProfileManager.getCurrentProfile();
+        if( profile != null && profile.mRequireGms ) return false;
+
+        if( mIsGmsBlocked ) return true;
+        if( mIsGmsRestrictedStamina && getStaminaMode() ) return true;
+        return false;
+    }
+
 
     public static boolean isGpsRestricted() {
         if( mIsGpsRestricted ) return true;
@@ -161,10 +220,24 @@ public class BaikalSettings extends ContentObserver {
         return false;
     }
 
+    public static AppProfile getCurrentProfile() {
+        return AppProfileManager.getCurrentProfile();
+    }
+
     public static void setTopApp(int uid, String packageName) {
         mTopAppUid = uid;
         synchronized(_staticLock) {
             mTopAppPackageName = packageName;
+        }
+    }
+
+    public static int getTopAppUid() {
+        return mTopAppUid;
+    }
+
+    public static String getTopAppPackageName() {
+        synchronized(_staticLock) {
+            return mTopAppPackageName;
         }
     }
 
@@ -240,14 +313,21 @@ public class BaikalSettings extends ContentObserver {
                     Settings.Global.getUriFor(Settings.Global.BAIKALOS_GMS_STAMINA_RESTRICTED),
                     false, this);
 
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_GMS_BLOCKED),
+                    false, this);
+
+
             } catch( Exception e ) {
             }
 
             updateConstants(true);
+            loadStaticConstants(mContext);
     }
 
     @Override
     public void onChange(boolean selfChange, Uri uri) {
+        loadStaticConstants(mContext);
         updateConstants(false);
     }
 
@@ -260,6 +340,9 @@ public class BaikalSettings extends ContentObserver {
     public static void loadStaticConstants(Context context) {
         synchronized (_staticLock) {
             try {
+
+                mIsGmsBlocked = Settings.Global.getInt(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_GMS_BLOCKED,0) == 1;
 
                 mIsGmsRestricted = Settings.Global.getInt(context.getContentResolver(),
                         Settings.Global.BAIKALOS_GMS_RESTRICTED,0) == 1;
@@ -389,14 +472,16 @@ public class BaikalSettings extends ContentObserver {
 	void staminaModeChanged(boolean enabled) {
 	    mStaminaMode = enabled;
 
-        if( !mStaminaMode ) {
+        Actions.sendStaminaChanged(enabled);
+
+        /*if( !mStaminaMode ) {
             final Intent bootIntent = new Intent(Intent.ACTION_BOOT_COMPLETED, null);
             bootIntent.putExtra(Intent.EXTRA_USER_HANDLE, 0);
             bootIntent.addFlags(Intent.FLAG_RECEIVER_NO_ABORT
                 | Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
 
             mContext.sendBroadcastAsUser(bootIntent, UserHandle.ALL);
-        }
+        }*/
 	}
 
 	void idleModeEnabledChanged(boolean aggressive, boolean extreme) {

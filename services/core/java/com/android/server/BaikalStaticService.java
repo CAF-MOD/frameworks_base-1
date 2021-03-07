@@ -203,7 +203,10 @@ public class BaikalStaticService {
             a.flags &= ~(AlarmManager.FLAG_WAKE_FROM_IDLE 
                     | AlarmManager.FLAG_ALLOW_WHILE_IDLE
                     | AlarmManager.FLAG_ALLOW_WHILE_IDLE_UNRESTRICTED);
-                Slog.i(TAG,"DeviceIdleAlarm: restricted:" + a.statsTag + ":" + a.toString() + ", ws=" + a.workSource );
+
+            if( DEBUG ) {
+                Slog.i(TAG,"DeviceIdleAlarm: restricted:" + a.statsTag + ":" + a.toString() + ", ws=" + a.workSource ); 
+            }
 	    }
 
 	    if( !a.wakeup && (a.type == AlarmManager.ELAPSED_REALTIME_WAKEUP

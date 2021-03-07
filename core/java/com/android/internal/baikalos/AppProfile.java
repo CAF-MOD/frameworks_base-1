@@ -45,9 +45,9 @@ public class AppProfile {
     public int mFrameRate;
     public boolean mReader;
     public boolean mPinned;
-    public boolean mRestricted;
-    public boolean mRestrictedIdle;
+    public int mBackground;
     public boolean mStamina;
+    public boolean mRequireGms;
 
     public AppProfile() {
         mPerfProfile = "default";
@@ -60,10 +60,10 @@ public class AppProfile {
         if( mBrightness == 0 &&
             !mReader &&
             !mPinned &&
-            !mRestricted &&
-            !mRestrictedIdle &&
             !mStamina &&
+            !mRequireGms &&
             mFrameRate == 0 &&
+            mBackground == 0 &&
             mPerfProfile.equals("default") &&
             mThermalProfile.equals("default") ) return true;
         return false;
@@ -78,9 +78,9 @@ public class AppProfile {
         "rm=" + mReader + "," +
         "pd=" + mPinned + "," +
         "fr=" + mFrameRate + "," +
-        "rt=" + mRestricted + "," +
-        "ri=" + mRestrictedIdle + "," +
-        "as=" + mStamina
+        "as=" + mStamina + "," +
+        "bk=" + mBackground + "," +
+        "gms=" + mRequireGms 
         ;
     }
 
@@ -103,10 +103,10 @@ public class AppProfile {
             profile.mThermalProfile = parser.getString("tp","default");
             profile.mReader = parser.getBoolean("rm",false);
             profile.mPinned = parser.getBoolean("pd",false);
-            profile.mRestricted = parser.getBoolean("rt",false);
-            profile.mRestrictedIdle = parser.getBoolean("ri",false);
             profile.mStamina = parser.getBoolean("as",false);
             profile.mFrameRate = parser.getInt("fr",0);
+            profile.mBackground = parser.getInt("bk",0);
+            profile.mRequireGms = parser.getBoolean("gms",false);
         } catch( Exception e ) {
 
         }

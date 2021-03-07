@@ -34,6 +34,7 @@ public class Actions extends MessageHandler {
     public static final String ACTION_POWER_MODE_CHANGED = "com.android.internal.baikalos.Actions.ACTION_POWER_MODE_CHANGED";
     public static final String ACTION_CHARGER_MODE_CHANGED = "com.android.internal.baikalos.Actions.ACTION_CHARGER_MODE_CHANGED";
     public static final String ACTION_SCREEN_MODE_CHANGED = "com.android.internal.baikalos.Actions.ACTION_SCREEN_MODE_CHANGED";
+    public static final String ACTION_STAMINA_CHANGED = "com.android.internal.baikalos.Actions.ACTION_STAMINA_CHANGED";
 
     public static final String ACTION_READER_MODE_CHANGED = "com.android.internal.baikalos.Actions.ACTION_READER_MODE_CHANGED";
 
@@ -93,6 +94,13 @@ public class Actions extends MessageHandler {
 
     public static void sendPowerModeChanged(boolean on) {
         Intent intent = new Intent(ACTION_POWER_MODE_CHANGED);
+        intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
+    	intent.putExtra(EXTRA_BOOL_MODE,on);
+    	enqueueIntent(intent);
+    }
+
+    public static void sendStaminaChanged(boolean on) {
+        Intent intent = new Intent(ACTION_STAMINA_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
     	intent.putExtra(EXTRA_BOOL_MODE,on);
     	enqueueIntent(intent);

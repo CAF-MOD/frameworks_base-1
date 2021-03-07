@@ -3156,6 +3156,14 @@ public class ActivityManagerService extends IActivityManager.Stub
             info.packageName = "android";
             info.seInfoUser = SELinuxUtil.COMPLETE_STR;
             info.targetSdkVersion = Build.VERSION.SDK_INT;
+
+            Slog.w(TAG, "startIsolatedProcess: " + processName + ":" + info);
+
+            if( BaikalSettings.getAppBlocked(uid, processName) ) {
+                Slog.w(TAG, "startProcessLocked: startIsolatedProcess: blocked " + processName + ":" + info);
+                return false;
+            }
+
             ProcessRecord proc = mProcessList.startProcessLocked(processName, info /* info */,
                     false /* knownToBeDead */, 0 /* intentFlags */,
                     sNullHostingRecord  /* hostingRecord */, ZYGOTE_POLICY_FLAG_EMPTY,
@@ -3171,6 +3179,14 @@ public class ActivityManagerService extends IActivityManager.Stub
             ApplicationInfo info, boolean knownToBeDead, int intentFlags,
             HostingRecord hostingRecord, int zygotePolicyFlags, boolean allowWhileBooting,
             boolean isolated, boolean keepIfLarge) {
+
+        Slog.w(TAG, "startProcessLocked(1): " + processName + ":" + info);
+
+        //if( BaikalSettings.getAppBlocked(info.uid, processName) ) {
+        //    Slog.w(TAG, "startProcessLocked(1): blocked " + processName + ":" + info);
+        //    return null;
+        //}
+
         return mProcessList.startProcessLocked(processName, info, knownToBeDead, intentFlags,
                 hostingRecord, zygotePolicyFlags, allowWhileBooting, isolated, 0 /* isolatedUid */,
                 keepIfLarge, null /* ABI override */, null /* entryPoint */,
@@ -5115,6 +5131,13 @@ public class ActivityManagerService extends IActivityManager.Stub
             app.deathRecipient = adr;
         } catch (RemoteException e) {
             app.resetPackageList(mProcessStats);
+
+            Slog.w(TAG, "startProcessLocked(2): from attachApplicationLocked:" + processName + ":" + app);
+
+            if( BaikalSettings.getAppBlocked(app.uid, processName) ) {
+                return false;
+            }
+
             mProcessList.startProcessLocked(app,
                     new HostingRecord("link fail", processName),
                     ZYGOTE_POLICY_FLAG_EMPTY);
@@ -5536,6 +5559,14 @@ public class ActivityManagerService extends IActivityManager.Stub
                 for (int ip=0; ip<NP; ip++) {
                     if (DEBUG_PROCESSES) Slog.v(TAG_PROCESSES, "Starting process on hold: "
                             + procs.get(ip));
+
+                    Slog.w(TAG, "startProcessLocked(3): Starting process on hold: " + procs.get(ip));
+
+                    if( BaikalSettings.getAppBlocked(procs.get(ip).info.uid, procs.get(ip).info.packageName) ) {
+                        Slog.w(TAG, "startProcessLocked(3): Starting process on hold: blocked " + procs.get(ip));
+                        return;
+                    }
+
                     mProcessList.startProcessLocked(procs.get(ip),
                             new HostingRecord("on-hold"),
                             ZYGOTE_POLICY_FLAG_BATCH_LAUNCH);
@@ -6339,6 +6370,10 @@ public class ActivityManagerService extends IActivityManager.Stub
     // some other background operations are not.  If we're doing a check
     // of service-launch policy, allow those callers to proceed unrestricted.
     int appServicesRestrictedInBackgroundLocked(int uid, String packageName, int packageTargetSdk) {
+        if( BaikalSettings.getAppBlocked(uid,packageName) ) {
+            return ActivityManager.APP_START_MODE_DELAYED;
+        }
+
         if( BaikalSettings.getAppRestricted(uid,packageName) ) {
             if (DEBUG_BACKGROUND_CHECK) {
                 Slog.i(TAG, "App " + uid + "/" + packageName
@@ -6386,6 +6421,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         String retString = "UNKNOWN";
 
         int ret = BaikalActivityServiceStatic.getAppStartModeLocked(uid,packageName, packageTargetSdk, callingPid, alwaysRestrict, disabledOnly, forcedStandby);
+
         if( ret == -1 ) {
             ret = getAppStartModeLockedInternal(uid,packageName, packageTargetSdk, callingPid, alwaysRestrict, disabledOnly, forcedStandby);
         }
@@ -7459,6 +7495,15 @@ public class ActivityManagerService extends IActivityManager.Stub
                             }
                         } else {
                             checkTime(startTime, "getContentProviderImpl: before start process");
+
+                            Slog.w(TAG, "startProcessLocked(3): Starting provider: " + cpi.processName + ":" + cpr.appInfo);
+
+                            if( BaikalSettings.getAppBlocked(cpi.applicationInfo.uid, cpi.applicationInfo.packageName) ) {
+                                Slog.w(TAG, "startProcessLocked(3): Starting provider: blocked " + cpi.processName + ":" + cpr.appInfo);
+                                return null;
+                            }
+
+
                             proc = startProcessLocked(cpi.processName,
                                     cpr.appInfo, false, 0,
                                     new HostingRecord("content provider",
@@ -8356,7 +8401,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         if ((info.flags & PERSISTENT_MASK) == PERSISTENT_MASK) {
             if( BaikalSettings.getAppRestricted(app.uid,info.packageName) ) {
                 Slog.d(TAG, "baikal: setPersistent8("+ info.packageName + ") - app is restricted. strip PERSISTENT flag");
-            } else if( profile != null && profile.mRestricted ) {
+            } else if( profile != null && profile.mBackground > 0 ) {
                 Slog.d(TAG, "baikal: setPersistent7("+ info.packageName + ") - app is restricted. strip PERSISTENT flag");
             } else if( !info.packageName.equals("com.motorola.faceunlock") &&
                 !info.packageName.equals("com.asus.stitchimage") ) {
@@ -8372,6 +8417,14 @@ public class ActivityManagerService extends IActivityManager.Stub
 
         if (app.thread == null && mPersistentStartingProcesses.indexOf(app) < 0) {
             mPersistentStartingProcesses.add(app);
+
+            Slog.w(TAG, "startProcessLocked(4): addAppLocked: " + app);
+
+            if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) ) {
+                Slog.w(TAG, "startProcessLocked(4): addAppLocked: " + app);
+                return null;
+            }
+
             mProcessList.startProcessLocked(app, new HostingRecord("added application",
                     customProcess != null ? customProcess : app.processName),
                     zygotePolicyFlags, disableHiddenApiChecks, disableTestApiChecks,
@@ -15032,6 +15085,15 @@ public class ActivityManagerService extends IActivityManager.Stub
 
             mProcessList.addProcessNameLocked(app);
             app.pendingStart = false;
+
+            Slog.w(TAG, "startProcessLocked(4): Restart: " + app);
+
+            if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) ) {
+                Slog.w(TAG, "startProcessLocked(4): Restart: blocked" + app);
+                return false;
+            }
+
+
             mProcessList.startProcessLocked(app,
                     new HostingRecord("restart", app.processName),
                     ZYGOTE_POLICY_FLAG_EMPTY);
@@ -15394,6 +15456,15 @@ public class ActivityManagerService extends IActivityManager.Stub
                             : new ComponentName("android", "FullBackupAgent");
 
             // startProcessLocked() returns existing proc's record if it's already running
+
+            Slog.w(TAG, "startProcessLocked(6): Bind backup: " + app);
+
+            if( BaikalSettings.getAppBlocked(app.uid, app.packageName) ) {
+                Slog.w(TAG, "startProcessLocked(6): Bind backup: " + app);
+                return false;
+            }
+
+
             ProcessRecord proc = startProcessLocked(app.processName, app,
                     false, 0,
                     new HostingRecord("backup", hostingName),
@@ -18366,7 +18437,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                 }
             } else {
                 // This uid isn't actually running...  still send a report about it being "stopped".
-                doStopUidLocked(uid, null);
+                if( uid >=0 ) doStopUidLocked(uid, null);
             }
         }
     }
@@ -19759,6 +19830,16 @@ public class ActivityManagerService extends IActivityManager.Stub
                     // If the process is known as top app, set a hint so when the process is
                     // started, the top priority can be applied immediately to avoid cpu being
                     // preempted by other processes before attaching the process of top app.
+
+                    Slog.w(TAG, "startProcessLocked(7): Start process(): " + info, new Throwable());
+
+                    if(!isTop) {
+                        if( BaikalSettings.getAppBlocked(info.uid, info.packageName) ) {
+                            Slog.w(TAG, "startProcessLocked(7): Start process(): blocked " + info, new Throwable());
+                            return;
+                        }
+                    }
+
                     startProcessLocked(processName, info, knownToBeDead, 0 /* intentFlags */,
                             new HostingRecord(hostingType, hostingName, isTop),
                             ZYGOTE_POLICY_FLAG_LATENCY_SENSITIVE, false /* allowWhileBooting */,

@@ -2434,7 +2434,7 @@ public final class ProcessList {
         if ((info.flags & PERSISTENT_MASK) == PERSISTENT_MASK) {
             if( BaikalSettings.getAppRestricted(app.uid,info.packageName) ) {
                 Slog.d(TAG, "baikal: setPersistent6("+ info.packageName + ") - app is restricted. strip PERSISTENT flag");
-            } else if( profile != null && profile.mRestricted ) {
+            } else if( profile != null && profile.mBackground > 0 ) {
                 Slog.d(TAG, "baikal: setPersistent5("+ info.packageName + ") - app is restricted. strip PERSISTENT flag");
             } else if( !info.packageName.equals("com.motorola.faceunlock") &&
                 !info.packageName.equals("com.asus.stitchimage") ) {

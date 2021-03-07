@@ -65,7 +65,7 @@ public class BaikalActivityService implements com.android.internal.baikalos.AppP
 
     private static final String TAG = "BaikalActivityService";
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private boolean mSystemReady = false;
 
@@ -93,7 +93,7 @@ public class BaikalActivityService implements com.android.internal.baikalos.AppP
                 Settings.Global.BAIKALOS_STAMINA_ENABLED, 0);
 
 	    mSystemReady = ready;
-        mAppSettings = new AppProfileSettings(mHandler, mContext, mContext.getContentResolver(), this);
+        mAppSettings = AppProfileSettings.getInstance(mHandler, mContext, mContext.getContentResolver(), this);
     }
 
     @Override

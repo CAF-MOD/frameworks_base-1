@@ -74,7 +74,7 @@ public class BaikalActivityServiceStatic {
 
     private static final String TAG = "BaikalActivityServiceStatic";
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final boolean DEBUG_STAMINA = false;
 
     private static final String [] mGoogleServicesIdleBlackListed = {
@@ -115,6 +115,20 @@ public class BaikalActivityServiceStatic {
             return 0;
         }
 
+        if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) ) {
+            Slog.i(TAG,"applyOomAdjLocked: killing blocked app: " + app.info.packageName + "/" + app.info.uid);
+            try {
+                for (int is = app.mServices.size()-1;is >= 0; is--) {
+                    ServiceRecord s = app.mServices.valueAt(is);
+                    s.delayed = false;
+                    s.stopIfKilled = true;
+                } 
+            } catch (Exception e) {
+            }
+            return 2;
+        }
+
+
         final int appId = UserHandle.getAppId(app.info.uid);
 
         if( BaikalSettings.getStaminaMode() )  {
@@ -132,6 +146,8 @@ public class BaikalActivityServiceStatic {
         final long oldTimeStamina = now - 5 * 1000;
 
         AppProfile profile = AppProfileSettings.getProfileStatic(app.info.packageName);
+
+        if( profile != null && profile.mBackground < 0 ) return 0;
 
         switch (app.getCurProcState()) {
             case ActivityManager.PROCESS_STATE_BOUND_TOP:
@@ -165,7 +181,8 @@ public class BaikalActivityServiceStatic {
                     return 2;
                 }
 
-
+                if( profile != null && profile.mBackground < 1 ) return 0;
+        
                 if( app.info.uid < 10000 &&  app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ) ) return 0;
  
                 if( BaikalSettings.getStaminaMode() || 
@@ -190,7 +207,7 @@ public class BaikalActivityServiceStatic {
                     }
                 }
 
-                if ( profile != null && profile.mRestricted && (app.lastActivityTime < oldTimeStamina) ) {
+                if ( profile != null && profile.mBackground > 0 && (app.lastActivityTime < oldTimeStamina) ) {
                     Slog.i(TAG,"applyOomAdjLocked: BFGS stamina: restricted " + app.info.packageName + "/" + app.info.uid);
                 } else {
 
@@ -288,7 +305,7 @@ public class BaikalActivityServiceStatic {
     }
 
     public static boolean isServiceWhitelisted(ActivityManagerService mAm, ServiceRecord service, int callingUid, int callingPid, String callingPackageName, boolean isStarting) {
-        Slog.i(TAG,"isServiceWhitelisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
+        if( DEBUG ) Slog.i(TAG,"isServiceWhitelisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
 
         /*
 
@@ -325,20 +342,34 @@ public class BaikalActivityServiceStatic {
         return false;
     }
 
-    public static boolean isBroadcastBlacklisted(ActivityManagerService mAm,BroadcastRecord r, ResolveInfo info) {
+    public static boolean isBroadcastBlacklisted(ActivityManagerService mAm,BroadcastRecord r, ResolveInfo info, boolean background) {
+
+        if( !background ) return false;
+
+        String act = r.intent.getAction();
+        //if( !act.startsWith("android.intent.action.BOOT_COMPLETED") ) return false;
+
+        AppProfile profile = AppProfileSettings.getProfileStatic(info.activityInfo.packageName);
+        if( profile == null ) return false;
+
+        if( !getBackgroundMode(profile) ) return true;
+
         return false;
     }
 
-    public static boolean isBroadcastWhitelisted(ActivityManagerService mAm,BroadcastRecord r, ResolveInfo info) {
+    public static boolean isBroadcastWhitelisted(ActivityManagerService mAm,BroadcastRecord r, ResolveInfo info, boolean background) {
 
-        Slog.i(TAG,"isBroadcastWhitelisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent);
+        if( DEBUG )  Slog.i(TAG,"isBroadcastWhitelisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
+
+        if( !background ) return false;
         
 	    ComponentName cmp = r.intent.getComponent();
 	    String act = r.intent.getAction();
         if( act == null && cmp == null ) return false; // Invalid Intent received;
+        if( !BaikalUtils.isGmsUid(info.activityInfo.applicationInfo.uid) ) return false;
 
         if( act != null ) {
-        	if( act.startsWith("android.") ) return true;
+        	//if( act.startsWith("android.") ) return true;
         	if( act.startsWith("com.google.android.gms.auth") ) return true;
         	if( act.startsWith("com.google.android.gms.gcm") ) return true;
     	    if( act.startsWith("com.google.android.c2dm") ) return true;
@@ -358,11 +389,35 @@ public class BaikalActivityServiceStatic {
     public static int getAppStartModeLocked(int uid, String packageName, int packageTargetSdk,
             int callingPid, boolean alwaysRestrict, boolean disabledOnly, boolean forcedStandby) {
 
+        if( BaikalSettings.getAppBlocked(uid, packageName) ) {
+            return ActivityManager.APP_START_MODE_DISABLED;
+        }
+
+
         if( BaikalUtils.isDolbyUid(uid) ) {
             if( !SystemProperties.getBoolean("persist.baikal.dolby.enable",false) ) {
                 return ActivityManager.APP_START_MODE_DISABLED;
             }
         }
         return -1;
+    }
+
+    public static boolean allowBackgroundStart(int uid, String packageName) {
+        AppProfile profile = AppProfileSettings.getProfileStatic(packageName);
+        if( profile == null ) return true;
+
+        if( !getBackgroundMode(profile) ) return false;
+        return true;
+    }
+
+    private static boolean getBackgroundMode(AppProfile profile) {
+        if( Runtime.isIdleMode()  ) {
+            if( profile.mBackground > 1 && BaikalSettings.getExtremeIdleEnabled() ) return false;
+            if( profile.mBackground > 0 && BaikalSettings.getAggressiveIdleEnabled() ) return false;
+        } else {
+            if( profile.mBackground > 2 && BaikalSettings.getAggressiveIdleEnabled() ) return false;
+            if( profile.mBackground > 1 && BaikalSettings.getExtremeIdleEnabled() ) return false;
+        }
+        return true;
     }
 }

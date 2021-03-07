@@ -543,6 +543,16 @@ public final class ActiveServices {
             }
         }
 
+
+        if( BaikalSettings.getAppBlocked(callingUid, callingPackage) ) {
+            Slog.w(TAG, "App start blocked: service "
+                    + service + " to " + r.shortInstanceName
+                    + " from pid=" + callingPid + " uid=" + callingUid
+                    + " pkg=" + callingPackage + " startFg?=" + fgRequired);
+            r.stopIfKilled = true;
+            return null;
+        }
+
         // If this isn't a direct-to-foreground start, check our ability to kick off an
         // arbitrary service
         if (forcedStandby || ((!r.startRequested || BaikalSettings.getExtremeIdleActive() || BaikalSettings.getStaminaMode()) && !fgRequired)) {
@@ -2879,6 +2889,22 @@ public final class ActiveServices {
     private String bringUpServiceLocked(ServiceRecord r, int intentFlags, boolean execInFg,
             boolean whileRestarting, boolean permissionsReviewRequired)
             throws TransactionTooLargeException {
+
+        //if( r.appInfo.packageName.startsWith("com.google.android.gms") ) {
+        //     Slog.w(TAG, "startProcessLocked(11): Bringup Service ():  check gms uid=" + r.appInfo.uid + " topUid=" + BaikalSettings.getTopAppUid() + " blocked = " + BaikalSettings.getAppBlocked(r.appInfo.uid, r.appInfo.packageName) );
+        //}
+
+        //if( r.appInfo.uid != BaikalSettings.getTopAppUid() ) {
+            if( BaikalSettings.getAppBlocked(r.appInfo.uid, r.appInfo.packageName) ) {
+                Slog.w(TAG, "startProcessLocked(11): Bringup Service ():  blocked " + r.appInfo);
+                return null;
+            }
+            if( BaikalSettings.getAppRestricted(r.appInfo.uid, r.appInfo.packageName) ) {
+                Slog.w(TAG, "startProcessLocked(11): Bringup Service ():  restricted " + r.appInfo);
+                return null;
+            }
+        //}
+
         if (r.app != null && r.app.thread != null) {
             sendServiceArgsLocked(r, execInFg, false);
             return null;
@@ -2974,6 +3000,9 @@ public final class ActiveServices {
         if (app == null && !permissionsReviewRequired) {
             // TODO (chriswailes): Change the Zygote policy flags based on if the launch-for-service
             //  was initiated from a notification tap or not.
+
+            Slog.w(TAG, "startProcessLocked(10): Start service(): FG= " + execInFg + " " + r.appInfo);
+
             if ((app=mAm.startProcessLocked(procName, r.appInfo, true, intentFlags,
                     hostingRecord, ZYGOTE_POLICY_FLAG_EMPTY, false, isolated, false)) == null) {
                 String msg = "Unable to launch app "

@@ -126,7 +126,7 @@ import motorola.hardware.health.V1_0.IMotHealth;
 public final class BatteryService extends SystemService {
     private static final String TAG = BatteryService.class.getSimpleName();
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     private static final int BATTERY_SCALE = 100;    // battery capacity is a percentage
 
@@ -478,19 +478,24 @@ public final class BatteryService extends SystemService {
         // assume we are powered if battery state is unknown so
         // the "stay on while plugged in" option will work.
         if (mHealthInfo.batteryStatus == BatteryManager.BATTERY_STATUS_UNKNOWN) {
+            Slog.e(TAG, "health: BATTERY_STATUS_UNKNOWN");
             return true;
         }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_AC) != 0 && mHealthInfo.chargerAcOnline) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_AC");
             return true;
         }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_USB) != 0 && mHealthInfo.chargerUsbOnline) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_USB");
             return true;
         }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_WIRELESS) != 0 && mHealthInfo.chargerWirelessOnline) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_WIRELESS");
             return true;
         }
-        if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_MOD) != 0 ||
-            mPlugType == BatteryManager.BATTERY_PLUGGED_MOD || isModBatteryActive()) {
+        if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_MOD) != 0 && 
+            (mPlugType == BatteryManager.BATTERY_PLUGGED_MOD || isModBatteryActive())) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_MOD");
             return true;
         }
         return false;

@@ -23,7 +23,7 @@
 
     <!-- The default tiles to display in QuickSettings -->
     <string name="quick_settings_tiles_extra" translatable="false">
-        idle_mode,stamina_mode,baikal_extras,cpuinfo,compass,music,reboot,usb_tether,caffeine,aicp_extras,heads_up,smartpixels,aod,locale,sound,volume_panel,dataswitch,sync,onthego,soundsearch,screenshot,weather,hwkeys,gaming,fpsinfo,killapp,vpn,mono
+        idle_mode,stamina_mode,baikal_extras,gms,cpuinfo,compass,music,reboot,usb_tether,caffeine,aicp_extras,heads_up,smartpixels,aod,locale,sound,volume_panel,dataswitch,sync,onthego,soundsearch,screenshot,weather,hwkeys,gaming,fpsinfo,killapp,vpn,mono
     </string>
 
     <!-- Color of the FOD view -->

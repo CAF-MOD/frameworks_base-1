@@ -74,7 +74,7 @@ public class BaikalSystemService extends SystemService {
 
     private static final String TAG = "BaikalService";
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private boolean mSystemReady = false;
 

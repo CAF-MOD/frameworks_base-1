@@ -62,6 +62,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Set;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 /**
  * BROADCASTS
  *
@@ -1522,14 +1524,18 @@ public final class BroadcastQueue {
         ProcessRecord app = mService.getProcessRecordLocked(targetProcess,
                 info.activityInfo.applicationInfo.uid, false);
 
+
+        boolean background = mQueueName.equals("background");
+
         if (!skip) {
             int allowed = mService.getAppStartModeLocked(
                     info.activityInfo.applicationInfo.uid, info.activityInfo.packageName,
                     info.activityInfo.applicationInfo.targetSdkVersion, -1, true, false, false);
 
-            if( BaikalActivityServiceStatic.isBroadcastBlacklisted(mService, r, info) ) {
+
+            if( BaikalActivityServiceStatic.isBroadcastBlacklisted(mService, r, info, background) ) {
                     allowed = ActivityManager.APP_START_MODE_DISABLED;
-            } else if( BaikalActivityServiceStatic.isBroadcastWhitelisted(mService, r, info) ) {
+            } else if( BaikalActivityServiceStatic.isBroadcastWhitelisted(mService, r, info, background) ) {
                     allowed = ActivityManager.APP_START_MODE_NORMAL;
 	        }
 
@@ -1642,10 +1648,40 @@ public final class BroadcastQueue {
             // restart the application.
         }
 
+        if( background && !BaikalActivityServiceStatic.allowBackgroundStart(info.activityInfo.applicationInfo.uid, info.activityInfo.packageName ) ) {
+            if (DEBUG_BROADCAST)  Slog.v(TAG_BROADCAST,
+                    "Skipping delivery of ordered [" + mQueueName + "] "
+                    + r + " because it's not allowed in background");
+
+            r.delivery[recIdx] = BroadcastRecord.DELIVERY_SKIPPED;
+            r.receiver = null;
+            r.curFilter = null;
+            r.state = BroadcastRecord.IDLE;
+            r.manifestSkipCount++;
+            scheduleBroadcastsLocked();
+            return;
+        }
+
         // Not running -- get it started, to be executed when the app comes up.
         if (DEBUG_BROADCAST)  Slog.v(TAG_BROADCAST,
                 "Need to start app ["
                 + mQueueName + "] " + targetProcess + " for broadcast " + r);
+
+        Slog.w(TAG, "startProcessLocked(20): Start for broadcast(): " + info.activityInfo.applicationInfo);
+
+        if( BaikalSettings.getAppBlocked(info.activityInfo.applicationInfo.uid, info.activityInfo.applicationInfo.packageName) ) {
+            Slog.w(TAG, "startProcessLocked(20): Start for broadcast(): blocked " + info.activityInfo.applicationInfo);
+
+            r.delivery[recIdx] = BroadcastRecord.DELIVERY_SKIPPED;
+            r.receiver = null;
+            r.curFilter = null;
+            r.state = BroadcastRecord.IDLE;
+            r.manifestSkipCount++;
+            scheduleBroadcastsLocked();
+            return;
+        }
+
+
         if ((r.curApp=mService.startProcessLocked(targetProcess,
                 info.activityInfo.applicationInfo, true,
                 r.intent.getFlags() | Intent.FLAG_FROM_BACKGROUND,

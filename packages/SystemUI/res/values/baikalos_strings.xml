@@ -24,10 +24,12 @@
     <string name="quick_baikal_extras_toast">LOL, you really thought that long click will take you somewhere!!!</string>
 
     <!-- Idle QS tiles -->
-    <string name="quick_settings_aggressive_idle_label">Aggressive Idle</string>
-    <string name="quick_settings_extreme_idle_label">Extreme Idle</string>
-    <string name="quick_settings_default_idle_label">Default Idle</string>
+    <string name="quick_settings_aggressive_idle_label">Aggressive</string>
+    <string name="quick_settings_extreme_idle_label">Extreme</string>
+    <string name="quick_settings_default_idle_label">Default</string>
     <string name="quick_settings_stamina_label">Stamina</string>
+    <string name="quick_settings_gms_blocked">Google</string>
+    <string name="quick_settings_gms_unblocked">Google</string>
 
     <!-- Misc Baikal sesttings -->
     <string name="quick_settings_torch_incall_label">Torch on Call</string>

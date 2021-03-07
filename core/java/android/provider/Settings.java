@@ -15854,6 +15854,9 @@ public final class Settings {
          * Google Services and Play Market options.
          * @hide
          */
+
+
+        public static final String BAIKALOS_GMS_BLOCKED = "baikalos_gms_blocked";
         public static final String BAIKALOS_GMS_RESTRICTED = "baikalos_gms_restricted";
         public static final String BAIKALOS_GPS_RESTRICTED = "baikalos_gps_restricted";
         public static final String BAIKALOS_GMS_STAMINA_RESTRICTED = "baikalos_gms_stamina_restricted";

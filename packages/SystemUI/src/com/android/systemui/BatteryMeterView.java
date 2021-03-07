@@ -34,6 +34,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.database.ContentObserver;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Handler;
@@ -122,6 +123,7 @@ public class BatteryMeterView extends LinearLayout implements
     private int mNonAdaptedForegroundColor;
     private int mNonAdaptedBackgroundColor;
     private boolean mPowerSaveEnabled;
+    private boolean mStaminaEnabled;
 
     public BatteryMeterView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
@@ -379,6 +381,16 @@ public class BatteryMeterView extends LinearLayout implements
 
     }
 
+    public void onStaminaChanged(boolean isStamina) {
+        //mDrawable.setPowerSaveEnabled(isPowerSave);
+        if (mStaminaEnabled != isStamina) {
+            mStaminaEnabled = isStamina;
+            updateShowPercent(false);
+            updatePercentText();
+        }
+
+    }
+
     private TextView loadPercentView() {
         return (TextView) LayoutInflater.from(getContext())
                 .inflate(R.layout.battery_percentage_view, null);
@@ -428,8 +440,12 @@ public class BatteryMeterView extends LinearLayout implements
         int style = whitelistIpcs(() -> Settings.System
                 .getInt(getContext().getContentResolver(),
                 SHOW_BATTERY_PERCENT, 0));
-        if (mForceShowPercent || mPowerSave) {
+        if (mForceShowPercent || mPowerSave ) {
             style = 1; // Default view
+        }
+
+        if( mStaminaEnabled ) {
+            style = 1;
         }
         switch (style) {
             case 1:
@@ -486,7 +502,9 @@ public class BatteryMeterView extends LinearLayout implements
             } catch (RuntimeException e) {
                 // don't crash if we dont have battery level yet.
             }
-            if (mPowerSaveEnabled && !mCharging) {
+            if (mStaminaEnabled) {
+                mBatteryPercentView.setTextColor(Color.rgb(0,200,0));
+            } else if (mPowerSaveEnabled && !mCharging) {
                 mBatteryPercentView.setTextColor(mDrawable.getPowersaveColor());
             } else if (mTextColor != 0) {
                 mBatteryPercentView.setTextColor(mTextColor);

@@ -1645,32 +1645,35 @@ public final class PowerManagerService extends SystemService
                     wakeLock.mWorkSource, wakeLock.mHistoryTag);
 
             if ((wakeLock.mFlags & PowerManager.WAKE_LOCK_LEVEL_MASK) == PowerManager.PARTIAL_WAKE_LOCK ) {
-                int appid = UserHandle.getAppId(wakeLock.mOwnerUid);
-                int wsid = appid;
+                if( !wakeLock.mTag.startsWith("AudioMix") ) {
+                
+                    int appid = UserHandle.getAppId(wakeLock.mOwnerUid);
+                    int wsid = appid;
 
-                if (wakeLock.mWorkSource != null && !wakeLock.mWorkSource.isEmpty()) {
-                    WorkSource workSource = wakeLock.mWorkSource;
-                    WorkChain workChain = getFirstNonEmptyWorkChain(workSource);
-                    if (workChain != null) {
-                        wsid = workChain.getAttributionUid();
+                    if (wakeLock.mWorkSource != null && !wakeLock.mWorkSource.isEmpty()) {
+                        WorkSource workSource = wakeLock.mWorkSource;
+                        WorkChain workChain = getFirstNonEmptyWorkChain(workSource);
+                        if (workChain != null) {
+                            wsid = workChain.getAttributionUid();
+                        } else {
+                            wsid = workSource.get(0);
+                        }
+
+                        Slog.d(TAG, "notifyWakeLockLongStartedLocked: ws " + wakeLock);
                     } else {
-                        wsid = workSource.get(0);
+                        Slog.d(TAG, "notifyWakeLockLongStartedLocked: own " + wakeLock);
                     }
 
-                    Slog.d(TAG, "notifyWakeLockLongStartedLocked: ws " + wakeLock);
-                } else {
-                    Slog.d(TAG, "notifyWakeLockLongStartedLocked: own " + wakeLock);
-                }
-
-                if (appid >= Process.FIRST_APPLICATION_UID) {
-                    if( BaikalSettings.getAppRestricted(appid) ||
-                        (Arrays.binarySearch(mDeviceIdleWhitelist, appid) < 0 && 
-                        Arrays.binarySearch(mDeviceIdleWhitelist, wsid) < 0 )) {
-                        wakeLock.mDisabled = true;
-                        notifyWakeLockReleasedLocked(wakeLock);
-                        Slog.d(TAG, "notifyWakeLockLongStartedLocked: disabled " + wakeLock);
-                        mDirty |= DIRTY_WAKE_LOCKS;
-                        updatePowerStateLocked();
+                    if (appid >= Process.FIRST_APPLICATION_UID || wsid >= Process.FIRST_APPLICATION_UID ) {
+                        if( BaikalSettings.getAppRestricted(appid) ||
+                            (Arrays.binarySearch(mDeviceIdleWhitelist, appid) < 0 && 
+                            Arrays.binarySearch(mDeviceIdleWhitelist, wsid) < 0 )) {
+                            wakeLock.mDisabled = true;
+                            notifyWakeLockReleasedLocked(wakeLock);
+                            Slog.d(TAG, "notifyWakeLockLongStartedLocked: disabled " + wakeLock);
+                            mDirty |= DIRTY_WAKE_LOCKS;
+                            updatePowerStateLocked();
+                        }
                     }
                 }
             }
@@ -2174,13 +2177,13 @@ public final class PowerManagerService extends SystemService
             mBatteryLevel = mBatteryManagerInternal.getBatteryLevel();
             mBatteryLevelLow = mBatteryManagerInternal.getBatteryLevelLow();
 
-            if (DEBUG_SPEW) {
+            //if (DEBUG) {
                 Slog.d(TAG, "updateIsPoweredLocked: wasPowered=" + wasPowered
                         + ", mIsPowered=" + mIsPowered
                         + ", oldPlugType=" + oldPlugType
                         + ", mPlugType=" + mPlugType
                         + ", mBatteryLevel=" + mBatteryLevel);
-            }
+            //}
 
             if ( !mIsPoweredInitialized || wasPowered != mIsPowered || oldPlugType != mPlugType) {
                 mDirty |= DIRTY_IS_POWERED;
