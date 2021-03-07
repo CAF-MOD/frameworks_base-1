@@ -2282,7 +2282,7 @@ static void com_android_internal_os_Zygote_nativeInitNativeState(JNIEnv* env, jc
 
   // security_getenforce is not allowed on app process. Initialize and cache
   // the value before zygote forks.
-  gIsSecurityEnforced = security_getenforce();
+  gIsSecurityEnforced = false; //security_getenforce();
 
   selinux_android_seapp_context_init();
 
