@@ -493,8 +493,8 @@ public final class BatteryService extends SystemService {
             Slog.e(TAG, "health: BATTERY_PLUGGED_WIRELESS");
             return true;
         }
-        if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_MOD) != 0 && 
-            (mPlugType == BatteryManager.BATTERY_PLUGGED_MOD || isModBatteryActive())) {
+        if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_MOD) != 0 &&
+                  supplementalOrEmergencyModOnline() && isModBatteryActive()) {
             Slog.e(TAG, "health: BATTERY_PLUGGED_MOD");
             return true;
         }
