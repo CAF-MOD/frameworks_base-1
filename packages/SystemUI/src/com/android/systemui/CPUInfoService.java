@@ -110,6 +110,8 @@ public class CPUInfoService extends Service {
         private String mPowerProfile;
 
         private String mGpuFreq;
+        private String mBatCur;
+
         private boolean mDataAvail;
 
         private Handler mCurCPUHandler = new Handler() {
@@ -127,8 +129,9 @@ public class CPUInfoService extends Service {
                         mPowerProfile=parts[3];
                         mThermalProfile=parts[4];
                         mGpuFreq=parts[5];
+                        mBatCur=parts[6];
 
-                        String[] cpuParts=parts[6].split("\\|");
+                        String[] cpuParts=parts[7].split("\\|");
                         for(int i=0; i<cpuParts.length; i++){
                             String cpuInfo=cpuParts[i];
                             String cpuInfoParts[]=cpuInfo.split(":");
@@ -286,7 +289,13 @@ public class CPUInfoService extends Service {
 
             
             if(!mGpuFreq.equals("-")) {
-                canvas.drawText("gpu:" + mGpuFreq + " MHz",
+                canvas.drawText("GPU:" + mGpuFreq + " MHz",
+                        RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
+                y += mFH;
+            }
+
+            if(!mBatCur.equals("-")) {
+                canvas.drawText("cur:" + mBatCur + " mA",
                         RIGHT-mPaddingRight-mMaxWidth, y-1, mOnlinePaint);
                 y += mFH;
             }
@@ -315,7 +324,7 @@ public class CPUInfoService extends Service {
             if (!mDataAvail) {
                 return;
             }
-            int NW = mNumCpus + 6;
+            int NW = mNumCpus + 7;
 
             int neededWidth = mPaddingLeft + mPaddingRight + mMaxWidth;
             int neededHeight = mPaddingTop + mPaddingBottom + (mFH*NW);
@@ -349,6 +358,7 @@ public class CPUInfoService extends Service {
         private static final String CPU_GOV_TAIL = "/cpufreq/scaling_governor";
         private static final String CPU_ISO_TAIL = "/isolate";
         private static final String CPU_OFF_TAIL = "/online";
+        private static final String BATT_CURRENT = "/sys/class/power_supply/battery/current_now";
 
         public CurCPUThread(Handler handler, int numCpus){
             mHandler=handler;
@@ -403,6 +413,20 @@ public class CPUInfoService extends Service {
 
                     String sGpuFreq = CPUInfoService.readOneLine(GPU_FREQ_SENSOR);
                     sb.append(sGpuFreq == null ? "-" : sGpuFreq);
+                    sb.append(";");
+
+                    String sBatCur = CPUInfoService.readOneLine(BATT_CURRENT);
+                    if( sBatCur != null ) {
+                        try {
+                            int iBatCur = Integer.parseInt(sBatCur);
+                            iBatCur*=-1;
+                            iBatCur = (iBatCur+500)/1000;
+                            sBatCur = Integer.toString(iBatCur);
+                        } catch(Exception bce) {
+                            sBatCur = null;
+                        }
+                    }
+                    sb.append(sBatCur == null ? "-" : sBatCur);
                     sb.append(";");
                     
                     
