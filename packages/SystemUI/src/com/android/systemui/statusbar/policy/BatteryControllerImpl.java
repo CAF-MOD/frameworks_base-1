@@ -183,7 +183,8 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
         } else if (action.equals(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)) {
             updatePowerSave();
         } else if (action.equals(Actions.ACTION_STAMINA_CHANGED)) {
-            updateStamina();
+            boolean mode = (boolean)intent.getExtra(Actions.EXTRA_BOOL_MODE);
+            updateStamina(mode);
         } else if (action.equals(ACTION_LEVEL_TEST)) {
             mTestmode = true;
             mMainHandler.post(new Runnable() {
@@ -309,8 +310,8 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
     }
 
 
-    private void updateStamina() {
-        boolean stamina = BaikalSettings.getStaminaMode();
+    private void updateStamina(boolean stamina) {
+        //boolean stamina = BaikalSettings.getStaminaMode();
         if (DEBUG) Log.d(TAG, "update stamina " + (stamina ? "on" : "off"));
         setStamina(stamina);
         if (DEBUG) Log.d(TAG, "Stamina  changed to " + (mStamina ? "on" : "off"));
