@@ -420,7 +420,7 @@ public class CPUInfoService extends Service {
                         try {
                             int iBatCur = Integer.parseInt(sBatCur);
                             iBatCur*=-1;
-                            iBatCur = (iBatCur+500)/1000;
+                            iBatCur = iBatCur/1000;
                             sBatCur = Integer.toString(iBatCur);
                         } catch(Exception bce) {
                             sBatCur = null;
