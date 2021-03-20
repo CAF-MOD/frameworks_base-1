@@ -674,23 +674,29 @@ public final class ActionUtils {
         if (uri == null) {
             return null;
         }
-        if (uri.startsWith(ActionHandler.SYSTEM_PREFIX)) {
-            for (int i = 0; i < ActionHandler.systemActions.length; i++) {
-                if (ActionHandler.systemActions[i].mAction.equals(uri)) {
-                    return getString(ctx, ActionHandler.systemActions[i].mLabelRes,
-                            ActionHandler.systemActions[i].mResPackage);
+        try {
+            if (uri.startsWith(ActionHandler.SYSTEM_PREFIX)) {
+                for (int i = 0; i < ActionHandler.systemActions.length; i++) {
+                    if (ActionHandler.systemActions[i].mAction.equals(uri)) {
+                        return getString(ctx, ActionHandler.systemActions[i].mLabelRes,
+                                ActionHandler.systemActions[i].mResPackage);
+                    }
+                }
+            } else {
+                try {
+                    Intent intent = Intent.parseUri(uri, 0);
+                    if (Intent.ACTION_MAIN.equals(intent.getAction())) {
+                        return getFriendlyActivityName(ctx.getPackageManager(), intent, false);
+                    }
+                    return getFriendlyShortcutName(ctx.getPackageManager(), intent);
+                } catch (URISyntaxException e) {
                 }
             }
-        } else {
-            try {
-                Intent intent = Intent.parseUri(uri, 0);
-                if (Intent.ACTION_MAIN.equals(intent.getAction())) {
-                    return getFriendlyActivityName(ctx.getPackageManager(), intent, false);
-                }
-                return getFriendlyShortcutName(ctx.getPackageManager(), intent);
-            } catch (URISyntaxException e) {
-            }
+        } catch(Exception e) {
+            return null;
         }
+        
+
         return uri;
     }
 
