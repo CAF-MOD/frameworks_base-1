@@ -135,7 +135,7 @@ public class BaikalUtils {
     }
 
     public static void boost() {
-        Slog.i(TAG, "Boost!");
+        if( Constants.DEBUG_RAW ) Slog.i(TAG, "Boost!");
         try {
             SystemProperties.set("baikal.perf.boost", "1");
         } catch( Exception e )  {

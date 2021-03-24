@@ -79,6 +79,7 @@ public class Actions extends MessageHandler {
     public boolean onMessage(Message msg) {
     	switch(msg.what) {
     	    case Messages.MESSAGE_SEND_INTENT:
+        	if( Constants.DEBUG_ACTIONS ) Slog.i(TAG,"sendIntent:" + (Intent)msg.obj);
     		sendIntent((Intent)msg.obj);
     		return true;
     	}

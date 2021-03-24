@@ -43,6 +43,8 @@ public class BaikalSettings extends ContentObserver {
     private static Context mContext;
    	private static Object _staticLock = new Object();
 
+    private static long mDebug;
+
    	private static boolean mHallSensorEnabled;
    	private static boolean mProximityWakeEnabled;
    	private static boolean mProximitySleepEnabled;
@@ -61,6 +63,18 @@ public class BaikalSettings extends ContentObserver {
     private static boolean mIsGmsRestrictedIdle;
     private static boolean mIsGmsRestrictedStamina;
     private static boolean mIsGpsRestricted;
+
+    private static String mFilterServices;
+    private static String mFilterAlarms;
+    private static String mFfilterBcast;
+    private static String mFilterActivity;
+
+    private static String mFilterServicesIdle;
+    private static String mFilterAlarmsIdle;
+    private static String mFilterBcastIdle;
+    private static String mFilterActivityIdle;
+
+    private static String mAlarmsNoWake;
 
     private static int mTopAppUid;
     private static String mTopAppPackageName;
@@ -110,12 +124,9 @@ public class BaikalSettings extends ContentObserver {
 	public static boolean getStaminaMode() {
 
         if( mStaminaMode || (mStaminaOiMode && Runtime.isIdleMode()) ) {
-            Slog.e(TAG, "getStaminaMode: ret=true");
             return true;
         }
         return false;
-        //return ( mStaminaMode || (mStaminaOiMode && Runtime.isIdleMode()) );
-	    //return mStaminaMode;
 	}
 
 	public static boolean getDisableHeadphonesDetect() {
@@ -123,22 +134,33 @@ public class BaikalSettings extends ContentObserver {
 	}
 
     public static boolean getAppRestricted(int uid) {
+        if( uid < Process.FIRST_APPLICATION_UID ) return false;
         return getAppRestricted(uid,null);
     }
 
     public static boolean getAppRestricted(int uid, String packageName) {
+
+        if( !getAggressiveIdleEnabled() ) return false;
+
+        if( uid < Process.FIRST_APPLICATION_UID && packageName == null ) return false;
+
         boolean ret = getAppRestrictedInternal(uid,packageName);
 
-        if( ret /*Constants.DEBUG_RAW*/ ) {
+        if( ret && Constants.DEBUG_RAW ) {
             Slog.e(TAG, "getAppRestricted: ret=" + ret + ", uid=" + uid + ", pkg=" + packageName + ", top=" + mTopAppUid );
         }
         return ret;
     }
 
     public static boolean getAppBlocked(int uid, String packageName) {
+
+        if( !getAggressiveIdleEnabled() ) return false;
+
+        if( uid < Process.FIRST_APPLICATION_UID && packageName == null ) return false;
+
         boolean ret = getAppBlockedInternal(uid,packageName);
 
-        if( ret /*Constants.DEBUG_RAW*/ ) {
+        if( ret && Constants.DEBUG_RAW ) {
             Slog.e(TAG, "getAppBlocked: ret=" + ret + ", uid=" + uid + ", pkg=" + packageName + ", top=" + mTopAppUid );
         }
         return ret;
@@ -146,13 +168,18 @@ public class BaikalSettings extends ContentObserver {
                           
     public static boolean getAppBlockedInternal(int uid, String packageName) {
 
-        if( isGmsBlocked() && /*packageName.startsWith("com.google.android.gms") */  Runtime.isGmsUid(uid) ) {
-            return true;
+        if( Runtime.isGmsUid(uid) ) {
+            return isGmsBlocked();
         }
 
-        if( uid == mTopAppUid ) return false;
+        if( uid < Process.FIRST_APPLICATION_UID && packageName == null ) return false;
 
-        if( uid < Process.FIRST_APPLICATION_UID ) return false;
+        if( uid < Process.FIRST_APPLICATION_UID ) {
+            if( packageName.equals(mTopAppPackageName) ) return false;
+        }
+        else if(  uid == mTopAppUid ) { 
+            return false;
+        }
 
         AppProfile profile = null; 
         if( packageName == null ) profile = AppProfileSettings.getProfileStatic(uid);
@@ -167,19 +194,26 @@ public class BaikalSettings extends ContentObserver {
             return true;
         }
 
+        if( profile.mBackground > 2 ) return true;
         if( profile.mBackground > 1 && Runtime.isIdleMode() ) return true;
-        if( profile.mBackground == 3 ) return true;
 
         return false;
     }
 
 
     public static boolean getAppRestrictedInternal(int uid, String packageName) {
-        if( isGmsRestricted() && Runtime.isGmsUid(uid) ) {
-            return true;
+        if( Runtime.isGmsUid(uid) ) {
+            return isGmsRestricted();
         }
 
-        if( uid == mTopAppUid ) return false;
+        if( uid < Process.FIRST_APPLICATION_UID && packageName == null ) return false;
+
+        if( uid < Process.FIRST_APPLICATION_UID ) {
+            if( packageName.equals(mTopAppPackageName) ) return false;
+        }
+        else if(  uid == mTopAppUid ) { 
+            return false;
+        }
 
         AppProfile profile = null; 
         if( packageName == null ) profile = AppProfileSettings.getProfileStatic(uid);
@@ -196,8 +230,9 @@ public class BaikalSettings extends ContentObserver {
         AppProfile profile = AppProfileManager.getCurrentProfile();
         if( profile != null && profile.mRequireGms ) return false;
 
-        if( mIsGmsRestricted ) return true;
-        if( mIsGmsRestrictedIdle && Runtime.isIdleMode() ) return true;
+        //if( mIsGmsRestricted ) return true;
+        //if( mIsGmsRestrictedIdle && Runtime.isIdleMode() ) return true;
+        if( mIsGmsBlocked ) return true;
         if( mIsGmsRestrictedStamina && getStaminaMode() ) return true;
         return false;
     }
@@ -316,6 +351,37 @@ public class BaikalSettings extends ContentObserver {
                 mResolver.registerContentObserver(
                     Settings.Global.getUriFor(Settings.Global.BAIKALOS_GMS_BLOCKED),
                     false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_SERVICES),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_ALARMS),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_BCAST),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_ACTIVITY),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_SERVICES_IDLE),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_ALARMS_IDLE),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_BCAST_IDLE),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_FILTER_ACTIVITY_IDLE),
+                    false, this);
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_ALARMS_NOWAKE),
+                    false, this);
+
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_DEBUG),
+                    false, this);
 
 
             } catch( Exception e ) {
@@ -356,10 +422,39 @@ public class BaikalSettings extends ContentObserver {
                 mIsGmsRestrictedStamina = Settings.Global.getInt(context.getContentResolver(),
                         Settings.Global.BAIKALOS_GMS_STAMINA_RESTRICTED,0) == 1;
 
-                } catch (Exception e) {
-                    Slog.e(TAG, "Bad BaikalService settings ", e);
-                }
+                mFilterServices = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_SERVICES);
+                mFilterAlarms = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_ALARMS);
+                mFfilterBcast = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_BCAST);
+                mFilterActivity = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_ACTIVITY);
+                mFilterServicesIdle = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_SERVICES_IDLE);
+                mFilterAlarmsIdle = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_ALARMS_IDLE);
+                mFilterBcastIdle = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_BCAST_IDLE);
+                mFilterActivityIdle = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_FILTER_ACTIVITY_IDLE);
+                mAlarmsNoWake = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_ALARMS_NOWAKE);
+
+                mDebug = Settings.Global.getLong(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_DEBUG,0);
+
+                updateStaticConstantsLocked();
+
+            } catch (Exception e) {
+                Slog.e(TAG, "Bad BaikalService settings ", e);
+            }
         }
+    }
+
+    private static void updateStaticConstantsLocked() {
+        //updateFilters();
+        updateDebug();
     }
 
     public void updateConstantsLocked(boolean startup) {
@@ -471,6 +566,8 @@ public class BaikalSettings extends ContentObserver {
 
 	void staminaModeChanged(boolean enabled) {
 	    mStaminaMode = enabled;
+        
+        Slog.e(TAG, "Stamina mode changed: " + mStaminaMode);
 
         Actions.sendStaminaChanged(enabled);
 
@@ -528,15 +625,31 @@ public class BaikalSettings extends ContentObserver {
             }
 
             if( !mIdleMode && mStaminaOiMode ) {
-                if( mContext != null ) {
-                    final Intent bootIntent = new Intent(Intent.ACTION_BOOT_COMPLETED, null);
-                    bootIntent.putExtra(Intent.EXTRA_USER_HANDLE, 0);
-                    bootIntent.addFlags(Intent.FLAG_RECEIVER_NO_ABORT
-                        | Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
+                //if( mContext != null ) {
+                    //final Intent bootIntent = new Intent(Intent.ACTION_BOOT_COMPLETED, null);
+                    //bootIntent.putExtra(Intent.EXTRA_USER_HANDLE, 0);
+                    //bootIntent.addFlags(Intent.FLAG_RECEIVER_NO_ABORT
+                    //    | Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
 
-                    mContext.sendBroadcastAsUser(bootIntent, UserHandle.ALL);
-                }
+                    //mContext.sendBroadcastAsUser(bootIntent, UserHandle.ALL);
+                //}
             }
         }
+    }
+
+    private static void updateDebug() {
+        if( (mDebug&Constants.DEBUG_MASK_TEMPLATE) !=0 ) Constants.DEBUG_TEMPLATE = true;
+        if( (mDebug&Constants.DEBUG_MASK_SENSORS) !=0 ) Constants.DEBUG_SENSORS = true;
+        if( (mDebug&Constants.DEBUG_MASK_TORCH) !=0 ) Constants.DEBUG_TORCH = true;
+        if( (mDebug&Constants.DEBUG_MASK_TELEPHONY) !=0 ) Constants.DEBUG_TELEPHONY = true;
+        if( (mDebug&Constants.DEBUG_MASK_TELEPHONY_RAW) !=0 ) Constants.DEBUG_TELEPHONY_RAW = true;
+        if( (mDebug&Constants.DEBUG_MASK_BLUETOOTH) !=0 ) Constants.DEBUG_BLUETOOTH = true;
+        if( (mDebug&Constants.DEBUG_MASK_ACTIONS) !=0 ) Constants.DEBUG_ACTIONS = true;
+        if( (mDebug&Constants.DEBUG_MASK_APP_PROFILE) !=0 ) Constants.DEBUG_APP_PROFILE = true;
+        if( (mDebug&Constants.DEBUG_MASK_DEV_PROFILE) !=0 ) Constants.DEBUG_DEV_PROFILE = true;
+        if( (mDebug&Constants.DEBUG_MASK_SERVICES) !=0 ) Constants.DEBUG_SERVICES = true;
+        if( (mDebug&Constants.DEBUG_MASK_ACTIVITY) !=0 ) Constants.DEBUG_ACTIVITY = true;
+        if( (mDebug&Constants.DEBUG_MASK_ALARM) !=0 ) Constants.DEBUG_ALARM = true;
+        if( (mDebug&Constants.DEBUG_MASK_BROADCAST) !=0 ) Constants.DEBUG_BROADCAST = true;
     }
 }

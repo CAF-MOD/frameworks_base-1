@@ -1061,12 +1061,15 @@ public class NotificationPanelViewController extends PanelViewController {
         if (mQsExpansionEnabled && !isQsSecureExpandDisabled()) {
             mQsExpandImmediate = true;
             mNotificationStackScroller.setShouldShowShelfOnly(true);
-        }
-        if (isFullyCollapsed()) {
-            expand(true /* animate */);
-        } else {
-            flingSettings(0 /* velocity */, FLING_EXPAND);
-        }
+        
+            if (isFullyCollapsed()) {
+                expand(true /* animate */);
+            } else {
+                flingSettings(0 /* velocity */, FLING_EXPAND);
+            }
+        } /*else {
+            expandWithoutQs();
+        }*/
     }
 
     public void expandWithoutQs() {
@@ -3884,7 +3887,7 @@ public class NotificationPanelViewController extends PanelViewController {
     private boolean isQsSecureExpandDisabled() {
         final boolean keyguardOrShadeShowing = mBarState == StatusBarState.KEYGUARD
                 || mBarState == StatusBarState.SHADE_LOCKED;
-        return mLockPatternUtils.isSecure(KeyguardUpdateMonitor.getCurrentUser()) && mQsSecureExpandDisabled &&
+        return /*mLockPatternUtils.isSecure(KeyguardUpdateMonitor.getCurrentUser()) && */ mQsSecureExpandDisabled &&
                 keyguardOrShadeShowing;
     }
 

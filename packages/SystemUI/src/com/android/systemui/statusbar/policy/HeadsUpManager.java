@@ -83,6 +83,24 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
         mSnoozeLengthMs = Settings.System.getIntForUser(context.getContentResolver(),
                 Settings.System.HEADS_UP_NOTIFICATION_SNOOZE,
                 defaultSnoozeLengthMs, UserHandle.USER_CURRENT);
+
+        boolean pulseAmbientLightEnabled = Settings.System.getIntForUser(
+                mContext.getContentResolver(), Settings.System.PULSE_AMBIENT_LIGHT, 0,
+                UserHandle.USER_CURRENT) == 1;
+
+        if( pulseAmbientLightEnabled ) {
+
+            int duration = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.PULSE_AMBIENT_LIGHT_DURATION, 2,
+                    UserHandle.USER_CURRENT) * 1000;
+            int repeat = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.PULSE_AMBIENT_LIGHT_REPEAT_COUNT, 0,
+                    UserHandle.USER_CURRENT);
+            if( duration * repeat > mAutoDismissNotificationDecay ) {
+                mAutoDismissNotificationDecay = duration * repeat;
+            }
+        }
+
     }
 
     /**
@@ -399,6 +417,25 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
                 Settings.System.HEADS_UP_TIMEOUT,
                 mContext.getResources().getInteger(R.integer.heads_up_notification_decay),
                 UserHandle.USER_CURRENT);
+
+
+            boolean pulseAmbientLightEnabled = Settings.System.getIntForUser(
+                    mContext.getContentResolver(), Settings.System.PULSE_AMBIENT_LIGHT, 0,
+                    UserHandle.USER_CURRENT) == 1;
+
+            if( pulseAmbientLightEnabled ) {
+
+                int duration = Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.PULSE_AMBIENT_LIGHT_DURATION, 2,
+                        UserHandle.USER_CURRENT) * 1000;
+                int repeat = Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.PULSE_AMBIENT_LIGHT_REPEAT_COUNT, 0,
+                        UserHandle.USER_CURRENT);
+                if( duration * repeat > mAutoDismissNotificationDecay ) {
+                    mAutoDismissNotificationDecay = duration * repeat;
+                }
+            }
+
             super.updateEntry(updatePostTime);
         }
 

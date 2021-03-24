@@ -191,6 +191,8 @@ public final class BackgroundJobsController extends StateController {
                 (jobStatus.getInternalFlags() & JobStatus.INTERNAL_FLAG_HAS_FOREGROUND_EXEMPTION)
                         != 0);
 
+        //canRun = BaikalStaticService.updateSingleJobRestrictionLocked(canRun, jobStatus, activeState);
+
         final boolean isActive;
         if (activeState == UNKNOWN) {
             isActive = mAppStateTracker.isUidActive(uid);

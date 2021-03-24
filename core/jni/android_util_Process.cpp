@@ -16,7 +16,6 @@
 */
 
 #define LOG_TAG "Process"
-#define LOG_NDEBUG 1
 
 // To make sure cpu_set_t is included from sched.h
 #define _GNU_SOURCE 1
@@ -65,7 +64,7 @@
 
 using namespace android;
 
-//static constexpr bool kDebugPolicy = false;
+static constexpr bool kDebugPolicy = false;
 static constexpr bool kDebugProc = false;
 
 // Stack reservation for reading small proc files.  Most callers of
@@ -250,11 +249,11 @@ void android_os_Process_setProcessGroup(JNIEnv* env, jobject clazz, int pid, jin
 
     bool isDefault = false;
     if (grp < 0) {
-//        grp = SP_BACKGROUND;
+        grp = SP_FOREGROUND;
         isDefault = true;
     }
 
-    if (true/*kDebugPolicy*/) {
+    if (kDebugPolicy) {
         char cmdline[32];
         int fd;
 
@@ -271,7 +270,7 @@ void android_os_Process_setProcessGroup(JNIEnv* env, jobject clazz, int pid, jin
         if (grp == SP_BACKGROUND) {
             ALOGD("setProcessGroup: vvv pid %d (%s)", pid, cmdline);
         } else {
-            ALOGD("setProcessGroup: ??? %d pid %d (%s)", grp, pid, cmdline);
+            ALOGD("setProcessGroup: ^^^ pid %d (%s)", pid, cmdline);
         }
     }
 
@@ -304,57 +303,29 @@ void android_os_Process_setProcessGroup(JNIEnv* env, jobject clazz, int pid, jin
             if ((scheduler == SCHED_FIFO) || (scheduler == SCHED_RR)) {
                 // This task wants to stay in its current audio group so it can keep its budget
                 // don't update its cpuset or cgroup
-                grp = SP_TOP_APP;
-                err = SetTaskProfiles(t_pid, {get_cpuset_policy_profile_name((SchedPolicy)grp)}, true) ? 0 : -1;
-                if (err != NO_ERROR) {
-                    signalExceptionForGroupError(env, -err, t_pid);
-                    break;
-                }
-                ALOGD("setProcessGroup: ^A^ pid %d", pid);
                 continue;
             }
         }
 
         if (isDefault) {
-            if (t_pri >= ANDROID_PRIORITY_LOWEST )  {
-                grp = SP_RESTRICTED;
-                ALOGD("setProcessGroup: vLv pid %d %d", pid, t_pid);
-            } else if (t_pri >= ANDROID_PRIORITY_BACKGROUND) {
-                grp = SP_BACKGROUND;
-                ALOGD("setProcessGroup: vBv pid %d %d", pid, t_pid);
-            } else if (t_pri > ANDROID_PRIORITY_NORMAL) {
-                grp = SP_BACKGROUND;
-                ALOGD("setProcessGroup: vNv pid %d %d", pid, t_pid);
-            } else if (t_pri > ANDROID_PRIORITY_FOREGROUND) {
-                grp = SP_FOREGROUND;
-                ALOGD("setProcessGroup: -F- pid %d %d", pid, t_pid);
-            } else if (t_pri > ANDROID_PRIORITY_URGENT_DISPLAY) {
-                grp = SP_TOP_APP;
-                ALOGD("setProcessGroup: -T- pid %d %d", pid, t_pid);
-            } else {
-                grp = SP_TOP_APP;
-                ALOGD("setProcessGroup: -H- pid %d %d", pid, t_pid);
+            if (t_pri >= ANDROID_PRIORITY_BACKGROUND) {
+                // This task wants to stay at background
+                // update its cpuset so it doesn't only run on bg core(s)
+                err = SetTaskProfiles(t_pid, {get_cpuset_policy_profile_name((SchedPolicy)grp)}, true) ? 0 : -1;
+                if (err != NO_ERROR) {
+                    signalExceptionForGroupError(env, -err, t_pid);
+                    break;
+                }
+                continue;
             }
-
-            err = SetTaskProfiles(t_pid, {get_cpuset_policy_profile_name((SchedPolicy)grp)}, true) ? 0 : -1;
-            if (err != NO_ERROR) {
-                signalExceptionForGroupError(env, -err, t_pid);
-                break;
-            }
-            continue;
-        } 
-
-
-        if( grp == SP_FOREGROUND ) {
-            ALOGD("setProcessGroup: +F+ pid %d", pid);
-        } else {
-            ALOGD("setProcessGroup: +?+ %d pid %d", grp, pid);
         }
+
         err = SetTaskProfiles(t_pid, {get_cpuset_policy_profile_name((SchedPolicy)grp)}, true) ? 0 : -1;
         if (err != NO_ERROR) {
             signalExceptionForGroupError(env, -err, t_pid);
-             break;
+            break;
         }
+
     }
     closedir(d);
 }

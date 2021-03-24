@@ -51,7 +51,7 @@ import java.util.WeakHashMap;
 public class ContrastColorUtil {
 
     private static final String TAG = "ContrastColorUtil";
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     private static final Object sLock = new Object();
     private static ContrastColorUtil sInstance;
@@ -492,6 +492,7 @@ public class ContrastColorUtil {
         final int resolvedColor = resolveColor(context, notificationColor, isDark);
 
         int color = resolvedColor;
+        
         color = ContrastColorUtil.ensureTextContrast(color, backgroundColor, isDark);
 
         if (color != resolvedColor) {

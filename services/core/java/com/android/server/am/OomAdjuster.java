@@ -1275,7 +1275,7 @@ public final class OomAdjuster {
         } else if (app.getActiveInstrumentation() != null) {
             // Don't want to kill running instrumentation.
             adj = ProcessList.FOREGROUND_APP_ADJ;
-            schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+            schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
             app.adjType = "instrumentation";
             procState = PROCESS_STATE_FOREGROUND_SERVICE;
             if (DEBUG_OOM_ADJ_REASON || logUid == appUid) {
@@ -1360,7 +1360,7 @@ public final class OomAdjuster {
                 procState = PROCESS_STATE_FOREGROUND_SERVICE;
                 app.adjType = "fg-service";
                 app.setCached(false);
-                schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                 if (DEBUG_OOM_ADJ_REASON || logUid == appUid) {
                     reportOomAdjMessageLocked(TAG_OOM_ADJ, "Raise to " + app.adjType + ": "
                             + app + " ");
@@ -1402,7 +1402,7 @@ public final class OomAdjuster {
                 app.setCached(false);
                 app.adjType = "force-imp";
                 app.adjSource = app.forcingToImportant;
-                schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                 if (DEBUG_OOM_ADJ_REASON || logUid == appUid) {
                     reportOomAdjMessageLocked(TAG_OOM_ADJ, "Raise to force imp: " + app);
                 }
@@ -1852,7 +1852,7 @@ public final class OomAdjuster {
                                 if ((cr.flags&Context.BIND_IMPORTANT) != 0) {
                                     schedGroup = ProcessList.SCHED_GROUP_TOP_APP_BOUND;
                                 } else {
-                                    schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                                    schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                                 }
                             }
                             app.setCached(false);
@@ -1964,7 +1964,7 @@ public final class OomAdjuster {
                 if (adj > ProcessList.FOREGROUND_APP_ADJ) {
                     adj = ProcessList.FOREGROUND_APP_ADJ;
                     app.setCurRawAdj(adj);
-                    schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                    schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                     app.setCached(false);
                     app.adjType = "ext-provider";
                     app.adjTarget = cpr.name;
@@ -2053,9 +2053,9 @@ public final class OomAdjuster {
         //      " adj=" + adj + " curAdj=" + app.curAdj + " maxAdj=" + app.maxAdj);
         if (adj > app.maxAdj) {
             adj = app.maxAdj;
-            if (app.maxAdj <= ProcessList.PERCEPTIBLE_LOW_APP_ADJ) {
-                schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
-            }
+            //if (app.maxAdj <= ProcessList.PERCEPTIBLE_LOW_APP_ADJ) {
+            //    schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+            //}
         }
 
         // Put bound foreground services in a special sched group for additional
@@ -2455,7 +2455,7 @@ public final class OomAdjuster {
 
     @GuardedBy("mService")
     void setAttachingSchedGroupLocked(ProcessRecord app) {
-        int initialSchedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+        int initialSchedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
         // If the process has been marked as foreground via Zygote.START_FLAG_USE_TOP_APP_PRIORITY,
         // then verify that the top priority is actually is applied.
         if (app.hasForegroundActivities()) {

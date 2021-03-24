@@ -48,6 +48,7 @@ public class AppProfile {
     public int mBackground;
     public boolean mStamina;
     public boolean mRequireGms;
+    public boolean mBootDisabled;
 
     public AppProfile() {
         mPerfProfile = "default";
@@ -62,6 +63,7 @@ public class AppProfile {
             !mPinned &&
             !mStamina &&
             !mRequireGms &&
+            !mBootDisabled &&
             mFrameRate == 0 &&
             mBackground == 0 &&
             mPerfProfile.equals("default") &&
@@ -80,7 +82,8 @@ public class AppProfile {
         "fr=" + mFrameRate + "," +
         "as=" + mStamina + "," +
         "bk=" + mBackground + "," +
-        "gms=" + mRequireGms 
+        "gms=" + mRequireGms  + "," +
+        "bt=" + mBootDisabled
         ;
     }
 
@@ -107,6 +110,7 @@ public class AppProfile {
             profile.mFrameRate = parser.getInt("fr",0);
             profile.mBackground = parser.getInt("bk",0);
             profile.mRequireGms = parser.getBoolean("gms",false);
+            profile.mBootDisabled = parser.getBoolean("bt",false);
         } catch( Exception e ) {
 
         }

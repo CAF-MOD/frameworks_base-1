@@ -26,6 +26,14 @@ import com.android.internal.baikalos.Runtime;
 import com.android.internal.baikalos.AppProfileManager;
 import com.android.internal.baikalos.DevProfileManager;
 
+import android.app.job.IJobScheduler;
+import android.app.job.JobInfo;
+import android.app.job.JobParameters;
+import android.app.job.JobProtoEnums;
+import android.app.job.JobScheduler;
+import android.app.job.JobService;
+import android.app.job.JobSnapshot;
+import android.app.job.JobWorkItem;
 
 import com.android.internal.baikalos.BaikalSettings;
 
@@ -62,7 +70,7 @@ public class BaikalStaticService {
 
     private static final String TAG = "BaikalService";
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private static boolean mSystemReady = false;
 
@@ -227,4 +235,17 @@ public class BaikalStaticService {
         }
 	    return block;
    }
+
+    public static boolean isJobBlacklisted(JobInfo job, JobWorkItem work, int uId, String packageName,
+            int userId, String tag) {
+        return false;
+    }
+
+    //boolean updateSingleJobRestrictionLocked(boolean canRun, JobStatus jobStatus, int activeState) {
+    //    final int uid = jobStatus.getSourceUid();
+    //    final String packageName = jobStatus.getSourcePackageName();
+    //    return canRun;
+    //}
+
+
 }

@@ -89,6 +89,8 @@ import com.android.server.LocalServices;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -979,7 +981,7 @@ public class ActivityManager {
      * @hide
      */
     public static boolean isSmallBatteryDevice() {
-        return RoSystemProperties.CONFIG_SMALL_BATTERY;
+        return RoSystemProperties.CONFIG_SMALL_BATTERY || BaikalSettings.getExtremeIdleEnabled();
     }
 
     /**

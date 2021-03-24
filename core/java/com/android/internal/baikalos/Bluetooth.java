@@ -37,7 +37,7 @@ public class Bluetooth extends MessageHandler {
     @Override
     protected void initialize() {
 
-	if( Constants.DEBUG_BLUETOOTH ) Slog.i(TAG,"initialize()");                
+	    if( Constants.DEBUG_BLUETOOTH ) Slog.i(TAG,"initialize()");                
 
         IntentFilter btFilter = new IntentFilter();
         btFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
@@ -74,8 +74,8 @@ public class Bluetooth extends MessageHandler {
        	if( Constants.DEBUG_BLUETOOTH ) Slog.i(TAG,"updateBluetoothDeviceState: state=" + state + ", device=" + device);                
         Intent intent = new Intent(Actions.ACTION_BLUETOOTH_DEVICE_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-	intent.putExtra(Actions.EXTRA_INT_MODE,state);
-	intent.putExtra(Actions.EXTRA_BT_DEVICE,device);
-	Actions.enqueueIntent(intent);
+	    intent.putExtra(Actions.EXTRA_INT_MODE,state);
+	    intent.putExtra(Actions.EXTRA_BT_DEVICE,device);
+	    Actions.enqueueIntent(intent);
     }
 }

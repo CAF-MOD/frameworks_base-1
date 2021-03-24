@@ -15868,6 +15868,19 @@ public final class Settings {
         public static final String BAIKALOS_GMS_STAMINA_RESTRICTED = "baikalos_gms_stamina_restricted";
         public static final String BAIKALOS_GMS_IDLE_RESTRICTED = "baikalos_gms_idle_restricted";
 
+        public static final String BAIKALOS_FILTER_SERVICES = "baikalos_filter_services";
+        public static final String BAIKALOS_FILTER_ALARMS = "baikalos_filter_alarms";
+        public static final String BAIKALOS_FILTER_BCAST = "baikalos_filter_bcast";
+        public static final String BAIKALOS_FILTER_ACTIVITY = "baikalos_filter_activity";
+
+        public static final String BAIKALOS_FILTER_SERVICES_IDLE = "baikalos_filter_services_idle";
+        public static final String BAIKALOS_FILTER_ALARMS_IDLE = "baikalos_filter_alarms_idle";
+        public static final String BAIKALOS_FILTER_BCAST_IDLE = "baikalos_filter_bcast_idle";
+        public static final String BAIKALOS_FILTER_ACTIVITY_IDLE = "baikalos_filter_activity_idle";
+
+        public static final String BAIKALOS_ALARMS_NOWAKE = "baikalos_alarms_no_wake";
+
+        public static final String BAIKALOS_DEBUG = "baikalos_debug";
 
         /* End of BaikalOS Global settings */
 

@@ -199,6 +199,9 @@ public class BaikalSystemService extends SystemService {
                 uid = getPackageUidLocked("com.dolby.daxservice");
                 BaikalUtils.setDolbyUid(uid);
 
+
+                setPackageEnabled("com.tencent.soter.soterserver",false);
+
                 //mConstants.updateConstantsLocked();
 
             }
@@ -255,6 +258,7 @@ public class BaikalSystemService extends SystemService {
     }
 
     private void updateDolbyConfiguration(boolean enabled) {
+
         if( !enabled ) {
             setPackageEnabled("com.motorola.dolby.dolbyui",false);
             setPackageEnabled("com.dolby.daxservice",false);
