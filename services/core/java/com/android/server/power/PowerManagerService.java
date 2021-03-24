@@ -1665,7 +1665,8 @@ public final class PowerManagerService extends SystemService
                     }
 
                     if (appid >= Process.FIRST_APPLICATION_UID || wsid >= Process.FIRST_APPLICATION_UID ) {
-                        if( BaikalSettings.getAppRestricted(appid) ||
+                        if( com.android.internal.baikalos.Runtime.isGmsUid(wakeLock.mOwnerUid) || 
+                            BaikalSettings.getAppRestricted(appid) ||
                             (Arrays.binarySearch(mDeviceIdleWhitelist, appid) < 0 && 
                             Arrays.binarySearch(mDeviceIdleWhitelist, wsid) < 0 )) {
                             wakeLock.mDisabled = true;
