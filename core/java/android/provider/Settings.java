@@ -15898,18 +15898,35 @@ public final class Settings {
          */
         public static final String BAIKALOS_DLSB_ENABLED = "baikalos_dlsb_enabled";
 
+
         /**
          * Google Services and Play Market options.
          * @hide
          */
-
-
         public static final String BAIKALOS_GMS_BLOCKED = "baikalos_gms_blocked";
         public static final String BAIKALOS_GMS_RESTRICTED = "baikalos_gms_restricted";
         public static final String BAIKALOS_GPS_RESTRICTED = "baikalos_gps_restricted";
         public static final String BAIKALOS_GMS_STAMINA_RESTRICTED = "baikalos_gms_stamina_restricted";
         public static final String BAIKALOS_GMS_IDLE_RESTRICTED = "baikalos_gms_idle_restricted";
 
+        /**
+         * This preference holds SBC option.
+         * @hide
+         */
+        public static final String BAIKALOS_SBC_BITRATE = "baikalos_sbc_bitrate";
+
+
+        /**
+         * This preference holds App Audio profile.
+         * @hide
+         */
+        public static final String BAIKALOS_AUIDO_PROFILE = "baikalos_audio_profile";
+
+
+        /**
+         * Baikalos Debug options.
+         * @hide
+         */
         public static final String BAIKALOS_FILTER_SERVICES = "baikalos_filter_services";
         public static final String BAIKALOS_FILTER_ALARMS = "baikalos_filter_alarms";
         public static final String BAIKALOS_FILTER_BCAST = "baikalos_filter_bcast";
