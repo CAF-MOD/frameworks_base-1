@@ -244,7 +244,7 @@ public class StatusBarSignalPolicy implements NetworkControllerImpl.SignalCallba
         }
 
         Collections.sort(subs, (s1, s2) -> {
-            return s1.getSubscriptionId() - s2.getSubscriptionId();
+            return s1.getSimSlotIndex() - s2.getSimSlotIndex();
         });
 
         mIconController.removeAllIconsForSlot(mSlotMobile);
