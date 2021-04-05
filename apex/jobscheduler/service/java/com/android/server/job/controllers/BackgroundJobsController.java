@@ -33,6 +33,8 @@ import com.android.server.job.JobStore;
 import com.android.server.job.StateControllerProto;
 import com.android.server.job.StateControllerProto.BackgroundJobsController.TrackedJob;
 
+import com.android.server.BaikalStaticService;
+
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -187,11 +189,11 @@ public final class BackgroundJobsController extends StateController {
         final int uid = jobStatus.getSourceUid();
         final String packageName = jobStatus.getSourcePackageName();
 
-        final boolean canRun = !mAppStateTracker.areJobsRestricted(uid, packageName,
+        boolean canRun = !mAppStateTracker.areJobsRestricted(uid, packageName,
                 (jobStatus.getInternalFlags() & JobStatus.INTERNAL_FLAG_HAS_FOREGROUND_EXEMPTION)
                         != 0);
 
-        //canRun = BaikalStaticService.updateSingleJobRestrictionLocked(canRun, jobStatus, activeState);
+        canRun = BaikalStaticService.updateSingleJobRestrictionLocked(canRun, uid, packageName, activeState, jobStatus.job);
 
         final boolean isActive;
         if (activeState == UNKNOWN) {

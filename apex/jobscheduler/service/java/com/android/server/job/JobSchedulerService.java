@@ -1010,9 +1010,9 @@ public class JobSchedulerService extends com.android.server.SystemService
     public int scheduleAsPackage(JobInfo job, JobWorkItem work, int uId, String packageName,
             int userId, String tag) {
 
-        if( BaikalStaticService.isJobBlacklisted(job,work,uId,packageName,userId,tag) ) {
-            return JobScheduler.RESULT_FAILURE;
-        }
+        //if( BaikalStaticService.isJobBlacklisted(job,work,uId,packageName,userId,tag) ) {
+            //return JobScheduler.RESULT_FAILURE;
+        //}
 
         final String servicePkg = job.getService().getPackageName();
         if (job.isPersisted() && (packageName == null || packageName.equals(servicePkg))) {
