@@ -170,7 +170,9 @@ public class AppProfileManager extends MessageHandler {
             mDeviceIdleMode = mode;
             Runtime.setIdleMode(mode);
             BaikalSettings.setIdleMode(mode);
-            setIdlePerformanceMode(mode);
+            if( !mScreenMode ) {
+                setIdlePerformanceMode(mode);
+            }
         }
     }
 

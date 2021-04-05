@@ -59,6 +59,7 @@ public class AppProfileSettings extends ContentObserver {
     private static HashMap<String, AppProfile> _staticProfilesByPackgeName = null; 
     private static HashMap<Integer, AppProfile> _staticProfiles = null;
 
+
     private final PackageManager mPackageManager;
     private final PowerWhitelistBackend mBackend;
     private AppOpsManager mAppOpsManager;
@@ -524,4 +525,59 @@ public class AppProfileSettings extends ContentObserver {
         return sInstance;
     }
 
+    /*
+
+    private static Object volumeMultipliersLock = new Object();
+
+    private static HashMap<Integer, Integer> _volumeMultipliers = null;
+    private static HashMap<Integer, Boolean> _audioFocusChange = null;
+
+    private void updateVolumeMultipliers() {
+
+        //_volumeMultipliers
+        HashMap<Integer, Integer> volumeMultipliers = new HashMap<Integer, Integer>();
+        HashMap<Integer, Boolean> audioFocusChange = new HashMap<Integer, Boolean>();
+
+        synchronized(this) {
+            for(Map.Entry<Integer, AppProfile> entry: _profiles.entrySet()) {
+                if( entry.getValue().mVolumeMultiplier >=0 && 
+                    entry.getValue().mVolumeMultiplier <= 200 ) {
+                    Slog.e(TAG, "mVolumeMultiplier for uid=" + entry.getKey() + ", mul=" + entry.getValue().mVolumeMultiplier);
+                    volumeMultipliers.put(entry.getKey(),entry.getValue().mVolumeMultiplier);
+                }
+                if( entry.getValue().mIgnoreAudioFocus ) {
+                    Slog.e(TAG, "mIgnoreAudioFocus for uid=" + entry.getKey() + ", fc=" + entry.getValue().mIgnoreAudioFocus);
+                    audioFocusChange.put(entry.getKey(),entry.getValue().mIgnoreAudioFocus);
+                }
+            }
+        }
+        synchronized(volumeMultipliersLock){
+            _volumeMultipliers = volumeMultipliers;
+            _audioFocusChange = audioFocusChange;
+        }
+    }
+
+    public static float getVolumeMultiplier(int uid) {
+        synchronized(volumeMultipliersLock){
+            if( _volumeMultipliers == null ) { 
+                Slog.e(TAG, "getVolumeMultiplier for uid=" + uid + ", mul=NA");
+                return 100.0F;
+            }
+            Integer mul = _volumeMultipliers.get(uid);
+            Slog.e(TAG, "getVolumeMultiplier for uid=" + uid + ", mul=" + mul);
+            if( mul == null ) { 
+                Slog.e(TAG, "getVolumeMultiplier for uid=" + uid + ", mul=ND");
+                return 100.0F;
+            }
+            return ((float)mul)/100.0F;
+        }
+    }
+
+    public static Boolean isIgnoreAudioFocus(int uid) {
+        synchronized(volumeMultipliersLock){
+            if( _audioFocusChange == null ) return false;
+            return _audioFocusChange.get(uid);
+        }
+    }
+    */
 }

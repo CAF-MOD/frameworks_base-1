@@ -41,7 +41,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 
-
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemProperties;
@@ -56,7 +55,6 @@ import android.os.Process;
 import android.os.SystemClock;
 
 import android.app.AlarmManager;
-
 
 public class BaikalUtils {
 

@@ -16,7 +16,12 @@
 
 package com.android.internal.baikalos;
 
+import android.bluetooth.BluetoothDevice;
+
 import android.util.Slog;
+
+import android.text.TextUtils;
+import android.util.KeyValueListParser;
 
 import android.os.UserHandle;
 import android.os.Handler;
@@ -27,12 +32,15 @@ import android.content.Context;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.app.ActivityThread;
 
 import android.net.Uri;
 
 import android.database.ContentObserver;
 
 import android.provider.Settings;
+
+import java.util.HashMap;
 
 public class BaikalSettings extends ContentObserver {
 
@@ -75,6 +83,8 @@ public class BaikalSettings extends ContentObserver {
     private static String mFilterActivityIdle;
 
     private static String mAlarmsNoWake;
+
+    private static String mSbcBitrateString;
 
     private static int mTopAppUid;
     private static String mTopAppPackageName;
@@ -383,7 +393,6 @@ public class BaikalSettings extends ContentObserver {
                     Settings.Global.getUriFor(Settings.Global.BAIKALOS_DEBUG),
                     false, this);
 
-
             } catch( Exception e ) {
             }
 
@@ -570,15 +579,6 @@ public class BaikalSettings extends ContentObserver {
         Slog.e(TAG, "Stamina mode changed: " + mStaminaMode);
 
         Actions.sendStaminaChanged(enabled);
-
-        /*if( !mStaminaMode ) {
-            final Intent bootIntent = new Intent(Intent.ACTION_BOOT_COMPLETED, null);
-            bootIntent.putExtra(Intent.EXTRA_USER_HANDLE, 0);
-            bootIntent.addFlags(Intent.FLAG_RECEIVER_NO_ABORT
-                | Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
-
-            mContext.sendBroadcastAsUser(bootIntent, UserHandle.ALL);
-        }*/
 	}
 
 	void idleModeEnabledChanged(boolean aggressive, boolean extreme) {
@@ -623,17 +623,288 @@ public class BaikalSettings extends ContentObserver {
                 Settings.Global.putInt(mResolver,
                     Settings.Global.FORCED_APP_STANDBY_FOR_SMALL_BATTERY_ENABLED, mIdleMode ? 1:0);
             }
+        }
+    }
 
-            if( !mIdleMode && mStaminaOiMode ) {
-                //if( mContext != null ) {
-                    //final Intent bootIntent = new Intent(Intent.ACTION_BOOT_COMPLETED, null);
-                    //bootIntent.putExtra(Intent.EXTRA_USER_HANDLE, 0);
-                    //bootIntent.addFlags(Intent.FLAG_RECEIVER_NO_ABORT
-                    //    | Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
 
-                    //mContext.sendBroadcastAsUser(bootIntent, UserHandle.ALL);
-                //}
+    private static Object mBtDatabaseLock = new Object();
+
+    private static HashMap<String, Integer> mBtDatabase = null; 
+
+    private static final TextUtils.StringSplitter mBtDbSplitter = new TextUtils.SimpleStringSplitter('|');
+
+
+    public static boolean setSbcBitrate(Context context, BluetoothDevice device, int value) {
+        synchronized(mBtDatabaseLock) {
+            if( mBtDatabase == null ) {
+                updateSbcBitratesLocked(context);
             }
+            Integer prev = mBtDatabase.get(device.getAddress());
+            if( prev != null &&  prev.equals(Integer.valueOf(value)) ) return false;
+            Slog.i(TAG, "a2dp: SBC set bitrate: device=" + device + ", rate=" + value);
+            mBtDatabase.put(device.getAddress(),Integer.valueOf(value));
+            saveSbcBitratesLocked(context);
+        }
+        return true;
+    }
+
+    public static int getSbcBitrate(Context context, BluetoothDevice device) {
+        synchronized(mBtDatabaseLock) {
+            if( mBtDatabase == null ) {
+                updateSbcBitratesLocked(context);
+            }
+            if( !mBtDatabase.containsKey(device.getAddress()) ) {
+                Slog.i(TAG, "a2dp: SBC bitrate is not set: device=" + device);
+                return 0;
+            }
+            int rate = mBtDatabase.get(device.getAddress()).intValue();
+            Slog.i(TAG, "a2dp: SBC bitrate:device=" + device + ", rate="  + rate);
+            return rate;
+        }
+    }
+
+    private static void updateSbcBitratesLocked(Context context) {
+        //synchronized(mBtDatabaseLock) {
+
+            mBtDatabase = new HashMap<String,Integer> ();
+            //mBtDatabase.clear();
+
+            String sbcBitrateString = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_SBC_BITRATE);
+
+            if( sbcBitrateString == null ) return;
+            if( sbcBitrateString.equals(mSbcBitrateString) ) return;
+
+            mSbcBitrateString = sbcBitrateString;
+
+            try {
+                mBtDbSplitter.setString(mSbcBitrateString);
+            } catch (IllegalArgumentException e) {
+                Slog.e(TAG, "Bad mSbcBitrateString settings :" + mSbcBitrateString, e);
+                return ;
+            }
+
+            for(String deviceString:mBtDbSplitter) {
+
+                KeyValueListParser parser = new KeyValueListParser(',');
+
+                try {
+                    parser.setString(deviceString);
+                    String address = parser.getString("addr",null);
+                    if( address == null || address.equals("") ) continue;
+                    int bitrate = parser.getInt("sbcbr",0);
+                    mBtDatabase.put(address,bitrate);
+                } catch (IllegalArgumentException e) {
+                    Slog.e(TAG, "Bad deviceString :" + deviceString, e);
+                    continue;
+                }
+            }
+        //}        
+    }
+
+    private static void saveSbcBitratesLocked(Context context) {
+        synchronized(mBtDatabaseLock) {
+            String val = "";    
+
+            for(HashMap.Entry<String, Integer> entry : mBtDatabase.entrySet()) {
+                String entryString = "addr=" + entry.getKey().toString() + "," + "sbcbr=" +  entry.getValue().toString();
+                if( entryString != null ) val += entryString + "|";
+            } 
+
+            if( mSbcBitrateString != null && mSbcBitrateString.equals(val) ) return;
+            mSbcBitrateString = val;
+            Settings.Global.putString(context.getContentResolver(),Settings.Global.BAIKALOS_SBC_BITRATE,val);
+        }
+    }
+
+
+
+    private static Object mAudioDatabaseLock = new Object();
+
+    private static HashMap<Integer, AudioEntry> mAudioDatabase = null; 
+
+    private static final TextUtils.StringSplitter mAudioDbSplitter = new TextUtils.SimpleStringSplitter('|');
+
+    private static String mAudioString;
+
+    private static Context getContext() {
+        ActivityThread at = ActivityThread.currentActivityThread();
+        if( at == null ) return null;
+        return at.getApplication();
+    }
+
+
+    public static boolean getBlockFocusRecv(int uid) {
+        synchronized(mAudioDatabaseLock) {
+            updateAudioDatabaseLocked(getContext());
+
+            if( !mAudioDatabase.containsKey(uid) ) {
+                Slog.i(TAG, "audio: block focus recv is not set: uid=" + uid);
+                return false;
+            }
+            AudioEntry ad = mAudioDatabase.get(uid);
+            Slog.i(TAG, "audio: block focus recv:uid=" + ad.mUid + ", rc="  + ad.mBlockAfRecv);
+            return ad.mBlockAfRecv;
+        }
+    }
+
+    public static boolean getBlockFocusSend(int uid) {
+        synchronized(mAudioDatabaseLock) {
+            updateAudioDatabaseLocked(getContext());
+
+            if( !mAudioDatabase.containsKey(uid) ) {
+                Slog.i(TAG, "audio: block focus send is not set: uid=" + uid);
+                return false;
+            }
+            AudioEntry ad = mAudioDatabase.get(uid);
+            Slog.i(TAG, "audio: block focus send:uid=" + ad.mUid + ", rc="  + ad.mBlockAfSend);
+            return ad.mBlockAfSend;
+        }
+    }
+
+    public static boolean setBlockFocusRecv(int uid, boolean value) {
+        synchronized(mAudioDatabaseLock) {
+            if( mAudioDatabase == null ) {
+                updateAudioDatabaseLocked(getContext());
+            }
+            AudioEntry prev = mAudioDatabase.get(uid);
+            if( prev != null && prev.mBlockAfRecv == value ) return false;
+            Slog.i(TAG, "audio: block focus recv: uid=" + uid + ", rc=" + value);
+            if( prev == null ) {
+                prev = new AudioEntry();    
+                prev.mUid = uid;
+                mAudioDatabase.put(uid,prev);
+            }
+            prev.mBlockAfRecv = value;
+            saveVolumeDatabaseLocked(getContext());
+        }
+        return true;
+    }
+
+    public static boolean setBlockFocusSend(int uid, boolean value) {
+        synchronized(mAudioDatabaseLock) {
+            if( mAudioDatabase == null ) {
+                updateAudioDatabaseLocked(getContext());
+            }
+            AudioEntry prev = mAudioDatabase.get(uid);
+            if( prev != null && prev.mBlockAfSend == value ) return false;
+            Slog.i(TAG, "audio: block focus send: uid=" + uid + ", rc=" + value);
+            if( prev == null ) {
+                prev = new AudioEntry();    
+                prev.mUid = uid;
+                mAudioDatabase.put(uid,prev);
+            }
+            prev.mBlockAfSend = value;
+            saveVolumeDatabaseLocked(getContext());
+        }
+        return true;
+    }
+
+    public static boolean setVolumeScaleInt(int uid, int value) {
+        synchronized(mAudioDatabaseLock) {
+            if( mAudioDatabase == null ) {
+                updateAudioDatabaseLocked(getContext());
+            }
+            AudioEntry prev = mAudioDatabase.get(uid);
+            if( prev != null && prev.mVolumeScale == value ) return false;
+            Slog.i(TAG, "audio: set volume scale: uid=" + uid + ", rate=" + value);
+            if( prev == null ) {
+                prev = new AudioEntry();    
+                prev.mUid = uid;
+                mAudioDatabase.put(uid,prev);
+            }
+            prev.mVolumeScale = value;
+            saveVolumeDatabaseLocked(getContext());
+        }
+        return true;
+    }
+
+    public static int getVolumeScaleInt(int uid) {
+        synchronized(mAudioDatabaseLock) {
+            if( mAudioDatabase == null ) {
+                updateAudioDatabaseLocked(getContext());
+            }
+            if( !mAudioDatabase.containsKey(uid) ) {
+                Slog.i(TAG, "audio: volume scale is not set: uid=" + uid);
+                return -1;
+            }
+            AudioEntry ad = mAudioDatabase.get(uid);
+            if( ad.mVolumeScale == -1 ) {
+                Slog.i(TAG, "audio: volume scale is default: uid=" + uid);
+                return -1;
+            }
+            Slog.i(TAG, "audio: volume scale:uid=" + ad.mUid + ", scale="  + ad.mVolumeScale);
+            return ad.mVolumeScale;
+        }
+    }
+
+    public static float getVolumeScale(int uid) {
+        synchronized(mAudioDatabaseLock) {
+            updateAudioDatabaseLocked(getContext());
+        }
+
+        int volScale = getVolumeScaleInt(uid);
+        if( volScale == -1 ) {
+                return 100.0F;
+        }
+        return ((float)volScale)/100.0F;
+    }
+
+    private static void updateAudioDatabaseLocked(Context context) {
+        try {
+            if( context == null ) return;
+
+            mAudioDatabase = new HashMap<Integer,AudioEntry> ();
+
+            String audioString = Settings.Global.getString(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_AUIDO_PROFILE);
+
+            if( audioString == null ) return;
+            //if( audioString.equals(mAudioString) ) return;
+
+            mAudioString = audioString;
+
+            try {
+                mAudioDbSplitter.setString(mAudioString);
+            } catch (IllegalArgumentException e) {
+                Slog.e(TAG, "Bad mAudioString settings :" + mAudioString, e);
+                return ;
+            }
+
+            for(String appString:mAudioDbSplitter) {
+
+                KeyValueListParser parser = new KeyValueListParser(',');
+
+                try {
+                    AudioEntry entry = AudioEntry.Deserialize(appString);
+                    Slog.e(TAG, "Loaded :" + entry.toString());
+                    mAudioDatabase.put(entry.mUid,entry);
+                } catch (IllegalArgumentException e) {
+                    Slog.e(TAG, "Bad appString :" + appString, e);
+                    continue;
+                }
+            }
+
+        } catch(Exception e) {
+            Slog.e(TAG, "audio: can't load audio db", e);
+        }
+
+    }
+
+    private static void saveVolumeDatabaseLocked(Context context) {
+        if( context == null ) return;
+        try {
+            String val = "";    
+            for(HashMap.Entry<Integer, AudioEntry> entry : mAudioDatabase.entrySet()) {
+                String entryString = entry.getValue().Serialize();
+                if( entryString != null ) val += entryString + "|";
+            } 
+
+            if( mAudioString != null && mAudioString.equals(val) ) return;
+            mAudioString = val;
+            Settings.Global.putString(context.getContentResolver(),Settings.Global.BAIKALOS_AUIDO_PROFILE,val);
+        } catch(Exception e) {
+            Slog.e(TAG, "audio: can't save audio db", e);
         }
     }
 
@@ -653,3 +924,66 @@ public class BaikalSettings extends ContentObserver {
         if( (mDebug&Constants.DEBUG_MASK_BROADCAST) !=0 ) Constants.DEBUG_BROADCAST = true;
     }
 }
+
+
+    class AudioEntry {
+
+        private static final String TAG = "Baikal.Settings";
+
+        public int mUid;
+        public int mVolumeScale;
+        public boolean mBlockAfRecv;
+        public boolean mBlockAfSend;
+        public boolean mConvertAfRecv;
+        public boolean mConvertAfSend;
+
+        public AudioEntry() {
+            mUid=-1;
+            mVolumeScale=-1;
+            mBlockAfRecv=false;
+            mBlockAfSend=false;
+            mConvertAfRecv=false;
+            mConvertAfSend=false;
+        }
+
+        public String  Serialize() {
+            String entryString = 
+            "uid=" + mUid + "," + 
+            "vol=" + mVolumeScale + "," + 
+            "bafr=" + mBlockAfRecv + "," + 
+            "bafs=" + mBlockAfSend + "," + 
+            "cafr=" + mConvertAfRecv + "," + 
+            "cafs=" + mConvertAfSend
+            ;
+            return entryString;
+        }
+
+        public static AudioEntry Deserialize(String val) {
+
+            KeyValueListParser parser = new KeyValueListParser(',');
+
+            AudioEntry profile = new AudioEntry();
+            try {
+                parser.setString(val);
+            } catch (IllegalArgumentException e) {
+                Slog.e(TAG, "Bad profile settings", e);
+                return null;
+            }
+            profile.mUid = parser.getInt("uid",-1);
+            if( profile.mUid == -1 ) return null;
+            try {
+                profile.mVolumeScale = parser.getInt("vol",-1);
+                profile.mBlockAfRecv = parser.getBoolean("bafr",false);
+                profile.mBlockAfSend = parser.getBoolean("bafs",false);
+                profile.mConvertAfRecv = parser.getBoolean("cafr",false);
+                profile.mConvertAfSend = parser.getBoolean("cafs",false);
+            } catch( Exception e ) {
+    
+            }
+            return profile;
+        }
+        @Override
+        public String toString() {
+            return "{" + Serialize() + "}";
+        }
+    }
