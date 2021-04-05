@@ -32,6 +32,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PersistableBundle;
+import android.os.Process;
 import android.util.ArrayMap;
 import android.util.Log;
 
@@ -45,6 +46,8 @@ import java.nio.ByteOrder;
 import java.nio.NioUtils;
 import java.util.LinkedList;
 import java.util.concurrent.Executor;
+
+import com.android.internal.baikalos.BaikalSettings;
 
 /**
  * The AudioTrack class manages and plays a single audio resource for Java applications.
@@ -2420,6 +2423,13 @@ public class AudioTrack extends PlayerBase
     void playerSetVolume(boolean muting, float leftVolume, float rightVolume) {
         leftVolume = clampGainOrLevel(muting ? 0.0f : leftVolume);
         rightVolume = clampGainOrLevel(muting ? 0.0f : rightVolume);
+
+        float baikalMultiplier = BaikalSettings.getVolumeScale(Process.myUid());
+        leftVolume *= baikalMultiplier;
+        rightVolume *= baikalMultiplier;
+
+        Log.e(TAG, "AudioTrack.playerSetVolume() l=" + leftVolume + ", r=" + rightVolume + ", b=" + baikalMultiplier);
+
 
         native_setVolume(leftVolume, rightVolume);
     }
