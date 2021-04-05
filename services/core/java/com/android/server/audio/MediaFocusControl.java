@@ -48,6 +48,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 
+import com.android.internal.baikalos.BaikalSettings;
+
+
 /**
  * @hide
  *
@@ -55,7 +58,7 @@ import java.util.Stack;
 public class MediaFocusControl implements PlayerFocusEnforcer {
 
     private static final String TAG = "MediaFocusControl";
-    static final boolean DEBUG = false;
+    static final boolean DEBUG = true;
 
     /**
      * set to true so the framework enforces ducking itself, without communicating to apps
@@ -66,7 +69,7 @@ public class MediaFocusControl implements PlayerFocusEnforcer {
      * set to true to the framework enforces ducking itself only with apps above a given SDK
      * target level. Is ignored if ENFORCE_DUCKING is false.
      */
-    static final boolean ENFORCE_DUCKING_FOR_NEW = true;
+    static final boolean ENFORCE_DUCKING_FOR_NEW = false;
     /**
      * the SDK level (included) up to which the framework doesn't enforce ducking itself. Is ignored
      * if ENFORCE_DUCKING_FOR_NEW is false;
@@ -831,6 +834,18 @@ public class MediaFocusControl implements PlayerFocusEnforcer {
                         AudioManager.audioFocusToString(focusChangeHint))
                 //.set(MediaMetrics.Property.SDK, sdk)
                 .record();
+
+        if( BaikalSettings.getBlockFocusSend(Binder.getCallingUid()) ) {
+            mEventLogger.log((new AudioEventLogger.StringEvent(
+                    "requestAudioFocus() blocked from uid/pid " + Binder.getCallingUid()
+                        + "/" + Binder.getCallingPid()
+                        + " clientId=" + clientId + " callingPack=" + callingPackageName
+                        + " req=" + focusChangeHint
+                        + " flags=0x" + Integer.toHexString(flags)
+                        + " sdk=" + sdk))
+                    .printLog(TAG));
+            return AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        }
 
         mEventLogger.log((new AudioEventLogger.StringEvent(
                 "requestAudioFocus() from uid/pid " + Binder.getCallingUid()
