@@ -6303,10 +6303,11 @@ public class ActivityManagerService extends IActivityManager.Stub
     }
 
     public boolean isAppStartModeDisabled(int uid, String packageName) {
-        synchronized (this) {
-            return getAppStartModeLocked(uid, packageName, 0, -1, false, true, false)
-                    == ActivityManager.APP_START_MODE_DISABLED;
-        }
+        //synchronized (this) {
+            //return getAppStartModeLocked(uid, packageName, 0, -1, false, true, false)
+            //        == ActivityManager.APP_START_MODE_DISABLED;
+        //}
+        return false;
     }
 
     private boolean isInRestrictedBucket(int userId, String packageName, long nowElapsed) {
