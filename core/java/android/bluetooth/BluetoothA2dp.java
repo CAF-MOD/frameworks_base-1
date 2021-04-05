@@ -845,6 +845,64 @@ public final class BluetoothA2dp implements BluetoothProfile {
     }
 
     /**
+     * Returns whether this device should have optional codecs enabled.
+     *
+     * @param device The device in question.
+     * @return one of OPTIONAL_CODECS_PREF_UNKNOWN, OPTIONAL_CODECS_PREF_ENABLED, or
+     * OPTIONAL_CODECS_PREF_DISABLED.
+     * @hide
+     */
+    @UnsupportedAppUsage
+    @RequiresPermission(Manifest.permission.BLUETOOTH_ADMIN)
+    @OptionalCodecsPreferenceStatus
+    public int getSbcBitrate(@NonNull BluetoothDevice device) {
+        verifyDeviceNotNull(device, "getSbcBitrate");
+        try {
+            final IBluetoothA2dp service = getService();
+            if (service != null && isEnabled() && isValidDevice(device)) {
+                return service.getSbcBitrate(device);
+            }
+            if (service == null) Log.w(TAG, "Proxy not attached to service");
+            return 0;
+        } catch (RemoteException e) {
+            Log.e(TAG, "Error talking to BT service in getOptionalCodecsEnabled()", e);
+            return 0;
+        }
+    }
+
+    /**
+     * Sets a persistent preference for whether a given device should have optional codecs enabled.
+     *
+     * @param device The device to set this preference for.
+     * @param value Whether the optional codecs should be enabled for this device.  This should be
+     * one of OPTIONAL_CODECS_PREF_UNKNOWN, OPTIONAL_CODECS_PREF_ENABLED, or
+     * OPTIONAL_CODECS_PREF_DISABLED.
+     * @hide
+     */
+    @UnsupportedAppUsage
+    @RequiresPermission(Manifest.permission.BLUETOOTH_ADMIN)
+    public void setSbcBitrate(@NonNull BluetoothDevice device,
+            @OptionalCodecsPreferenceStatus int value) {
+        verifyDeviceNotNull(device, "setSbcBitrate");
+        try {
+            if (value < 0 || value > 900) {
+                Log.e(TAG, "Invalid value passed to setSbcBitrate: " + value);
+                return;
+            }
+            final IBluetoothA2dp service = getService();
+            if (service != null && isEnabled()
+                    && isValidDevice(device)) {
+                service.setSbcBitrate(device, value);
+            }
+            if (service == null) Log.w(TAG, "Proxy not attached to service");
+            return;
+        } catch (RemoteException e) {
+            Log.e(TAG, "Stack:" + Log.getStackTraceString(new Throwable()));
+            return;
+        }
+    }
+
+    /**
      * Helper for converting a state to a string.
      *
      * For debug use only - strings are not internationalized.

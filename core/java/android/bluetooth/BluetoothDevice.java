@@ -646,6 +646,16 @@ public final class BluetoothDevice implements Parcelable {
     @SystemApi
     public static final int METADATA_ENHANCED_SETTINGS_UI_URI = 16;
 
+
+    /**
+     * URI to the enhanced settings UI slice
+     * Data type should be {@String} as {@link Byte} array, null means
+     * the UI does not exist.
+     * @hide
+     */
+    @SystemApi
+    public static final int METADATA_SBC_DC_BITRATE = 116;
+
     /**
      * Broadcast Action: This intent is used to broadcast the {@link UUID}
      * wrapped as a {@link android.os.ParcelUuid} of the remote device after it

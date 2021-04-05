@@ -232,6 +232,8 @@ public class A2dpProfile implements LocalBluetoothProfile {
         return support == BluetoothA2dp.OPTIONAL_CODECS_SUPPORTED;
     }
 
+    
+
     public boolean isHighQualityAudioEnabled(BluetoothDevice device) {
         if (V) Log.d(TAG, " execute isHighQualityAudioEnabled()");
         if (mService == null) {
@@ -285,6 +287,51 @@ public class A2dpProfile implements LocalBluetoothProfile {
         } else {
             mService.disableOptionalCodecs(bluetoothDevice);
         }
+    }
+
+
+    public boolean isHighQualitySbcEnabled(BluetoothDevice device) {
+        if (V) Log.d(TAG, " execute isHighQualitySbcEnabled()");
+        if (mService == null) {
+            if (V) Log.d(TAG,"mService is null.");
+            return false;
+        }
+        BluetoothDevice bluetoothDevice = (device != null) ? device : mService.getActiveDevice();
+        if (bluetoothDevice == null) {
+            return false;
+        }
+        int bitrate = mService.getSbcBitrate(bluetoothDevice);
+        if (bitrate <= 0 ) {
+            return false;
+        }  
+        return true;
+    }
+
+    public int getHighQualitySbcBitrate(BluetoothDevice device) {
+        if (V) Log.d(TAG, " execute getHighQualitySbcBitrate()");
+        if (mService == null) {
+            if (V) Log.d(TAG,"mService is null.");
+            return 0;
+        }
+        BluetoothDevice bluetoothDevice = (device != null) ? device : mService.getActiveDevice();
+        if (bluetoothDevice == null) {
+            return 0;
+        }
+        int bitrate = mService.getSbcBitrate(bluetoothDevice);
+        return bitrate;
+    }
+
+    public void setHighQualitySbcEnabled(BluetoothDevice device, int bitrate) {
+        if (V) Log.d(TAG, " execute setHighQualitySbcEnabled()");
+        if (mService == null) {
+            if (V) Log.d(TAG,"mService is null.");
+            return;
+        }
+        BluetoothDevice bluetoothDevice = (device != null) ? device : mService.getActiveDevice();
+        if (bluetoothDevice == null) {
+            return;
+        }
+        mService.setSbcBitrate(bluetoothDevice, bitrate);
     }
 
     public String getHighQualityAudioOptionLabel(BluetoothDevice device) {
