@@ -708,11 +708,11 @@ public final class BatteryService extends SystemService {
                 mHealthInfo.batteryPresent != mLastBatteryPresent ||
                 mHealthInfo.batteryLevel != mLastBatteryLevel ||
                 mPlugType != mLastPlugType ||
-                mHealthInfo.batteryVoltage != mLastBatteryVoltage ||
-                mHealthInfo.batteryTemperature != mLastBatteryTemperature ||
-                mHealthInfo.maxChargingCurrent != mLastMaxChargingCurrent ||
-                mHealthInfo.maxChargingVoltage != mLastMaxChargingVoltage ||
-                mHealthInfo.batteryChargeCounter != mLastChargeCounter ||
+                (mHealthInfo.batteryVoltage/100) != (mLastBatteryVoltage/100) ||
+                (mHealthInfo.batteryTemperature/10) != (mLastBatteryTemperature/10) ||
+                (mHealthInfo.maxChargingCurrent/1000) != (mLastMaxChargingCurrent/1000) ||
+                (mHealthInfo.maxChargingVoltage/100) != (mLastMaxChargingVoltage/100) ||
+                //mHealthInfo.batteryChargeCounter != mLastChargeCounter ||
                 mInvalidCharger != mLastInvalidCharger ||
                 mDashCharger != mLastDashCharger ||
                 mWarpCharger != mLastWarpCharger ||
