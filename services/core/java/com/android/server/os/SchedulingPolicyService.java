@@ -36,7 +36,7 @@ public class SchedulingPolicyService extends ISchedulingPolicyService.Stub {
 
     // Minimum and maximum values allowed for requestPriority parameter prio
     private static final int PRIORITY_MIN = 1;
-    private static final int PRIORITY_MAX = 3;
+    private static final int PRIORITY_MAX = 99;
 
     private static final String[] MEDIA_PROCESS_NAMES = new String[] {
             "media.swcodec", // /apex/com.android.media.swcodec/bin/mediaswcodec
@@ -80,7 +80,7 @@ public class SchedulingPolicyService extends ISchedulingPolicyService.Stub {
     // TODO(b/35196900) We should pass the period in time units, rather
     // than a fixed priority number.
     public int requestPriority(int pid, int tid, int prio, boolean isForApp) {
-        //Log.i(TAG, "requestPriority(pid=" + pid + ", tid=" + tid + ", prio=" + prio + ")");
+        Log.i(TAG, "requestPriority(pid=" + pid + ", tid=" + tid + ", prio=" + prio + ")");
 
         // Verify that the caller uid is permitted, priority is in range,
         // and that the callback thread specified by app belongs to the app that
@@ -90,6 +90,7 @@ public class SchedulingPolicyService extends ISchedulingPolicyService.Stub {
         // since if not the case then the getThreadGroupLeader() test will also fail.
         if (!isPermitted() || prio < PRIORITY_MIN ||
                 prio > PRIORITY_MAX || Process.getThreadGroupLeader(tid) != pid) {
+                Log.i(TAG, "requestPriority: PERMISSION_DENIED: isPermitted=" + isPermitted() + ", gl=" + Process.getThreadGroupLeader(tid) );
            return PackageManager.PERMISSION_DENIED;
         }
         if (Binder.getCallingUid() != Process.BLUETOOTH_UID) {
@@ -115,6 +116,7 @@ public class SchedulingPolicyService extends ISchedulingPolicyService.Stub {
 
     // Request to move media.codec process between SP_FOREGROUND and SP_TOP_APP.
     public int requestCpusetBoost(boolean enable, IBinder client) {
+        Log.i(TAG, "requestCpusetBoost(enable=" + enable +")");
         // Can only allow mediaserver to call this.
         if (Binder.getCallingPid() != Process.myPid() &&
                 Binder.getCallingUid() != Process.MEDIA_UID) {
