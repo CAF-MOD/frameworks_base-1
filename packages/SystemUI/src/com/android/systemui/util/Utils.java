@@ -129,16 +129,18 @@ public class Utils {
      * Off by default, but can be disabled by setting to 0
      */
     public static boolean useQsMediaPlayer(Context context) {
-        return true;
+        return useMediaResumption(context);
     }
 
     /**
      * Allow media resumption controls. Requires {@link #useQsMediaPlayer(Context)} to be enabled.
      * Off by default, but can be enabled by setting to 1
      */
+    static int mFlag = -1;
     public static boolean useMediaResumption(Context context) {
         int flag = Settings.Secure.getInt(context.getContentResolver(),
                 Settings.Secure.MEDIA_CONTROLS_RESUME, 1);
-        return useQsMediaPlayer(context) && flag > 0;
+        if( mFlag == -1 ) mFlag = flag;
+        return /*useQsMediaPlayer(context) &&*/ mFlag > 0;
     }
 }
