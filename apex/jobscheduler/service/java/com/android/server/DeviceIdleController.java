@@ -2167,8 +2167,8 @@ public class DeviceIdleController extends SystemService
                             PackageManager.MATCH_ALL);
                     int appid = UserHandle.getAppId(ai.uid);
 
-                    if( ai.packageName.startsWith("com.google.android.gms") && BaikalSettings.isGmsRestricted() ) continue;
-                    if( ai.packageName.startsWith("com.android.vending") && BaikalSettings.isGpsRestricted() ) continue;
+                    //if( ai.packageName.startsWith("com.google.android.gms") && BaikalSettings.isGmsRestricted() ) continue;
+                    //if( ai.packageName.startsWith("com.android.vending") && BaikalSettings.isGpsRestricted() ) continue;
 
                     mPowerSaveWhitelistAppsExceptIdle.put(ai.packageName, appid);
                     mPowerSaveWhitelistSystemAppIdsExceptIdle.put(appid, true);
@@ -2183,8 +2183,8 @@ public class DeviceIdleController extends SystemService
                             PackageManager.MATCH_ALL);
                     int appid = UserHandle.getAppId(ai.uid);
 
-                    if( ai.packageName.startsWith("com.google.android.gms") && BaikalSettings.isGmsRestricted() ) continue;
-                    if( ai.packageName.startsWith("com.android.vending") && BaikalSettings.isGpsRestricted() ) continue;
+                    //if( ai.packageName.startsWith("com.google.android.gms") && BaikalSettings.isGmsRestricted() ) continue;
+                    //if( ai.packageName.startsWith("com.android.vending") && BaikalSettings.isGpsRestricted() ) continue;
 
                     // These apps are on both the whitelist-except-idle as well
                     // as the full whitelist, so they apply in all cases.
