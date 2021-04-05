@@ -45,7 +45,7 @@ import com.android.systemui.R;
 
 public class NotificationLightsView extends RelativeLayout {
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final String TAG = "NotificationLightsView";
 
     private View mNotificationAnimView;
@@ -84,6 +84,9 @@ public class NotificationLightsView extends RelativeLayout {
             return;
         }
         mPulsing = pulsing;
+        if( mLightAnimator!=null && !mPulsing ) {
+            mLightAnimator.cancel();
+        }
     }
 
     @Override
