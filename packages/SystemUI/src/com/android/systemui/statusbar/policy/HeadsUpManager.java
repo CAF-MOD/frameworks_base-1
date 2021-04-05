@@ -500,7 +500,7 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
 
         @Override
         protected long calculateFinishTime() {
-            return mPostTime + getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+            return mPostTime + mAutoDismissNotificationDecay; //getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
         }
 
         /**
