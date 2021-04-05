@@ -111,12 +111,19 @@ public class BaikalActivityServiceStatic {
 
 
         if( !BaikalSettings.getStaminaMode() &&
-            !BaikalSettings.getExtremeIdleActive() &&
+            !BaikalSettings.getExtremeIdleEnabled() &&
             !BaikalSettings.getAggressiveIdleEnabled() ) {
             if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: Not in energy saving mode " + app.info.packageName + "/" + app.info.uid);
             return 0;
         }
 
+        if( BaikalUtils.isGmsUid(app.info.uid)  ) {
+            if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) ) {
+                Slog.i(TAG,"applyOomAdjLocked: killing blocked GMS app: " + app.info.packageName + "/" + app.info.uid);
+                killApp(app);
+                return 2;
+            }
+        }
 
         final int appId = UserHandle.getAppId(app.info.uid);
 
@@ -135,6 +142,9 @@ public class BaikalActivityServiceStatic {
         final long oldTimeStamina = now - 60 * 1000;
         final long oldTimeProvider = now - 120 * 1000;
 
+
+
+
         AppProfile profile = AppProfileSettings.getProfileStatic(app.info.packageName);
 
         if( profile != null && profile.mPinned ) return 1;
@@ -145,7 +155,7 @@ public class BaikalActivityServiceStatic {
             case ActivityManager.PROCESS_STATE_IMPORTANT_BACKGROUND:
             case ActivityManager.PROCESS_STATE_TRANSIENT_BACKGROUND:
 
-            if( !BaikalSettings.getStaminaMode() ) { 
+            if( BaikalSettings.getStaminaMode() ) { 
                 if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) && (app.lastTopTime < oldTimeStamina) ) {
                     Slog.i(TAG,"applyOomAdjLocked: IMP killing blocked app: " + app.info.packageName + "/" + app.info.uid);
                     killApp(app);
@@ -161,6 +171,7 @@ public class BaikalActivityServiceStatic {
             case ActivityManager.PROCESS_STATE_SERVICE:
             case ActivityManager.PROCESS_STATE_RECEIVER:
             case ActivityManager.PROCESS_STATE_BACKUP:
+
 
             if( profile != null && profile.mBackground < 0 ) return 0;
             
@@ -373,6 +384,14 @@ public class BaikalActivityServiceStatic {
 
     public static boolean isServiceBlacklisted(ActivityManagerService mAm, ServiceRecord service, int callingUid, int callingPid, String callingPackageName, boolean isStarting) {
 
+        if( !BaikalSettings.getStaminaMode() &&
+            !BaikalSettings.getExtremeIdleEnabled() &&
+            !BaikalSettings.getAggressiveIdleEnabled() ) {
+            if( DEBUG_STAMINA ) Slog.i(TAG,"isServiceBlacklisted: Not in energy saving mode ");
+            return false;
+        }
+        
+
         if( DEBUG ) Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
         else if( IsLogGoogle(callingUid) ) Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
         else if( IsLogGoogle(service.appInfo.uid) ) Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
@@ -395,6 +414,13 @@ public class BaikalActivityServiceStatic {
     }
 
     public static boolean isBroadcastBlacklisted(ActivityManagerService mAm,BroadcastRecord r, ResolveInfo info, boolean background) {
+
+        if( !BaikalSettings.getStaminaMode() &&
+            !BaikalSettings.getExtremeIdleEnabled() &&
+            !BaikalSettings.getAggressiveIdleEnabled() ) {
+            if( DEBUG_STAMINA ) Slog.i(TAG,"isBroadcastBlacklisted: Not in energy saving mode ");
+            return false;
+        }
 
         if( DEBUG )  Slog.i(TAG,"isBroadcastBlacklisted: " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
         else if( IsLogGoogle(r.callingUid) ) Slog.i(TAG,"isBroadcastBlacklisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
@@ -474,6 +500,13 @@ public class BaikalActivityServiceStatic {
     public static int getAppStartModeLocked(int uid, String packageName, int packageTargetSdk,
             int callingPid, boolean alwaysRestrict, boolean disabledOnly, boolean forcedStandby) {
 
+        if( !BaikalSettings.getStaminaMode() &&
+            !BaikalSettings.getExtremeIdleEnabled() &&
+            !BaikalSettings.getAggressiveIdleEnabled() ) {
+            if( DEBUG_STAMINA ) Slog.i(TAG,"getAppStartModeLocked: Not in energy saving mode ");
+            return -1;
+        }
+
         if( BaikalSettings.getAppBlocked(uid, packageName) ) {
             return ActivityManager.APP_START_MODE_DISABLED;
         }
@@ -491,6 +524,15 @@ public class BaikalActivityServiceStatic {
     }
 
     public static boolean allowBackgroundStart(int uid, String packageName) {
+
+        if( !BaikalSettings.getStaminaMode() &&
+            !BaikalSettings.getExtremeIdleEnabled() &&
+            !BaikalSettings.getAggressiveIdleEnabled() ) {
+            if( DEBUG_STAMINA ) Slog.i(TAG,"allowBackgroundStart: Not in energy saving mode ");
+            return true;
+        }
+
+
         if( BaikalSettings.getTopAppUid() == uid ) return true;
         AppProfile profile = AppProfileSettings.getProfileStatic(packageName);
         if( profile == null ) return true;
