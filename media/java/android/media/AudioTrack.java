@@ -2424,13 +2424,6 @@ public class AudioTrack extends PlayerBase
         leftVolume = clampGainOrLevel(muting ? 0.0f : leftVolume);
         rightVolume = clampGainOrLevel(muting ? 0.0f : rightVolume);
 
-        float baikalMultiplier = BaikalSettings.getVolumeScale(Process.myUid());
-        leftVolume *= baikalMultiplier;
-        rightVolume *= baikalMultiplier;
-
-        Log.e(TAG, "AudioTrack.playerSetVolume() l=" + leftVolume + ", r=" + rightVolume + ", b=" + baikalMultiplier);
-
-
         native_setVolume(leftVolume, rightVolume);
     }
 
