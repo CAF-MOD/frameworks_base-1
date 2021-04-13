@@ -23,6 +23,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.hardware.display.AmbientDisplayConfiguration;
+import android.os.Build;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.os.RemoteException;
@@ -55,8 +56,8 @@ import javax.inject.Singleton;
 @Singleton
 public class NotificationInterruptStateProviderImpl implements NotificationInterruptStateProvider {
     private static final String TAG = "InterruptionStateProvider";
-    private static final boolean DEBUG = true; //false;
-    private static final boolean DEBUG_HEADS_UP = true;
+    private static final boolean DEBUG = Build.IS_ENG;
+    private static final boolean DEBUG_HEADS_UP = Build.IS_ENG;
     private static final boolean ENABLE_HEADS_UP = true;
     private static final String SETTING_HEADS_UP_TICKER = "ticker_gets_heads_up";
 
@@ -112,7 +113,9 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
                         && Settings.Global.HEADS_UP_OFF != Settings.Global.getInt(
                         mContentResolver,
                         Settings.Global.HEADS_UP_NOTIFICATIONS_ENABLED,
-                        Settings.Global.HEADS_UP_OFF);
+                        Settings.Global.HEADS_UP_OFF)
+                        && Settings.System.getInt(mContentResolver,
+                        Settings.System.STATUS_BAR_SHOW_TICKER, 0) != 1;
                 Log.d(TAG, "heads up is " + (mUseHeadsUp ? "enabled" : "disabled"));
                 if (wasUsing != mUseHeadsUp) {
                     if (!mUseHeadsUp) {
@@ -132,6 +135,10 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
             mContentResolver.registerContentObserver(
                     Settings.Global.getUriFor(SETTING_HEADS_UP_TICKER), true,
                     mHeadsUpObserver);
+            mContentResolver.registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.STATUS_BAR_SHOW_TICKER),
+                    true,
+                    mHeadsUpObserver);
         }
         mHeadsUpObserver.onChange(true); // set up
     }
@@ -143,6 +150,10 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
 
     @Override
     public boolean shouldBubbleUp(NotificationEntry entry) {
+        if (entry.isAppLocked()) {
+            return false;
+        }
+
         final StatusBarNotification sbn = entry.getSbn();
 
         if (!canAlertCommon(entry)) {
@@ -195,6 +206,11 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
     }
 
     private boolean shouldHeadsUpWhenAwake(NotificationEntry entry) {
+        if (mStatusBarStateController.getState() != StatusBarState.KEYGUARD
+                && entry.secureContent()) {
+            return false;
+        }
+
         StatusBarNotification sbn = entry.getSbn();
 
         if (shouldSkipHeadsUp(sbn)) {
@@ -242,12 +258,12 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
             return false;
         }
 
-        if (entry.getImportance() < NotificationManager.IMPORTANCE_HIGH) {
+/*        if (entry.getImportance() < NotificationManager.IMPORTANCE_HIGH) {
             if (DEBUG_HEADS_UP) {
                 Log.d(TAG, "No heads up: unimportant notification: " + sbn.getKey());
             }
             return false;
-        }
+        }*/
 
         boolean isDreaming = false;
         try {

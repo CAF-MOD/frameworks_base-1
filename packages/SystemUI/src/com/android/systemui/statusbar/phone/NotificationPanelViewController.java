@@ -742,6 +742,21 @@ public class NotificationPanelViewController extends PanelViewController {
                 R.layout.keyguard_status_view, mView, false);
         mView.addView(mKeyguardStatusView, index);
 
+        index = mView.indexOfChild(mKeyguardStatusBar);
+        mView.removeView(mKeyguardStatusBar);
+        mKeyguardStatusBar = (KeyguardStatusBarView) mInjectionInflationController
+                .injectable(LayoutInflater.from(mView.getContext())).inflate(
+                        R.layout.keyguard_status_bar,
+                        mView,
+                        false);
+        mView.addView(mKeyguardStatusBar, index);
+        if (mQs != null && mQs instanceof QSFragment) {
+            mKeyguardStatusBar.setQSPanel(((QSFragment) mQs).getQsPanel());
+        }
+        mKeyguardStatusBar.setAlpha(mBarState == StatusBarState.KEYGUARD ? 0f : 1f);
+        mKeyguardStatusBar.setVisibility(
+                mBarState == StatusBarState.KEYGUARD ? View.VISIBLE : View.INVISIBLE);
+
         // Re-associate the clock container with the keyguard clock switch.
         mBigClockContainer.removeAllViews();
         KeyguardClockSwitch keyguardClockSwitch = mView.findViewById(R.id.keyguard_clock_container);
@@ -761,10 +776,11 @@ public class NotificationPanelViewController extends PanelViewController {
         mStatusBarStateListener.onDozeAmountChanged(mStatusBarStateController.getDozeAmount(),
                 mStatusBarStateController.getInterpolatedDozeAmount());
 
-        if (mKeyguardStatusBar != null) {
+        /*if (mKeyguardStatusBar != null) {
             mKeyguardStatusBar.onThemeChanged();
-        }
+        }*/
 
+        mKeyguardStatusBar.setVisibility(mKeyguardShowing ? View.VISIBLE : View.INVISIBLE);
         setKeyguardStatusViewVisibility(mBarState, false, false);
         setKeyguardBottomAreaVisibility(mBarState, false);
         if (mOnReinflationListener != null) {
@@ -1361,7 +1377,7 @@ public class NotificationPanelViewController extends PanelViewController {
 
         final float w = mQs.getView().getMeasuredWidth();
         final float x = event.getX();
-        float region = (w * (1.f/4.f)); // TODO overlay region fraction?
+        float region = w * 1.f / 5.f; // TODO overlay region fraction?
         boolean showQsOverride = false;
 
         switch (mOneFingerQuickSettingsIntercept) {

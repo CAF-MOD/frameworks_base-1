@@ -231,6 +231,8 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.graphics.Rect;
+import android.hardware.SensorManager;
+import android.hardware.SystemSensorManager;
 import android.hardware.display.DisplayManagerInternal;
 import android.location.LocationManager;
 import android.media.audiofx.AudioEffect;
@@ -1682,10 +1684,12 @@ public class ActivityManagerService extends IActivityManager.Stub
     static final HostingRecord sNullHostingRecord = new HostingRecord(null);
 
     final SwipeToScreenshotObserver mSwipeToScreenshotObserver;
-    private boolean mIsSwipeToScrenshotEnabled;
+    private boolean mIsSwipeToScreenshotEnabled;
 
     private GamingModeController mGamingModeController;
     BaikalActivityService mBaikalActivityService;
+
+    private SystemSensorManager mSystemSensorManager;
 
     /**
      * Used to notify activity lifecycle events.
@@ -8054,6 +8058,8 @@ public class ActivityManagerService extends IActivityManager.Stub
 
         // Gaming mode provider
         mGamingModeController = new GamingModeController(mContext);
+
+        mSystemSensorManager = new SystemSensorManager(mContext, mHandler.getLooper());
     }
 
     void startPersistentApps(int matchFlags) {
@@ -16392,6 +16398,9 @@ public class ActivityManagerService extends IActivityManager.Stub
                                         if (mGamingModeController != null) {
                                              mGamingModeController.notePackageUninstalled(ssp);
                                         }
+                                        if (mSystemSensorManager != null) {
+                                           mSystemSensorManager.notePackageUninstalled(ssp);
+                                        }
                                     }
                                 } else {
                                     if (killProcess) {
@@ -18135,7 +18144,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                 if (mGamingModeController.topAppChanged(mCurResumedPackage) && !mGamingModeController.isGamingModeActivated()) {
                     Settings.System.putInt(mContext.getContentResolver(),
                         Settings.System.GAMING_MODE_ACTIVE, 1);
-                } else if (!mGamingModeController.topAppChanged(mCurResumedPackage) && 
+                } else if (!mGamingModeController.topAppChanged(mCurResumedPackage) &&
                         mGamingModeController.isGamingModeActivated()) {
                     Settings.System.putInt(mContext.getContentResolver(),
                         Settings.System.GAMING_MODE_ACTIVE, 0);
@@ -20616,7 +20625,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         }
 
         private void update() {
-            mIsSwipeToScrenshotEnabled = Settings.System.getIntForUser(mContext.getContentResolver(),
+            mIsSwipeToScreenshotEnabled = Settings.System.getIntForUser(mContext.getContentResolver(),
                     Settings.System.THREE_FINGER_GESTURE, 0, UserHandle.USER_CURRENT) == 1;
         }
 
@@ -20628,7 +20637,7 @@ public class ActivityManagerService extends IActivityManager.Stub
     @Override
     public boolean isSwipeToScreenshotGestureActive() {
         synchronized (this) {
-            return mIsSwipeToScrenshotEnabled;
+            return mIsSwipeToScreenshotEnabled && SystemProperties.getBoolean("sys.android.screenshot", false);
         }
     }
 

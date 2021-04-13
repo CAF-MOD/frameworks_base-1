@@ -289,6 +289,7 @@
     <bool name="config_defaultAutoOutdoorMode">true</bool>
     <bool name="config_defaultColorEnhancement">true</bool>
     <bool name="config_defaultCABC">true</bool>
+    <bool name="config_defaultAntiFlicker">false</bool>
 
     <!-- Display mode remapping table.
          If the mode names returned by the backend do not match
@@ -305,4 +306,13 @@
     <bool name="config_liveDisplayAvailable">false</bool>
 
     <bool name="config_has_weird_dt_sensor">false</bool>
+
+    <!-- Defines the sysfs attribute path used by the device
+         to enable/disable DC dimming. -->
+    <string name="config_deviceDcDimmingSysfsNode"></string>
+
+    <!-- OnePlus uses a proprietary vibrator hal to utilize the new powerful motor since the
+         OnePlus 7 Pro. This HAL expects a different format for the data instead of the usual (ms)
+         timing(the duration which the vibrator is expected to vibrate for). -->
+    <bool name="config_hasOnePlusHapticMotor">false</bool>
 </resources>

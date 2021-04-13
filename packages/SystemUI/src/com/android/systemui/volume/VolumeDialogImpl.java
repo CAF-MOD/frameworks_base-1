@@ -34,7 +34,7 @@ import static android.view.View.VISIBLE;
 import static android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
 import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
-import static com.android.settingslib.media.MediaOutputSliceConstants.ACTION_MEDIA_OUTPUT;
+import static com.android.settingslib.media.MediaOutputSliceConstants.ACTION_LAUNCH_BLUETOOTH_SETTINGS;
 import static com.android.systemui.volume.Events.DISMISS_REASON_SETTINGS_CLICKED;
 
 import android.animation.Animator;
@@ -709,15 +709,25 @@ public class VolumeDialogImpl implements VolumeDialog,
                             mActivityManager.getLockTaskModeState() == LOCK_TASK_MODE_NONE &&
                             isBluetoothA2dpConnected() && mExpanded ? VISIBLE : GONE);
         }
-        if (mMediaOutputIcon  != null) {
-            mMediaOutputIcon .setOnClickListener(v -> {
+        if (mMediaOutputIcon != null) {
+            mMediaOutputIcon.setOnClickListener(v -> {
                 rescheduleTimeoutH();
                 Events.writeEvent(Events.EVENT_SETTINGS_CLICK);
-                Intent intent = new Intent(ACTION_MEDIA_OUTPUT);
+                Intent intent = new Intent(ACTION_LAUNCH_BLUETOOTH_SETTINGS);
                 dismissH(DISMISS_REASON_SETTINGS_CLICKED);
                 Dependency.get(MediaOutputDialogFactory.class).dismiss();
                 Dependency.get(ActivityStarter.class).startActivity(intent,
                         true /* dismissShade */);
+            });
+            mMediaOutputIcon.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    Intent soundSettings = new Intent(Settings.ACTION_SOUND_SETTINGS);
+                    soundSettings.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    mContext.startActivity(soundSettings);
+                    dismissH(DISMISS_REASON_SETTINGS_CLICKED);
+                    return true;
+                }
             });
         }
     }
