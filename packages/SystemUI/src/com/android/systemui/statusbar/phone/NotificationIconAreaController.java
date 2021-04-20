@@ -1,5 +1,7 @@
 package com.android.systemui.statusbar.phone;
 
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.res.Resources;
@@ -77,6 +79,7 @@ public class NotificationIconAreaController implements DarkReceiver,
     private Context mContext;
     private int mAodIconAppearTranslation;
 
+    boolean NewIconStyle;
     private boolean mAnimationsEnabled;
     private int mAodIconTint;
     private boolean mFullyHidden;
@@ -124,8 +127,9 @@ public class NotificationIconAreaController implements DarkReceiver,
         initializeNotificationAreaViews(context);
         reloadAodColor();
 
-        mColorizedIcons = Settings.Global.getInt(mContext.getContentResolver(),
+        NewIconStyle = Settings.Global.getInt(mContext.getContentResolver(),
             Settings.Global.BAIKALOS_STATUSBAR_COLOR_ICONS, 0) == 1;
+
     }
 
     protected View inflateIconArea(LayoutInflater inflater) {
@@ -522,7 +526,7 @@ public class NotificationIconAreaController implements DarkReceiver,
         if (colorize) {
             color = DarkIconDispatcher.getTint(mTintArea, v, tint);
         }
-        if (v.getStatusBarIcon().pkg.contains("systemui")) {
+        if (v.getStatusBarIcon().pkg.contains("systemui") || !NewIconStyle) {
             v.setStaticDrawableColor(color);
             v.setDecorColor(tint);
         } else {
