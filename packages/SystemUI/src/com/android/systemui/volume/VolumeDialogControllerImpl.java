@@ -455,7 +455,7 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
                     == PackageManager.COMPONENT_ENABLED_STATE_ENABLED, fromTooltip);
         } catch (Exception ex) {
             Log.e(TAG,
-                    "isCaptionsServiceEnabled failed to check for captions component", ex);
+                    "isCaptionsServiceEnabled failed to check for captions component"/*, ex*/);
             mCallbacks.onCaptionComponentStateChanged(false, fromTooltip);
         }
     }

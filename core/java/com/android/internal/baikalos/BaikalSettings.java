@@ -72,6 +72,8 @@ public class BaikalSettings extends ContentObserver {
     private static boolean mIsGmsRestrictedStamina;
     private static boolean mIsGpsRestricted;
 
+    private static int mDefaultRotation;
+
     private static String mFilterServices;
     private static String mFilterAlarms;
     private static String mFfilterBcast;
@@ -131,6 +133,10 @@ public class BaikalSettings extends ContentObserver {
 	    return mUnrestrictedNetEnabled;
 	}
 
+	public static int getDefaultRotation() {
+	    return mDefaultRotation;
+	}
+
 	public static boolean getStaminaMode() {
 
         if( mStaminaMode || (mStaminaOiMode && Runtime.isIdleMode()) ) {
@@ -179,7 +185,61 @@ public class BaikalSettings extends ContentObserver {
     public static boolean getAppBlockedInternal(int uid, String packageName) {
 
         if( Runtime.isGmsUid(uid) ) {
-            return isGmsBlocked();
+            AppProfile profile = AppProfileManager.getCurrentProfile();
+            if( profile != null && profile.mRequireGms ) return false;
+            if( packageName != null && packageName.equals("com.google.android.gms") ) {
+                return isGmsBlocked();
+            }
+        }
+
+        if( uid < Process.FIRST_APPLICATION_UID && packageName == null ) return false;
+
+        if( uid < Process.FIRST_APPLICATION_UID && packageName != null ) {
+            if( packageName.equals(mTopAppPackageName) ) return false;
+        }
+        else if(  uid == mTopAppUid ) { 
+            return false;
+        }
+
+        AppProfile profile = null; 
+        if( packageName == null ) profile = AppProfileSettings.getProfileStatic(uid);
+        else profile = AppProfileSettings.getProfileStatic(packageName);
+        if( profile == null ) {
+            if(!getStaminaMode()) return false;
+        }
+
+        if( getStaminaMode() )  {
+            if( uid < Process.FIRST_APPLICATION_UID )  return false;
+            if( profile != null && profile.mStamina ) return false;
+            if( packageName == null ) return true;
+            if( packageName.startsWith("com.android.service.ims") ) return false;
+            if( packageName.startsWith("com.android.launcher3") ) return false;
+            if( packageName.startsWith("com.android.systemui") ) return false;
+            if( packageName.startsWith("com.android.nfc") ) return false;
+            if( packageName.startsWith("com.android.providers") ) return false;
+            if( packageName.startsWith("com.android.inputmethod") ) return false;
+            if( packageName.startsWith("com.qualcomm.qti.telephonyservice") ) return false;
+            if( packageName.startsWith("com.android.phone") ) return false;
+            if( packageName.startsWith("com.android.server.telecom") ) return false;
+            return true;
+        }
+
+        if( profile != null ) {
+            if( profile.mBackground > 2 ) return true;
+            if( profile.mBackground > 1 && Runtime.isIdleMode() ) return true;
+        }
+
+        return false;
+    }
+
+
+    public static boolean getAppRestrictedInternal(int uid, String packageName) {
+        if( Runtime.isGmsUid(uid) ) {
+            AppProfile profile = AppProfileManager.getCurrentProfile();
+            if( profile != null && profile.mRequireGms ) return false;
+            if( packageName != null && packageName.equals("com.google.android.gms") ) {
+                return isGmsRestricted();
+            }
         }
 
         if( uid < Process.FIRST_APPLICATION_UID && packageName == null ) return false;
@@ -195,40 +255,25 @@ public class BaikalSettings extends ContentObserver {
         if( packageName == null ) profile = AppProfileSettings.getProfileStatic(uid);
         else profile = AppProfileSettings.getProfileStatic(packageName);
         if( profile == null ) {
-            if( getStaminaMode() ) return true;
-            return false;
+            if(!getStaminaMode()) return false;
         }
 
         if( getStaminaMode() )  {
-            if(profile.mStamina) return false;
+            if( uid < Process.FIRST_APPLICATION_UID )  return false;
+            if( profile != null && (profile.mStamina || profile.mBackground < 0) ) return false;
+            if( packageName == null ) return true;
+            if( packageName.startsWith("com.android.service.ims") ) return false;
+            if( packageName.startsWith("com.android.launcher3") ) return false;
+            if( packageName.startsWith("com.android.systemui") ) return false;
+            if( packageName.startsWith("com.android.nfc") ) return false;
+            if( packageName.startsWith("com.android.providers") ) return false;
+            if( packageName.startsWith("com.android.inputmethod") ) return false;
+            if( packageName.startsWith("com.qualcomm.qti.telephonyservice") ) return false;
+            if( packageName.startsWith("com.android.phone") ) return false;
+            if( packageName.startsWith("com.android.server.telecom") ) return false;
             return true;
         }
 
-        if( profile.mBackground > 2 ) return true;
-        if( profile.mBackground > 1 && Runtime.isIdleMode() ) return true;
-
-        return false;
-    }
-
-
-    public static boolean getAppRestrictedInternal(int uid, String packageName) {
-        if( Runtime.isGmsUid(uid) ) {
-            return isGmsRestricted();
-        }
-
-        if( uid < Process.FIRST_APPLICATION_UID && packageName == null ) return false;
-
-        if( uid < Process.FIRST_APPLICATION_UID ) {
-            if( packageName.equals(mTopAppPackageName) ) return false;
-        }
-        else if(  uid == mTopAppUid ) { 
-            return false;
-        }
-
-        AppProfile profile = null; 
-        if( packageName == null ) profile = AppProfileSettings.getProfileStatic(uid);
-        else profile = AppProfileSettings.getProfileStatic(packageName);
-        if( profile == null ) return false;
 
         if( profile.mBackground > 1 ) return true;
         if( profile.mBackground > 0 && Runtime.isIdleMode() ) return true;
@@ -393,6 +438,10 @@ public class BaikalSettings extends ContentObserver {
                     Settings.Global.getUriFor(Settings.Global.BAIKALOS_DEBUG),
                     false, this);
 
+                mResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_DEFAULT_ROTATION),
+                    false, this);
+
             } catch( Exception e ) {
             }
 
@@ -452,6 +501,11 @@ public class BaikalSettings extends ContentObserver {
 
                 mDebug = Settings.Global.getLong(context.getContentResolver(),
                         Settings.Global.BAIKALOS_DEBUG,0);
+
+                mDefaultRotation = Settings.Global.getInt(context.getContentResolver(),
+                        Settings.Global.BAIKALOS_DEFAULT_ROTATION,0);
+
+
 
                 updateStaticConstantsLocked();
 
@@ -833,6 +887,11 @@ public class BaikalSettings extends ContentObserver {
                 Slog.i(TAG, "audio: volume scale is default: uid=" + uid);
                 return -1;
             }
+            if( ad.mVolumeScale > 100 ) {
+                Slog.i(TAG, "audio: volume scale > 100. fix it: uid=" + uid);
+                ad.mVolumeScale = 100;
+                return -1;
+            }
             Slog.i(TAG, "audio: volume scale:uid=" + ad.mUid + ", scale="  + ad.mVolumeScale);
             return ad.mVolumeScale;
         }
@@ -847,7 +906,7 @@ public class BaikalSettings extends ContentObserver {
         if( volScale == -1 ) {
                 return 100.0F;
         }
-        return ((float)volScale)/100.0F;
+        return ((float)volScale);
     }
 
     private static void updateAudioDatabaseLocked(Context context) {

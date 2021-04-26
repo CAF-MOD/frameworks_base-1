@@ -50,7 +50,7 @@ public abstract class PlayerBase {
     private static final String TAG = "PlayerBase";
     /** Debug app ops */
     private static final boolean DEBUG_APP_OPS = false;
-    private static final boolean DEBUG = DEBUG_APP_OPS || true;
+    private static final boolean DEBUG = DEBUG_APP_OPS || false;
     private static IAudioService sService; //lazy initialization, use getService()
 
     /** if true, only use OP_PLAY_AUDIO monitoring for logging, and rely on muting to happen
@@ -222,12 +222,14 @@ public abstract class PlayerBase {
         float baikalMultiplier = BaikalSettings.getVolumeScale(Process.myUid());
 
         synchronized (mLock) {
-            finalLeftVol = mVolMultiplier * mLeftVolume * mPanMultiplierL * baikalMultiplier;
-            finalRightVol = mVolMultiplier * mRightVolume * mPanMultiplierR * baikalMultiplier;
+            finalLeftVol = mVolMultiplier * mLeftVolume * mPanMultiplierL * baikalMultiplier/100.0F;
+            finalRightVol = mVolMultiplier * mRightVolume * mPanMultiplierR * baikalMultiplier/100.0F;
             isRestricted = isRestricted_sync();
         }
-        Log.e(TAG, "Update volume l=" + finalLeftVol + ", r=" + finalRightVol + ", b=" + baikalMultiplier);
-        playerSetVolume(isRestricted /*muting*/, finalLeftVol, finalRightVol);
+        if (DEBUG) Log.e(TAG, "Update volume uid=" + Process.myUid() + ", isRestricted=" + isRestricted + ", mVolMultiplier=" + mVolMultiplier);
+        if (DEBUG) Log.e(TAG, "Update volume uid=" + Process.myUid() + ", mLeftVolume=" + mLeftVolume + ", mRightVolume=" + mRightVolume + ", mPanMultiplierL=" + mPanMultiplierL + ", mPanMultiplierR=" + mPanMultiplierR);
+        if (DEBUG) Log.e(TAG, "Update volume uid=" + Process.myUid() + ", l=" + finalLeftVol + ", r=" + finalRightVol + ", b=" + baikalMultiplier);
+        playerSetVolume(false /*muting*/, finalLeftVol, finalRightVol);
     }
 
     void setVolumeMultiplier(float vol) {

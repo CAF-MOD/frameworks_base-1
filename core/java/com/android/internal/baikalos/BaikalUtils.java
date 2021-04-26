@@ -132,6 +132,21 @@ public class BaikalUtils {
         }
     }
 
+    private static int mSystemUiUid = -1;
+    public static void setSystemUiUid(int uid) {
+        synchronized(mStaticMembersLock) {
+            mSystemUiUid = uid;
+        }
+    }
+
+
+    public static boolean isSystemUiUid(int uid) {
+        synchronized(mStaticMembersLock) {
+            return mSystemUiUid == uid;
+        }
+    }
+
+
     public static void boost() {
         if( Constants.DEBUG_RAW ) Slog.i(TAG, "Boost!");
         try {

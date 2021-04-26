@@ -69,7 +69,7 @@ public class MediaFocusControl implements PlayerFocusEnforcer {
      * set to true to the framework enforces ducking itself only with apps above a given SDK
      * target level. Is ignored if ENFORCE_DUCKING is false.
      */
-    static final boolean ENFORCE_DUCKING_FOR_NEW = false;
+    static final boolean ENFORCE_DUCKING_FOR_NEW = true;
     /**
      * the SDK level (included) up to which the framework doesn't enforce ducking itself. Is ignored
      * if ENFORCE_DUCKING_FOR_NEW is false;

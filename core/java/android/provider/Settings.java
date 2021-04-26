@@ -16082,6 +16082,12 @@ public final class Settings {
 
         public static final String BAIKALOS_DEBUG = "baikalos_debug";
 
+        public static final String BAIKALOS_DEFAULT_ROTATION = "baikalos_default_rotation";
+
+        public static final String BAIKALOS_HEADSUP_INCALL = "baikalos_headsup_incall";
+
+        public static final String BAIKALOS_HEADSUP_FORCE_SMS = "baikalos_headsup_force_sms";
+
         /* End of BaikalOS Global settings */
 
 

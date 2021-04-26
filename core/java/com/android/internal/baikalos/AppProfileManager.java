@@ -40,10 +40,16 @@ import android.telephony.PreciseDataConnectionState;
 import android.telephony.DataConnectionRealTimeInfo;
 import android.telephony.VoLteServiceState;
 
+import android.os.AsyncTask;
 import android.os.Parcel;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 
+import android.provider.Settings;
+
+import com.android.internal.view.RotationPolicy;
+import android.view.WindowManagerGlobal;
+import android.view.IWindowManager;
 
 public class AppProfileManager extends MessageHandler { 
 
@@ -81,7 +87,7 @@ public class AppProfileManager extends MessageHandler {
 
     TelephonyManager mTelephonyManager;
 
-    static AppProfile getCurrentProfile() {
+    public static AppProfile getCurrentProfile() {
         synchronized(mCurrentProfileSync) {
             return mCurrentProfile;
         }
@@ -242,6 +248,7 @@ public class AppProfileManager extends MessageHandler {
                 setActiveThermProfileLocked("default");
                 setActiveFrameRateLocked(-1);
                 Actions.sendBrightnessOverrideChanged(setBrightnessOverrideLocked(0));
+                setRotation(-1);
             } else {
                 setActivePerfProfileLocked(profile.mPerfProfile);
                 setActiveThermProfileLocked(profile.mThermalProfile);
@@ -249,6 +256,7 @@ public class AppProfileManager extends MessageHandler {
                 if( mReaderModeAvailable ) setReaderModeLocked(profile.mReader);
                 else setReaderModeLocked(false);
                 Actions.sendBrightnessOverrideChanged(setBrightnessOverrideLocked(profile.mBrightness));
+                setRotation(profile.mRotation-1);
             }
         }
     }
@@ -414,6 +422,14 @@ public class AppProfileManager extends MessageHandler {
             case 12:
                 mBrightnessOverride = -3;
                 break;
+
+            case 13:
+                mBrightnessOverride = -4;
+                break;
+            case 14:
+                mBrightnessOverride = -5;
+                break;
+
             case 11:
                 mBrightnessOverride = PowerManager.BRIGHTNESS_ON;
                 break;
@@ -450,6 +466,17 @@ public class AppProfileManager extends MessageHandler {
         if( Constants.DEBUG_APP_PROFILE ) Slog.i(TAG,"mBrightnessOverride=" + mBrightnessOverride);
         return mBrightnessOverride;
     }
+
+
+    private void setRotation(int rotation) {
+        setRotationLock(rotation);
+    }
+
+    private void setRotationLock(final int rotation) {
+        Settings.Global.putInt(getContext().getContentResolver(),
+                        Settings.Global.BAIKALOS_DEFAULT_ROTATION,rotation);
+    }
+
 
     PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
         /**

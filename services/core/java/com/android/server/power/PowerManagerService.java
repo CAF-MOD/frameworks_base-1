@@ -1762,7 +1762,7 @@ public final class PowerManagerService extends SystemService
     }
 
     private boolean userActivityNoUpdateLocked(long eventTime, int event, int flags, int uid) {
-        if (DEBUG_SPEW) {
+        /*if (DEBUG_SPEW)*/ {
             Slog.d(TAG, "userActivityNoUpdateLocked: eventTime=" + eventTime
                     + ", event=" + event + ", flags=0x" + Integer.toHexString(flags)
                     + ", uid=" + uid);
@@ -2503,6 +2503,7 @@ public final class PowerManagerService extends SystemService
                     nextTimeout = mLastUserActivityTime
                             + screenOffTimeout - screenDimDuration;
                     if (now < nextTimeout) {
+                        if (DEBUG_SPEW) Slog.d(TAG, "updateUserActivitySummaryLocked: bright");
                         mUserActivitySummary = USER_ACTIVITY_SCREEN_BRIGHT;
                         if (getWakefulnessLocked() == WAKEFULNESS_AWAKE) {
                             if (mButtonsLight != null) {
@@ -2565,6 +2566,7 @@ public final class PowerManagerService extends SystemService
                     } else {
                         nextTimeout = mLastUserActivityTime + screenOffTimeout;
                         if (now < nextTimeout) {
+                            if (DEBUG_SPEW) Slog.d(TAG, "updateUserActivitySummaryLocked: dim");
                             mUserActivitySummary = USER_ACTIVITY_SCREEN_DIM;
                             if (getWakefulnessLocked() == WAKEFULNESS_AWAKE) {
                                 if (mButtonsLight != null) {
@@ -2585,8 +2587,10 @@ public final class PowerManagerService extends SystemService
                     if (now < nextTimeout) {
                         if (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_BRIGHT
                                 || mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_VR) {
+                            if (DEBUG_SPEW) Slog.d(TAG, "updateUserActivitySummaryLocked: bright no lights");
                             mUserActivitySummary = USER_ACTIVITY_SCREEN_BRIGHT;
                         } else if (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DIM) {
+                            if (DEBUG_SPEW) Slog.d(TAG, "updateUserActivitySummaryLocked: dim no lights");
                             mUserActivitySummary = USER_ACTIVITY_SCREEN_DIM;
                         }
                     }
@@ -3125,7 +3129,7 @@ public final class PowerManagerService extends SystemService
                 // bootloader brightness and the default brightness to be identical.
                 autoBrightness = false;
                 screenBrightnessOverride = mScreenBrightnessSettingDefault;
-            } else if (mBrightnessOverrideFromBaikalService <= -2 ) {
+            } else if (mBrightnessOverrideFromBaikalService == -2 || mBrightnessOverrideFromBaikalService == -3  ) {
                 if(DEBUG_SPEW) Slog.d(TAG, "updateDisplayPowerStateLocked: Brightness override auto lowPowerMode=" + mDisplayPowerRequest.lowPowerMode);
                 mDisplayPowerRequest.lowPowerMode = true;
                 autoBrightness = (mScreenBrightnessModeSetting ==
@@ -3140,6 +3144,12 @@ public final class PowerManagerService extends SystemService
             } else if (isValidBrightness(mScreenBrightnessOverrideFromWindowManager)) {
                 autoBrightness = false;
                 screenBrightnessOverride = mScreenBrightnessOverrideFromWindowManager;
+            } else if (mBrightnessOverrideFromBaikalService == -4) {
+                autoBrightness = true;
+                screenBrightnessOverride = PowerManager.BRIGHTNESS_INVALID_FLOAT;
+            } else if (mBrightnessOverrideFromBaikalService == -5) {
+                autoBrightness = false;
+                screenBrightnessOverride = PowerManager.BRIGHTNESS_INVALID_FLOAT;
             } else {
                 autoBrightness = (mScreenBrightnessModeSetting ==
                         Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC);

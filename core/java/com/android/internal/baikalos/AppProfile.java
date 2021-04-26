@@ -50,12 +50,14 @@ public class AppProfile {
     public boolean mRequireGms;
     public boolean mBootDisabled;
     public boolean mIgnoreAudioFocus;
+    public int mRotation;
 
     public AppProfile() {
         mPerfProfile = "default";
         mThermalProfile = "default";
         mPackageName = "";
         mFrameRate = 0;
+        mRotation = 0;
     }
 
     public boolean isDefault() {
@@ -68,6 +70,7 @@ public class AppProfile {
             mFrameRate == 0 &&
             mBackground == 0 &&
             !mIgnoreAudioFocus &&
+            mRotation == 0 &&
             mPerfProfile.equals("default") &&
             mThermalProfile.equals("default") ) return true;
         return false;
@@ -86,7 +89,8 @@ public class AppProfile {
         "bk=" + mBackground + "," +
         "gms=" + mRequireGms  + "," +
         "bt=" + mBootDisabled + "," +
-        "af=" + mIgnoreAudioFocus
+        "af=" + mIgnoreAudioFocus + "," +
+        "ro=" + mRotation 
         ;
     }
 
@@ -115,6 +119,7 @@ public class AppProfile {
             profile.mRequireGms = parser.getBoolean("gms",false);
             profile.mBootDisabled = parser.getBoolean("bt",false);
             profile.mIgnoreAudioFocus = parser.getBoolean("af",false);
+            profile.mRotation = parser.getInt("ro",0);
         } catch( Exception e ) {
 
         }
