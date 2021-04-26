@@ -64,8 +64,8 @@ import android.os.SystemClock;
 
 import com.android.server.SystemService;
 
-//import com.android.internal.custom.hardware.LineageHardwareManager;
-//import com.android.internal.custom.hardware.DisplayMode;
+import com.android.internal.custom.hardware.LineageHardwareManager;
+import com.android.internal.custom.hardware.DisplayMode;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
@@ -77,10 +77,11 @@ public class BaikalSystemService extends SystemService {
     private static final boolean DEBUG = false;
 
     private boolean mSystemReady = false;
+    private boolean mScreenMode = false;
 
     private final Context mContext;
 
-    //private LineageHardwareManager mHardware;
+    private LineageHardwareManager mHardware;
 
 
     final MyHandler mHandler;
@@ -166,11 +167,17 @@ public class BaikalSystemService extends SystemService {
 
                 mBaikalSettings = new BaikalSettings(mHandler,mContext);
 
-                //mHardware = LineageHardwareManager.getInstance(mContext);
+                mHardware = LineageHardwareManager.getInstance(mContext);
 
                 IntentFilter topAppFilter = new IntentFilter();
                 topAppFilter.addAction(Actions.ACTION_TOP_APP_CHANGED);
                 getContext().registerReceiver(mTopAppReceiver, topAppFilter);
+
+                IntentFilter screenModeFilter = new IntentFilter();
+                screenModeFilter.addAction(Actions.ACTION_SCREEN_MODE_CHANGED);
+                getContext().registerReceiver(mScreenModeReceiver, screenModeFilter);
+
+
 
 
 	        }
@@ -199,6 +206,8 @@ public class BaikalSystemService extends SystemService {
                 uid = getPackageUidLocked("com.dolby.daxservice");
                 BaikalUtils.setDolbyUid(uid);
 
+                uid = getPackageUidLocked("com.android.systemui");
+                BaikalUtils.setSystemUiUid(uid);
 
                 setPackageEnabled("com.tencent.soter.soterserver",false);
 
@@ -279,11 +288,53 @@ public class BaikalSystemService extends SystemService {
 
     
 
+    
+    private final BroadcastReceiver mScreenModeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            synchronized (BaikalSystemService.this) {
+                //  Require Lineage Hardware Manager. Postpone.
+                String action = intent.getAction();
+                boolean screen = (boolean)intent.getExtra(Actions.EXTRA_BOOL_MODE);
+
+                if( screen != mScreenMode ) {
+                    mScreenMode = screen;
+                    if( mHardware != null ) {
+                        DisplayMode mode = mHardware.getDefaultDisplayMode();
+                        if( mode != null ) {
+                            if( DEBUG ) Slog.i(TAG,"setDisplayMode default=(" + mode.id + "," + mode.name + ")");
+                            mHandler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mHardware.setDisplayMode(mode,false);
+                                }
+                            }, 50);
+                        }
+                    }
+                }
+            }
+        }
+    };
+
 
     private final BroadcastReceiver mTopAppReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             synchronized (BaikalSystemService.this) {
+
+                    if( mHardware != null ) {
+                        DisplayMode mode = mHardware.getDefaultDisplayMode();
+                        if( mode != null ) {
+                            if( DEBUG ) Slog.i(TAG,"setDisplayMode default=(" + mode.id + "," + mode.name + ")");
+                            mHandler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mHardware.setDisplayMode(mode,false);
+                                }
+                            }, 50);
+                        }
+                    }
+
                 /*  Require Lineage Hardware Manager. Postpone.
                 String action = intent.getAction();
                 String packageName = (String)intent.getExtra(Actions.EXTRA_PACKAGENAME);
@@ -307,6 +358,4 @@ public class BaikalSystemService extends SystemService {
             }
         }
     };
-
-
 }
