@@ -4533,7 +4533,7 @@ public class BatteryStatsImpl extends BatteryStats {
     public void noteWakeupReasonLocked(String reason) {
         final long elapsedRealtime = mClocks.elapsedRealtime();
         final long uptime = mClocks.uptimeMillis();
-        if (DEBUG_HISTORY) Slog.v(TAG, "Wakeup reason \"" + reason +"\": "
+        /*if (DEBUG_HISTORY)*/ Slog.v(TAG, "Wakeup reason \"" + reason +"\": "
                 + Integer.toHexString(mHistoryCur.states));
         aggregateLastWakeupUptimeLocked(uptime);
         mHistoryCur.wakeReasonTag = mHistoryCur.localWakeReasonTag;
