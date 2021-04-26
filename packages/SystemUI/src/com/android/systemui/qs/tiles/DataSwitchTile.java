@@ -22,10 +22,12 @@ import com.android.internal.telephony.TelephonyIntents;
 import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.SysUIToast;
+import com.android.systemui.plugins.ActivityStarter;
 import com.android.systemui.plugins.qs.QSTile.BooleanState;
 import com.android.systemui.qs.QSHost;
 import com.android.systemui.qs.tileimpl.QSTileImpl;
 import com.android.systemui.qs.tileimpl.QSTileImpl.ResourceIcon;
+import com.android.systemui.statusbar.policy.KeyguardStateController;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -36,6 +38,9 @@ public class DataSwitchTile extends QSTileImpl<BooleanState> {
 
     private static final String TAG = "DataSwitchTile";
     private static final boolean DEBUG = false;
+
+    private final KeyguardStateController mKeyguard;
+    private final ActivityStarter mActivityStarter;
 
     private boolean mCanSwitch = true;
     private MyCallStateListener mPhoneStateListener;
@@ -61,11 +66,21 @@ public class DataSwitchTile extends QSTileImpl<BooleanState> {
     }
 
     @Inject
-    public DataSwitchTile(QSHost host) {
+    public DataSwitchTile(QSHost host, 
+        ActivityStarter activityStarter, KeyguardStateController keyguardStateController) {
         super(host);
         mSubscriptionManager = SubscriptionManager.from(host.getContext());
         mTelephonyManager = TelephonyManager.from(host.getContext());
         mPhoneStateListener = new MyCallStateListener();
+        mKeyguard = keyguardStateController;
+        mActivityStarter = activityStarter;
+        final KeyguardStateController.Callback callback = new KeyguardStateController.Callback() {
+            @Override
+            public void onKeyguardShowingChanged() {
+                refreshState();
+            }
+        };
+        mKeyguard.observe(this, callback);
     }
 
     @Override
@@ -119,6 +134,17 @@ public class DataSwitchTile extends QSTileImpl<BooleanState> {
 
     @Override
     protected void handleClick() {
+        if (mKeyguard.isMethodSecure() && !mKeyguard.canDismissLockScreen()) {
+                mActivityStarter.postQSRunnableDismissingKeyguard(() -> {
+                    mHost.openPanels();
+                    handleClickInner();
+            });
+            return;
+        }
+        handleClickInner();
+    }
+
+    protected void handleClickInner() {
         if (!mCanSwitch) {
             if (DEBUG) Log.d(TAG, "Call state=" + mTelephonyManager.getCallState());
         } else if (mSimCount == 0) {
@@ -126,7 +152,7 @@ public class DataSwitchTile extends QSTileImpl<BooleanState> {
         } else if (mSimCount == 1) {
             if (DEBUG) Log.d(TAG, "handleClick:only one sim card");
         } else {
-            mHost.collapsePanels();
+            //mHost.collapsePanels();
             AsyncTask.execute(new Runnable() {
                 public final void run() {
                     toggleMobileDataEnabled();
@@ -145,6 +171,34 @@ public class DataSwitchTile extends QSTileImpl<BooleanState> {
     public CharSequence getTileLabel() {
         return mContext.getString(R.string.qs_data_switch_label);
     }
+
+    @Override
+    protected void handleLongClick() {
+        if (mKeyguard.isMethodSecure() && !mKeyguard.canDismissLockScreen()) {
+                mActivityStarter.postQSRunnableDismissingKeyguard(() -> {
+                    mHost.openPanels();
+                    showDetail(true);
+            });
+            return;
+        }
+
+        if (!mCanSwitch) {
+            if (DEBUG) Log.d(TAG, "Call state=" + mTelephonyManager.getCallState());
+        } else if (mSimCount == 0) {
+            if (DEBUG) Log.d(TAG, "handleClick:no sim card");
+        } else if (mSimCount == 1) {
+            if (DEBUG) Log.d(TAG, "handleClick:only one sim card");
+        } else {
+            mHost.collapsePanels();
+            AsyncTask.execute(new Runnable() {
+                public final void run() {
+                    toggleMobileDataEnabled();
+                    refreshState();
+                }
+            });
+        }
+    }
+
 
     @Override
     protected void handleUpdateState(BooleanState state, Object arg) {
