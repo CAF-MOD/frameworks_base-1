@@ -437,9 +437,8 @@ public class BatteryMeterView extends LinearLayout implements
 
     private void updateShowPercent(boolean forceShow) {
         final boolean showing = mBatteryPercentView != null;
-        int style = whitelistIpcs(() -> Settings.System
-                .getInt(getContext().getContentResolver(),
-                SHOW_BATTERY_PERCENT, 0));
+        int style = Settings.System.getInt(getContext().getContentResolver(),
+                SHOW_BATTERY_PERCENT, 0);
         if (mForceShowPercent || mPowerSave ) {
             style = 1; // Default view
         }
