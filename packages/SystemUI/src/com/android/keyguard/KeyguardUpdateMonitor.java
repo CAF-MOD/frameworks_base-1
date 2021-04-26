@@ -95,7 +95,6 @@ import com.android.systemui.Dependency;
 import com.android.systemui.DejankUtils;
 import com.android.systemui.Dumpable;
 import com.android.systemui.R;
-import com.android.systemui.arrow.ArrowSettingsService;
 import com.android.systemui.broadcast.BroadcastDispatcher;
 import com.android.systemui.dagger.qualifiers.Background;
 import com.android.systemui.dagger.qualifiers.Main;
@@ -135,8 +134,7 @@ import javax.inject.Singleton;
  * to be updated.
  */
 @Singleton
-public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpable,
-        ArrowSettingsService.ArrowSettingsObserver {
+public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpable {
 
     private static final String TAG = "KeyguardUpdateMonitor";
     private static final boolean DEBUG = KeyguardConstants.DEBUG;
@@ -1606,8 +1604,8 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
         mDeviceProvisioned = isDeviceProvisionedInSettingsDb();
         mStrongAuthTracker = new StrongAuthTracker(context, this::notifyStrongAuthStateChanged);
         mFingerprintWakeAndUnlock = Settings.System.getIntForUser(
-                mContext.getContentResolver(), Settings.System.FP_WAKE_UNLOCK, 0,
-                UserHandle.USER_CURRENT) == 0;
+                mContext.getContentResolver(), Settings.System.FP_WAKE_UNLOCK, 1,
+                UserHandle.USER_CURRENT) != 0;
         mBackgroundExecutor = backgroundExecutor;
         mBroadcastDispatcher = broadcastDispatcher;
         mRingerModeTracker = ringerModeTracker;
@@ -1863,13 +1861,13 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
                 }
             }
         }
-        Dependency.get(ArrowSettingsService.class).addIntObserver(this, Settings.System.FP_WAKE_UNLOCK);
+        //Dependency.get(ArrowSettingsService.class).addIntObserver(this, Settings.System.FP_WAKE_UNLOCK);
     }
 
-    @Override
-    public void onIntSettingChanged(String key, Integer newValue) {
-        mFingerprintWakeAndUnlock = (newValue == 0);
-    }
+    //@Override
+    //public void onIntSettingChanged(String key, Integer newValue) {
+    //    mFingerprintWakeAndUnlock = (newValue == 0);
+    //}
 
     private final UserSwitchObserver mUserSwitchObserver = new UserSwitchObserver() {
         @Override
@@ -1991,6 +1989,10 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
     private boolean shouldListenForFingerprint() {
         final boolean allowedOnBouncer =
                 !(mFingerprintLockedOut && mBouncer && mCredentialAttempted);
+
+        mFingerprintWakeAndUnlock = Settings.System.getIntForUser(
+                mContext.getContentResolver(), Settings.System.FP_WAKE_UNLOCK, 1,
+                UserHandle.USER_CURRENT) != 0;
 
         // Only listen if this KeyguardUpdateMonitor belongs to the primary user. There is an
         // instance of KeyguardUpdateMonitor for each user but KeyguardUpdateMonitor is user-aware.
