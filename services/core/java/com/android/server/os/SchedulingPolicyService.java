@@ -93,7 +93,7 @@ public class SchedulingPolicyService extends ISchedulingPolicyService.Stub {
                 Log.i(TAG, "requestPriority: PERMISSION_DENIED: isPermitted=" + isPermitted() + ", gl=" + Process.getThreadGroupLeader(tid) );
            return PackageManager.PERMISSION_DENIED;
         }
-        if (Binder.getCallingUid() != Process.BLUETOOTH_UID) {
+        //if (Binder.getCallingUid() != Process.BLUETOOTH_UID) {
             try {
                 // make good use of our CAP_SYS_NICE capability
                 Process.setThreadGroup(tid, !isForApp ?
@@ -102,7 +102,7 @@ public class SchedulingPolicyService extends ISchedulingPolicyService.Stub {
                 Log.e(TAG, "Failed setThreadGroup: " + e);
                 return PackageManager.PERMISSION_DENIED;
            }
-        }
+        //}
         try {
             // must be in this order or it fails the schedulability constraint
             Process.setThreadScheduler(tid, Process.SCHED_FIFO | Process.SCHED_RESET_ON_FORK,
