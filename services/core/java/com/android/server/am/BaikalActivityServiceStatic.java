@@ -73,10 +73,9 @@ public class BaikalActivityServiceStatic {
 
     private static final String TAG = "BaikalActivityServiceStatic";
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
     private static final boolean DEBUG_STAMINA = false;
-    private static final boolean DEBUG_GMS = false;
-    
+    private static final boolean DEBUG_GMS = true;
 
     private static final String [] mGoogleServicesIdleBlackListed = {
         "com.google.android.location.geocode.GeocodeService",
@@ -107,8 +106,9 @@ public class BaikalActivityServiceStatic {
 	            );*/
         }
 
-	    if( app == top_app ) return 1;
+	    if( app == top_app ) return 0;
 
+        if( BaikalSettings.getTopAppUid() == app.info.uid ) return 0;
 
         if( !BaikalSettings.getStaminaMode() &&
             !BaikalSettings.getExtremeIdleEnabled() &&
@@ -118,10 +118,17 @@ public class BaikalActivityServiceStatic {
         }
 
         if( BaikalUtils.isGmsUid(app.info.uid)  ) {
-            if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) ) {
-                Slog.i(TAG,"applyOomAdjLocked: killing blocked GMS app: " + app.info.packageName + "/" + app.info.uid);
-                killApp(app);
-                return 2;
+
+            AppProfile cur_profile = AppProfileManager.getCurrentProfile();
+            if( cur_profile != null && cur_profile.mRequireGms ) {
+                Slog.i(TAG,"applyOomAdjLocked: require GMS app: " + app.info.packageName + "/" + app.info.uid);
+                return 0;
+            } else {
+                if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) ) {
+                    Slog.i(TAG,"applyOomAdjLocked: killing blocked GMS app: " + app.info.packageName + "/" + app.info.uid);
+                    killApp(app);
+                    return 2;
+                }
             }
         }
 
@@ -138,19 +145,25 @@ public class BaikalActivityServiceStatic {
         }
 
         final long now = SystemClock.uptimeMillis();
+        final long activeTime = now - 15 * 1000;
         final long oldTime = now - 60 * 1000;
         final long oldTimeStamina = now - 60 * 1000;
         final long oldTimeProvider = now - 120 * 1000;
-
-
-
 
         AppProfile profile = AppProfileSettings.getProfileStatic(app.info.packageName);
 
         if( profile != null && profile.mPinned ) return 1;
         if( profile != null && profile.mBackground < 0 && app.curAdj < ProcessList.CACHED_APP_MIN_ADJ ) return 0;
+        if( profile == null && app.info.uid < Process.FIRST_APPLICATION_UID && app.curAdj < ProcessList.CACHED_APP_MIN_ADJ) return 0;
 
         switch (app.getCurProcState()) {
+
+            //PROCESS_STATE_PERSISTENT_UI:
+            //PROCESS_STATE_TOP:
+
+            //case ActivityManager.PROCESS_STATE_PERSISTENT:
+            //    return 0;
+
             case ActivityManager.PROCESS_STATE_BOUND_TOP:
             case ActivityManager.PROCESS_STATE_IMPORTANT_BACKGROUND:
             case ActivityManager.PROCESS_STATE_TRANSIENT_BACKGROUND:
@@ -173,12 +186,11 @@ public class BaikalActivityServiceStatic {
             case ActivityManager.PROCESS_STATE_BACKUP:
 
 
-            if( profile != null && profile.mBackground < 0 ) return 0;
+            //if( profile != null && profile.mBackground < 0 ) return 0;
             
             case ActivityManager.PROCESS_STATE_HEAVY_WEIGHT:
             case ActivityManager.PROCESS_STATE_LAST_ACTIVITY:
 
-    
                 if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) && (app.lastTopTime < oldTimeStamina) ) {
                     Slog.i(TAG,"applyOomAdjLocked: killing blocked app: " + app.info.packageName + "/" + app.info.uid);
                     killApp(app);
@@ -192,6 +204,24 @@ public class BaikalActivityServiceStatic {
                 }
 
                 //if( !BaikalSettings.getExtremeIdleActive() && profile != null && profile.mBackground < 1 ) return 0;
+
+                if( app.lastProviderTime > 0 && app.lastProviderTime < oldTimeProvider ) {
+                    if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: BFGS stamina: active provider " + app.info.packageName + "/" + app.info.uid);
+                    return 0;
+                }
+        
+                //if( app.info.uid < Process.FIRST_APPLICATION_UID &&  app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ) ) return 0;
+ 
+                if( BaikalSettings.getStaminaMode() || 
+                    BaikalSettings.getExtremeIdleActive() ){
+                } else {
+                    return 0;
+                }
+
+            case ActivityManager.PROCESS_STATE_CACHED_ACTIVITY:
+            case ActivityManager.PROCESS_STATE_CACHED_ACTIVITY_CLIENT:
+
+                if( !BaikalSettings.getExtremeIdleEnabled() ) return 0;
 
                 if( app.lastProviderTime > 0 ) {
                     try {
@@ -213,29 +243,6 @@ public class BaikalActivityServiceStatic {
                     }
                 }
 
-
-                if( app.lastProviderTime > 0 && app.lastProviderTime < oldTimeProvider ) {
-                    if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: BFGS stamina: active provider " + app.info.packageName + "/" + app.info.uid);
-                    return 0;
-                }
-        
-                if( app.info.uid < 10000 &&  app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ) ) return 0;
- 
-                if( BaikalSettings.getStaminaMode() || 
-                    BaikalSettings.getExtremeIdleActive() ){
-                } else {
-                    return 0;
-                }
-
-            case ActivityManager.PROCESS_STATE_CACHED_ACTIVITY:
-            case ActivityManager.PROCESS_STATE_CACHED_ACTIVITY_CLIENT:
-
-                if( !BaikalSettings.getExtremeIdleEnabled() ) return 0;
-
-                if(  BaikalSettings.getStaminaMode() && profile != null && profile.mStamina ) {
-                    return 0;
-                }
-                    
                 if( (!BaikalSettings.getExtremeIdleActive() && !BaikalSettings.getStaminaMode()) || app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ) ) {
                     if( !BaikalSettings.getAppRestricted(appId,app.info.packageName) && Arrays.binarySearch(mAm.mDeviceIdleWhitelist, appId) >= 0 ) {
                         if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: BFGS stamina: sys wl " + app.info.packageName + "/" + app.info.uid);
@@ -247,6 +254,12 @@ public class BaikalActivityServiceStatic {
                         return 1;
                     }
                 }
+
+                if( (app.lastActivityTime > activeTime) && app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ + 40) ) {
+                    if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: CEM app is active " + app.info.packageName + "/" + app.info.uid);
+                    return 0;
+                }
+
 
                 if ( profile != null && profile.mBackground > 0 && (app.lastActivityTime < oldTimeStamina) ) {
                     Slog.i(TAG,"applyOomAdjLocked: BFGS stamina: restricted " + app.info.packageName + "/" + app.info.uid);
@@ -261,7 +274,7 @@ public class BaikalActivityServiceStatic {
                         return 0;
                     }
                 } else if( BaikalSettings.getExtremeIdleEnabled() ) {
-                    if( (app.lastActivityTime > oldTime) && app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ + 20) ) {
+                    if( (app.lastActivityTime > oldTime) && app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ + 30) ) {
                         if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: CEM stamina: active " + app.info.packageName + "/" + app.info.uid);
                         return 0;
                     }
@@ -274,13 +287,33 @@ public class BaikalActivityServiceStatic {
                     return 0;
                 }
 
-
                 /*if( DEBUG )*/ Slog.i(TAG,"applyOomAdjLocked: killing active app: " + app.info.packageName + "/" + app.info.uid);
 
                 killApp(app);
                 return 2;
 
             case ActivityManager.PROCESS_STATE_CACHED_RECENT:
+
+                if( app.lastProviderTime > 0 ) {
+                    try {
+                        for (int provi = app.pubProviders.size() - 1;provi >= 0;provi--) {
+                            ContentProviderRecord cpr = app.pubProviders.valueAt(provi);
+                            for (int i = cpr.connections.size() - 1;i >= 0;i--) {
+                                ContentProviderConnection conn = cpr.connections.get(i);
+                                ProcessRecord client = conn.client;
+                                if (client == app) {
+                                    continue;
+                                } else {
+                                    if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: BFGS stamina: connected provider " + app.info.packageName + "/" + app.info.uid);
+                                    return 0;
+                                }
+                            }
+                        }
+                    } catch(Exception eprovi)
+                    {
+                    }
+                }
+
             case ActivityManager.PROCESS_STATE_CACHED_EMPTY: {
 
                 if( BaikalSettings.getAppBlocked(app.info.uid, app.info.packageName) && (app.lastTopTime < oldTimeStamina) ) {
@@ -310,7 +343,7 @@ public class BaikalActivityServiceStatic {
                     }
                 } else if( BaikalSettings.getExtremeIdleEnabled() ) {
                     if( (app.lastActivityTime > oldTime) 
-                        && app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ + 20) 
+                        && app.curAdj < (ProcessList.CACHED_APP_MIN_ADJ + 30) 
                         && app.getCurProcState() != ActivityManager.PROCESS_STATE_CACHED_RECENT ) {
                         if( DEBUG_STAMINA ) Slog.i(TAG,"applyOomAdjLocked: CEM extreme: active " + app.info.packageName + "/" + app.info.uid);
                         return 0;
@@ -346,9 +379,36 @@ public class BaikalActivityServiceStatic {
     }
 
     public static boolean isServiceWhitelisted(ActivityManagerService mAm, ServiceRecord service, int callingUid, int callingPid, String callingPackageName, boolean isStarting) {
-        if( DEBUG ) Slog.i(TAG,"isServiceWhitelisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
+
+        if( !BaikalSettings.getStaminaMode() &&
+            !BaikalSettings.getExtremeIdleEnabled() &&
+            !BaikalSettings.getAggressiveIdleEnabled() ) {
+            if( DEBUG_STAMINA ) Slog.i(TAG,"isServiceWhitelisted: Not in energy saving mode ");
+            return false;
+        }
+
+        boolean whitelisted = false;
+
+        if( !whitelisted && BaikalUtils.isSystemUiUid(callingUid) ) whitelisted = true;
+        if( !whitelisted && BaikalUtils.isSystemUiUid(service.appInfo.uid) ) whitelisted = true;
+
+        if( !whitelisted && BaikalSettings.getTopAppUid() == service.appInfo.uid ) whitelisted = true;
+
+        if( !whitelisted ) {
+            if( service.packageName.startsWith("com.android.providers") ) whitelisted = true;
+            else if( service.packageName.startsWith("com.android.inputmethod") ) whitelisted = true;
+            else if( service.packageName.startsWith("com.qualcomm.qti.telephonyservice") ) whitelisted = true;
+            else if( service.packageName.startsWith("com.android.phone") ) whitelisted = true;
+            else if( service.packageName.startsWith("com.android.server.telecom") ) whitelisted = true;
+        }
+
+        if( DEBUG ) Slog.i(TAG,"isServiceWhitelisted: wl=" + whitelisted + " from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
         else if( IsLogGoogle(callingUid) ) Slog.i(TAG,"isServiceWhitelisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
         else if( IsLogGoogle(service.appInfo.uid) ) Slog.i(TAG,"isServiceWhitelisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
+
+
+
+        return whitelisted;
 
 
         /*
@@ -379,7 +439,7 @@ public class BaikalActivityServiceStatic {
             //if( service.name.getClassName().endsWith("com.google.android.location.internal.PendingIntentCallbackService") ) return true;
         }
         */
-        return false;
+        //return false;
     }
 
     public static boolean isServiceBlacklisted(ActivityManagerService mAm, ServiceRecord service, int callingUid, int callingPid, String callingPackageName, boolean isStarting) {
@@ -390,11 +450,17 @@ public class BaikalActivityServiceStatic {
             if( DEBUG_STAMINA ) Slog.i(TAG,"isServiceBlacklisted: Not in energy saving mode ");
             return false;
         }
-        
+
+        //if( BaikalSettings.getTopAppUid() == callingUid ) return false;
 
         if( DEBUG ) Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
         else if( IsLogGoogle(callingUid) ) Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
         else if( IsLogGoogle(service.appInfo.uid) ) Slog.i(TAG,"isServiceBlacklisted: from " + callingPackageName + "/" + callingUid + "/" + callingPid + " to " + service);
+
+        if( BaikalSettings.getTopAppUid() == service.appInfo.uid ) return false;
+
+        AppProfile cur_profile = AppProfileManager.getCurrentProfile();
+        if( cur_profile != null && cur_profile.mRequireGms ) return false;
 
         if( service.name.getClassName().startsWith("com.google.firebase") ) return true;
         if( service.name.getClassName().startsWith("com.google.android.gms.ads") ) return true;
@@ -408,7 +474,6 @@ public class BaikalActivityServiceStatic {
         //if( service.name.getClassName().startsWith("com.google.android.gms.magictether") ) return true;
         //if( service.name.getClassName().startsWith("com.google.android.gms.tron") ) return true;
         //if( service.name.getClassName().startsWith("com.google.android.location.reporting") ) return true;
-
 
         return false;
     }
@@ -425,9 +490,7 @@ public class BaikalActivityServiceStatic {
         if( DEBUG )  Slog.i(TAG,"isBroadcastBlacklisted: " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
         else if( IsLogGoogle(r.callingUid) ) Slog.i(TAG,"isBroadcastBlacklisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
         else if( IsLogGoogle(info.activityInfo.applicationInfo.uid) ) Slog.i(TAG,"isBroadcastBlacklisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
-        if( BaikalSettings.getTopAppUid() == r.callingUid ) return false;
         if( BaikalSettings.getTopAppUid() == info.activityInfo.applicationInfo.uid ) return false;
-
 
         String act = r.intent.getAction();
         //if( !act.startsWith("android.intent.action.BOOT_COMPLETED") ) return false;
@@ -435,20 +498,26 @@ public class BaikalActivityServiceStatic {
 
         if( act != null ) {
 
-            if( profile == null ) return false;
+            if( profile != null ) {
 
-            if((act.equals(Intent.ACTION_BOOT_COMPLETED) || 
-                act.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED) ) )  {
-                    if( profile.mBootDisabled ) {
-                        Slog.i(TAG,"isBroadcastBlacklisted: blocked autostart for " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
-                        return true;
-                    }
+                if((act.equals(Intent.ACTION_BOOT_COMPLETED) || 
+                    act.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED) ) )  {
+                        if( profile.mBootDisabled ) {
+                            Slog.i(TAG,"isBroadcastBlacklisted: blocked autostart for " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
+                            return true;
+                        }
+                }
             }
         }
 
         if( !background ) return false;
 
         if( profile != null && !getBackgroundMode(profile) ) return true;
+
+        if( BaikalSettings.getTopAppUid() == r.callingUid ) return false;
+
+        AppProfile cur_profile = AppProfileManager.getCurrentProfile();
+        if( cur_profile != null && cur_profile.mRequireGms ) return false;
 
         if( BaikalSettings.getExtremeIdleEnabled() ) {
 
@@ -466,11 +535,45 @@ public class BaikalActivityServiceStatic {
 
     public static boolean isBroadcastWhitelisted(ActivityManagerService mAm,BroadcastRecord r, ResolveInfo info, boolean background) {
 
-        if( DEBUG )  Slog.i(TAG,"isBroadcastWhitelisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
+        if( !BaikalSettings.getStaminaMode() &&
+            !BaikalSettings.getExtremeIdleEnabled() &&
+            !BaikalSettings.getAggressiveIdleEnabled() ) {
+            if( DEBUG_STAMINA ) Slog.i(TAG,"isBroadcastWhitelisted: Not in energy saving mode ");
+            return false;
+        }
+
+        boolean whitelisted = false;
+
+        if( BaikalUtils.isSystemUiUid(info.activityInfo.applicationInfo.uid)  ) whitelisted = true;
+        if( BaikalUtils.isSystemUiUid(r.callingUid)  ) whitelisted = true;
+
+        if( !whitelisted && BaikalSettings.getTopAppUid() == info.activityInfo.applicationInfo.uid ) {
+            whitelisted = true;
+        }
+
+        if( !whitelisted && BaikalSettings.getTopAppUid() == r.callingUid ) {
+            AppProfile profile = AppProfileSettings.getProfileStatic(info.activityInfo.packageName);
+            if( profile != null && getBackgroundMode(profile) ) {
+                whitelisted = true;
+            }
+        }
+
+
+        if( !whitelisted ) {
+            if( info.activityInfo.packageName.startsWith("com.android.providers") ) whitelisted = true;
+            else if( info.activityInfo.packageName.startsWith("com.android.inputmethod") ) whitelisted = true;
+            else if( info.activityInfo.packageName.startsWith("com.qualcomm.qti.telephonyservice") ) whitelisted = true;
+            else if( info.activityInfo.packageName.startsWith("com.android.phone") ) whitelisted = true;
+            else if( info.activityInfo.packageName.startsWith("com.android.server.telecom") ) whitelisted = true;
+        }
+
+
+        if( DEBUG )  Slog.i(TAG,"isBroadcastWhitelisted: wl=" + whitelisted + " from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
         else if( IsLogGoogle(r.callingUid) ) Slog.i(TAG,"isBroadcastWhitelisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
         else if( IsLogGoogle(info.activityInfo.applicationInfo.uid) ) Slog.i(TAG,"isBroadcastWhitelisted: from " + r.callerPackage + "/" + r.callingUid + "/" + r.callingPid + " to " + r.intent + " on [" + background + "]");
 
-        if( !background ) return false;
+        //if( !background ) return false;
+        return whitelisted;
         
         /*
 	    ComponentName cmp = r.intent.getComponent();
@@ -494,7 +597,7 @@ public class BaikalActivityServiceStatic {
 
         if( info.activityInfo.name.endsWith(".chimera.GmsIntentOperationService$PersistentInternalReceiver") ) return true;
         */
-	    return false;
+	    //return false;
     }
 
     public static int getAppStartModeLocked(int uid, String packageName, int packageTargetSdk,
