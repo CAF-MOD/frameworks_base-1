@@ -254,16 +254,16 @@ public class BaikalStaticService {
         if( BaikalSettings.getTopAppUid() == uId ) return false;
 
         if( BaikalSettings.getAppBlocked(uId, packageName) ) {
-            //if( DEBUG ) {
+            if( DEBUG ) {
                 Slog.i(TAG,"isJobBlacklisted: blocked: uid=" + uId + ", pkg=" + packageName + " -> " + job + " : " + work);
-            //}
+            }
             return true;
         }
 
         if( !allowBackgroundStart(uId, packageName) ) {
-            //if( DEBUG ) {
+            if( DEBUG ) {
                 Slog.i(TAG,"isJobBlacklisted: restricted: uid=" + uId + ", pkg=" + packageName + " -> " + job + " : " + work);
-            //}
+            }
             return true;
         }
             
@@ -292,7 +292,9 @@ public class BaikalStaticService {
 
         if( BaikalUtils.isGmsUid(uid)  ) {
             if( BaikalSettings.getAppBlocked(uid, packageName) ) {
-                Slog.i(TAG,"updateSingleJobRestrictionLocked: GMS blocked: uid=" + uid + ", pkg=" + packageName + ", job=" + jobInfo);
+                if( DEBUG ) {
+                    Slog.i(TAG,"updateSingleJobRestrictionLocked: GMS blocked: uid=" + uid + ", pkg=" + packageName + ", job=" + jobInfo);
+                }
                 return false;
             }
             return !jobGmsBlackListed(jobInfo);
@@ -300,15 +302,15 @@ public class BaikalStaticService {
 
         
         if( profile.mBackground < 0 ) {
-            //if( DEBUG ) {
+            if( DEBUG ) {
                 Slog.i(TAG,"updateSingleJobRestrictionLocked: whitelisted: uid=" + uid + ", pkg=" + packageName + ", job=" + jobInfo);
-            //}
+            }
             return true;
         }
         if( !getBackgroundMode(profile) ) {
-            //if( DEBUG ) { 
+            if( DEBUG ) { 
                 Slog.i(TAG,"updateSingleJobRestrictionLocked: restricted : uid=" + uid + ", pkg=" + packageName + ", job=" + jobInfo);
-            //}
+            }
             return false;
         }
         return canRun;
@@ -316,7 +318,9 @@ public class BaikalStaticService {
 
 
     private static boolean jobGmsBlackListed(JobInfo jobInfo) {
-        Slog.i(TAG,"updateSingleJobRestrictionLocked: GMS job service=" + jobInfo.getService().toString());
+        if( DEBUG ) {
+            Slog.i(TAG,"updateSingleJobRestrictionLocked: GMS job service=" + jobInfo.getService().toString());
+        }
         return false;
     }
 
@@ -338,8 +342,8 @@ public class BaikalStaticService {
 
     private static boolean getBackgroundMode(AppProfile profile) {
         if( Runtime.isIdleMode()  ) {
-            if( profile.mBackground > 1 && BaikalSettings.getExtremeIdleEnabled() ) return false;
-            if( profile.mBackground > 0 && BaikalSettings.getAggressiveIdleEnabled() ) return false;
+            if( profile.mBackground > 1 && BaikalSettings.getAggressiveIdleEnabled() ) return false;
+            if( profile.mBackground > 0 && BaikalSettings.getExtremeIdleEnabled() ) return false;
         } else {
             if( profile.mBackground > 2 && BaikalSettings.getAggressiveIdleEnabled() ) return false;
             if( profile.mBackground > 1 && BaikalSettings.getExtremeIdleEnabled() ) return false;
