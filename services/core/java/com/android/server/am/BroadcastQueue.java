@@ -1658,7 +1658,7 @@ public final class BroadcastQueue {
         if( background && !BaikalActivityServiceStatic.allowBackgroundStart(info.activityInfo.applicationInfo.uid, info.activityInfo.packageName ) ) {
             if (DEBUG_BROADCAST)  Slog.v(TAG_BROADCAST,
                     "Skipping delivery of ordered [" + mQueueName + "] "
-                    + r + " because it's not allowed in background");
+                    + r + " because it's not allowed in background, execution blocked");
 
             r.delivery[recIdx] = BroadcastRecord.DELIVERY_SKIPPED;
             r.receiver = null;
@@ -1677,7 +1677,7 @@ public final class BroadcastQueue {
         Slog.w(TAG, "startProcessLocked(20): Start for broadcast(): " + info.activityInfo.applicationInfo);
 
         if( BaikalSettings.getAppBlocked(info.activityInfo.applicationInfo.uid, info.activityInfo.applicationInfo.packageName) ) {
-            Slog.w(TAG, "startProcessLocked(20): Start for broadcast(): blocked " + info.activityInfo.applicationInfo);
+            Slog.w(TAG, "startProcessLocked(20): Start for broadcast(): execution blocked " + info.activityInfo.applicationInfo);
 
             r.delivery[recIdx] = BroadcastRecord.DELIVERY_SKIPPED;
             r.receiver = null;

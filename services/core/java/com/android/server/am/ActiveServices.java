@@ -536,7 +536,7 @@ public final class ActiveServices {
                 case AppOpsManager.MODE_IGNORED:
                     // Not allowed, fall back to normal start service, failing siliently
                     // if background check restricts that.
-                    Slog.w(TAG, "startForegroundService not allowed due to app op: service "
+                    Slog.w(TAG, "startForegroundService execution not allowed due to app op: service "
                             + service + " to " + r.shortInstanceName
                             + " from pid=" + callingPid + " uid=" + callingUid
                             + " pkg=" + callingPackage);
@@ -544,13 +544,13 @@ public final class ActiveServices {
                     forceSilentAbort = true;
                     break;
                 default:
-                    return new ComponentName("!!", "foreground not allowed as per app op");
+                    return new ComponentName("!!", "foreground execution not allowed as per app op");
             }
         }
 
 
         if( BaikalSettings.getAppBlocked(r.appInfo.uid, r.packageName) ) {
-            Slog.w(TAG, "App start blocked: service "
+            Slog.w(TAG, "App execution blocked: service "
                     + service + " to " + r.shortInstanceName
                     + " from pid=" + callingPid + " uid=" + callingUid
                     + " pkg=" + callingPackage + " startFg?=" + fgRequired);
@@ -567,7 +567,7 @@ public final class ActiveServices {
 
             if( BaikalSettings.getAppRestricted(callingUid, callingPackage) ) {
 
-                Slog.w(TAG, "Background start restricted: service "
+                Slog.w(TAG, "Background execution restricted: service "
                         + service + " to " + r.shortInstanceName
                         + " from pid=" + callingPid + " uid=" + callingUid
                         + " pkg=" + callingPackage + " startFg?=" + fgRequired);
@@ -590,7 +590,7 @@ public final class ActiveServices {
                     r.appInfo.targetSdkVersion, callingPid, false, false, forcedStandby);
             }
             if (allowed != ActivityManager.APP_START_MODE_NORMAL) {
-                Slog.w(TAG, "Background start not allowed: service "
+                Slog.w(TAG, "Background execution not allowed: service "
                         + service + " to " + r.shortInstanceName
                         + " from pid=" + callingPid + " uid=" + callingUid
                         + " pkg=" + callingPackage + " startFg?=" + fgRequired);
@@ -606,7 +606,7 @@ public final class ActiveServices {
                     // trying to do the right thing but we're denying it for that reason.
                     if (fgRequired) {
                         if (DEBUG_BACKGROUND_CHECK) {
-                            Slog.v(TAG, "Silently dropping foreground service launch due to FAS");
+                            Slog.v(TAG, "Silently dropping foreground service execution due to FAS");
                         }
                         r.stopIfKilled = true;
                         return null;
@@ -616,7 +616,7 @@ public final class ActiveServices {
                 // allowed, so tell it what has happened.
                 r.stopIfKilled = true;
                 UidRecord uidRec = mAm.mProcessList.getUidRecordLocked(r.appInfo.uid);
-                return new ComponentName("?", "app is in background uid " + uidRec);
+                return new ComponentName("?", "execution blocked, app is in background uid " + uidRec);
             }
         }
 
