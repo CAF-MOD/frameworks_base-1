@@ -38,6 +38,7 @@ import android.content.pm.UserInfo;
 import android.hardware.biometrics.BiometricAuthenticator;
 import android.hardware.biometrics.BiometricConstants;
 import android.hardware.biometrics.BiometricsProtoEnums;
+import android.hardware.biometrics.IBiometricService;
 import android.hardware.biometrics.IBiometricServiceLockoutResetCallback;
 import android.hardware.biometrics.IBiometricServiceReceiverInternal;
 import android.hardware.biometrics.fingerprint.V2_1.IBiometricsFingerprint;
@@ -53,9 +54,11 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.SELinux;
+import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.provider.Settings;
 import android.util.EventLog;
 import android.util.Slog;
 import android.util.SparseBooleanArray;
@@ -93,6 +96,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 /**
  * A service to manage multiple clients that want to access the fingerprint HAL API.
  * The service is responsible for maintaining a list of clients and dispatching all
@@ -115,6 +120,9 @@ public class FingerprintService extends BiometricServiceBase {
     private final boolean mHasFod;
     private boolean mIsKeyguard;
 
+    private IBiometricService mBiometricService;
+
+
     private final class ResetFailedAttemptsForUserRunnable implements Runnable {
         @Override
         public void run() {
@@ -133,6 +141,26 @@ public class FingerprintService extends BiometricServiceBase {
             }
         }
     }
+
+ 
+        AuthenticationClientImpl mClient = null;
+        String mOpPackageName = null;
+        long mOpId = -1;
+
+        @Override
+        protected void authenticateInternal(AuthenticationClientImpl client, long opId,
+                String opPackageName) {
+            final int callingUid = Binder.getCallingUid();
+            final int callingPid = Binder.getCallingPid();
+            final int callingUserId = UserHandle.getCallingUserId();
+            
+            mClient = client;
+            mOpPackageName = opPackageName;
+            mOpId = opId;
+
+            authenticateInternal(client, opId, opPackageName, callingUid, callingPid, callingUserId);
+        }
+
 
     private final class FingerprintAuthClient extends AuthenticationClientImpl {
         private final boolean mDetectOnly;
@@ -711,9 +739,51 @@ public class FingerprintService extends BiometricServiceBase {
             });
         }
 
+
+
         @Override
         public void onAuthenticated(final long deviceId, final int fingerId, final int groupId,
                 ArrayList<Byte> token) {
+
+            if( Settings.System.getIntForUser(
+                        getContext().getContentResolver(), Settings.System.FP_WAKE_UNLOCK, 1,
+                        UserHandle.USER_CURRENT) == 0  && !BaikalSettings.getScreenOn() ) {
+
+
+
+                Slog.w(TAG, "Screen off. Delayed auth");
+
+                mHandler.postDelayed(() -> {
+
+                    if( BaikalSettings.getScreenOn() ) {
+                        boolean authenticated = fingerId != 0;
+                        final ClientMonitor client = getCurrentClient();
+                        if (client instanceof FingerprintAuthClient) {
+                            if (((FingerprintAuthClient) client).isDetectOnly()) {
+                                Slog.w(TAG, "Detect-only. Device is encrypted or locked down");
+                                authenticated = true;
+                            }
+                        }
+
+                        final Fingerprint fp = new Fingerprint("", groupId, fingerId, deviceId);
+                        FingerprintService.super.handleAuthenticated(authenticated, fp, token);
+                        if (mHasFod && fp.getBiometricId() != 0) {
+                            try {
+                                mStatusBarService.hideInDisplayFingerprintView();
+                            } catch (RemoteException e) {
+                                Slog.e(TAG, "hideInDisplayFingerprintView failed", e);
+                            }
+                        }
+                    } else {
+                        Slog.w(TAG, "Screen off. Restart client auth");
+                        resetFailedAttemptsForUser(true /* clearAttemptCounter */,ActivityManager.getCurrentUser());
+                        startCurrentClient(mClient.getCookie());
+                    }
+                },500);
+                return;
+            }
+            
+
             mHandler.post(() -> {
                 boolean authenticated = fingerId != 0;
                 final ClientMonitor client = getCurrentClient();
