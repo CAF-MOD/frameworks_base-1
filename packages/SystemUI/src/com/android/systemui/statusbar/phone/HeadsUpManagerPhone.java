@@ -73,6 +73,8 @@ public class HeadsUpManagerPhone extends HeadsUpManager implements Dumpable,
     private AnimationStateHandler mAnimationStateHandler;
     private int mHeadsUpInset;
 
+    private boolean mIsPulsing = false;
+
     // Used for determining the region for touch interaction
     private final Region mTouchableRegion = new Region();
 
@@ -524,16 +526,17 @@ public class HeadsUpManagerPhone extends HeadsUpManager implements Dumpable,
 
         @Override
         protected long calculateFinishTime() {
-            return mPostTime + getDecayDuration() + (extended ? mExtensionTime : 0);
+            return mPostTime + getDecayDuration(mIsPulsing) + (extended ? mExtensionTime : 0);
         }
 
-        private int getDecayDuration() {
+        /*private int getDecayDuration() {
             if (isAutoHeadsUp()) {
                 return getRecommendedHeadsUpTimeoutMs(mAutoHeadsUpNotificationDecay);
             } else {
                 return getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
             }
-        }
+            
+        }*/
 
         private boolean isAutoHeadsUp() {
             return mIsAutoHeadsUp;
@@ -589,6 +592,14 @@ public class HeadsUpManagerPhone extends HeadsUpManager implements Dumpable,
                 for (AlertEntry entry : mAlertEntries.values()) {
                     entry.updateEntry(true /* updatePostTime */);
                 }
+            }
+        }
+
+        @Override
+        public void onPulsingChanged(boolean isPulsing) {
+            mIsPulsing = isPulsing;
+            for (AlertEntry entry : mAlertEntries.values()) {
+                entry.updateEntry(true /* updatePostTime */);
             }
         }
     };

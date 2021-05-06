@@ -63,6 +63,8 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
     protected boolean mHasPinnedNotification;
     protected int mUser;
 
+    protected long mAutoDismissNotificationDecayEdgeLighting = -1;
+
     private final ArrayMap<String, Long> mSnoozedPackages;
     private final AccessibilityManagerWrapper mAccessibilityMgr;
 
@@ -97,10 +99,14 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
                     Settings.System.PULSE_AMBIENT_LIGHT_REPEAT_COUNT, 0,
                     UserHandle.USER_CURRENT);
             if( duration * repeat > mAutoDismissNotificationDecay ) {
-                mAutoDismissNotificationDecay = duration * repeat;
+                mAutoDismissNotificationDecayEdgeLighting = duration * repeat;
+            } else {
+                mAutoDismissNotificationDecayEdgeLighting = -1;
             }
+        } else {
+            mAutoDismissNotificationDecayEdgeLighting = -1;
         }
-
+ 
     }
 
     /**
@@ -432,8 +438,12 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
                         Settings.System.PULSE_AMBIENT_LIGHT_REPEAT_COUNT, 0,
                         UserHandle.USER_CURRENT);
                 if( duration * repeat > mAutoDismissNotificationDecay ) {
-                    mAutoDismissNotificationDecay = duration * repeat;
+                    mAutoDismissNotificationDecayEdgeLighting = duration * repeat;
+                } else {
+                    mAutoDismissNotificationDecayEdgeLighting = -1;
                 }
+            } else {
+                mAutoDismissNotificationDecayEdgeLighting = -1;
             }
 
             super.updateEntry(updatePostTime);
@@ -500,8 +510,27 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
 
         @Override
         protected long calculateFinishTime() {
-            return mPostTime + mAutoDismissNotificationDecay; //getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+            //if( mAutoDismissNotificationDecay > 0 ) 
+            //    return mPostTime + mAutoDismissNotificationDecay; //getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+            //else
+            return mPostTime + getDecayDuration(false); //mPostTime + getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
         }
+
+        protected long getDecayDuration(boolean isPulsing) {
+
+            if (isPulsing && mAutoDismissNotificationDecayEdgeLighting != -1 ) {
+                //return getRecommendedHeadsUpTimeoutMs(mAutoHeadsUpNotificationDecay);
+                Log.v(TAG, "getDecayDuration isPulsing&EdgeLighting: " +  mAutoDismissNotificationDecayEdgeLighting);
+                return mAutoDismissNotificationDecayEdgeLighting;
+            }
+            // else {
+                //return getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+                
+            // }
+            Log.v(TAG, "getDecayDuration: " + getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay));
+            return getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+        }
+
 
         /**
          * Get user-preferred or default timeout duration. The larger one will be returned.
