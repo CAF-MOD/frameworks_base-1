@@ -51,6 +51,7 @@ public class AppProfile {
     public boolean mBootDisabled;
     public boolean mIgnoreAudioFocus;
     public int mRotation;
+    public int mAudioMode;
 
     public AppProfile() {
         mPerfProfile = "default";
@@ -58,6 +59,7 @@ public class AppProfile {
         mPackageName = "";
         mFrameRate = 0;
         mRotation = 0;
+        mAudioMode = 0;
     }
 
     public boolean isDefault() {
@@ -71,6 +73,7 @@ public class AppProfile {
             mBackground == 0 &&
             !mIgnoreAudioFocus &&
             mRotation == 0 &&
+            mAudioMode == 0 &&
             mPerfProfile.equals("default") &&
             mThermalProfile.equals("default") ) return true;
         return false;
@@ -78,20 +81,21 @@ public class AppProfile {
 
     public String Serialize() {
         if( mPackageName == null || mPackageName.equals("") ) return null;
-        return "pn=" + mPackageName + "," +
-        "br=" + mBrightness + "," +
-        "pp=" + (mPerfProfile != null ? mPerfProfile : "") + "," +
-        "tp=" + (mThermalProfile != null ? mThermalProfile : "") + "," +
-        "rm=" + mReader + "," +
-        "pd=" + mPinned + "," +
-        "fr=" + mFrameRate + "," +
-        "as=" + mStamina + "," +
-        "bk=" + mBackground + "," +
-        "gms=" + mRequireGms  + "," +
-        "bt=" + mBootDisabled + "," +
-        "af=" + mIgnoreAudioFocus + "," +
-        "ro=" + mRotation 
-        ;
+        String result =  "pn=" + mPackageName;
+        if( mBrightness != 0 ) result += "," + "br=" + mBrightness;
+        if( ! mPerfProfile.equals("default") ) result += "," + "pp=" + (mPerfProfile != null ? mPerfProfile : "");
+        if( ! mThermalProfile.equals("default") ) result += "," + "tp=" + (mThermalProfile != null ? mThermalProfile : "");
+        if( mReader ) result +=  "," + "rm=" + mReader;
+        if( mPinned ) result +=  "," + "pd=" + mPinned;
+        if( mFrameRate != 0 ) result +=  "," + "fr=" + mFrameRate;
+        if( mStamina ) result +=  "," + "as=" + mStamina;
+        if( mBackground != 0 ) result +=  "," + "bk=" + mBackground;
+        if( mRequireGms ) result +=  "," + "gms=" + mRequireGms;
+        if( mBootDisabled ) result +=  "," + "bt=" + mBootDisabled;
+        if( mIgnoreAudioFocus ) result +=  "," + "af=" + mIgnoreAudioFocus;
+        if( mRotation != 0 ) result +=  "," + "ro=" + mRotation;
+        if( mAudioMode != 0 ) result +=  "," + "am=" + mAudioMode;
+        return result;
     }
 
     public static AppProfile Deserialize(String profileString) {
@@ -120,6 +124,7 @@ public class AppProfile {
             profile.mBootDisabled = parser.getBoolean("bt",false);
             profile.mIgnoreAudioFocus = parser.getBoolean("af",false);
             profile.mRotation = parser.getInt("ro",0);
+            profile.mAudioMode = parser.getInt("am",0);
         } catch( Exception e ) {
 
         }
