@@ -115,6 +115,7 @@ public class Actions extends MessageHandler {
     }
 
     public static void sendScreenModeChanged(boolean on) {
+        BaikalSettings.setScreenOn(on);
         Intent intent = new Intent(ACTION_SCREEN_MODE_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
     	intent.putExtra(EXTRA_BOOL_MODE,on);
@@ -122,6 +123,7 @@ public class Actions extends MessageHandler {
     }
 
     public static void sendReaderModeChanged(boolean on) {
+        BaikalSettings.setReaderMode(on);
         Intent intent = new Intent(ACTION_READER_MODE_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
     	intent.putExtra(EXTRA_BOOL_MODE,on);

@@ -91,7 +91,28 @@ public class BaikalSettings extends ContentObserver {
     private static int mTopAppUid;
     private static String mTopAppPackageName;
 
+    private static boolean mScreenOn = true;
+
+    private static boolean mReaderMode;
+
     private static boolean mIdleMode;
+
+
+    public static boolean getScreenOn() {
+        return mScreenOn;
+    }
+
+    static void setScreenOn(boolean mode) {
+        mScreenOn = mode;
+    }
+
+    public static boolean getReaderMode() {
+        return mReaderMode;
+    }
+
+    static void setReaderMode(boolean mode) {
+        mReaderMode = mode;
+    }
 
    	public static boolean getHallSensorEnabled() {
    	    return mHallSensorEnabled;
@@ -854,6 +875,41 @@ public class BaikalSettings extends ContentObserver {
         return true;
     }
 
+
+    public static boolean getForceSonification(int uid) {
+        synchronized(mAudioDatabaseLock) {
+            updateAudioDatabaseLocked(getContext());
+
+            if( !mAudioDatabase.containsKey(uid) ) {
+                Slog.i(TAG, "audio: block focus send is not set: uid=" + uid);
+                return false;
+            }
+            AudioEntry ad = mAudioDatabase.get(uid);
+            Slog.i(TAG, "audio: block focus send:uid=" + ad.mUid + ", rc="  + ad.mForceSonification);
+            return ad.mForceSonification;
+        }
+    }
+
+    public static boolean setForceSonification(int uid, boolean value) {
+        synchronized(mAudioDatabaseLock) {
+            if( mAudioDatabase == null ) {
+                updateAudioDatabaseLocked(getContext());
+            }
+            AudioEntry prev = mAudioDatabase.get(uid);
+            if( prev != null && prev.mForceSonification == value ) return false;
+            Slog.i(TAG, "audio: force notification: uid=" + uid + ", rc=" + value);
+            if( prev == null ) {
+                prev = new AudioEntry();    
+                prev.mUid = uid;
+                mAudioDatabase.put(uid,prev);
+            }
+            prev.mForceSonification = value;
+            saveVolumeDatabaseLocked(getContext());
+        }
+        return true;
+    }
+
+
     public static boolean setVolumeScaleInt(int uid, int value) {
         synchronized(mAudioDatabaseLock) {
             if( mAudioDatabase == null ) {
@@ -995,6 +1051,7 @@ public class BaikalSettings extends ContentObserver {
         public boolean mBlockAfSend;
         public boolean mConvertAfRecv;
         public boolean mConvertAfSend;
+        public boolean mForceSonification;
 
         public AudioEntry() {
             mUid=-1;
@@ -1003,18 +1060,23 @@ public class BaikalSettings extends ContentObserver {
             mBlockAfSend=false;
             mConvertAfRecv=false;
             mConvertAfSend=false;
+            mForceSonification=false;
         }
 
-        public String  Serialize() {
-            String entryString = 
-            "uid=" + mUid + "," + 
-            "vol=" + mVolumeScale + "," + 
-            "bafr=" + mBlockAfRecv + "," + 
-            "bafs=" + mBlockAfSend + "," + 
-            "cafr=" + mConvertAfRecv + "," + 
-            "cafs=" + mConvertAfSend
-            ;
-            return entryString;
+        public String Serialize() {
+            String entryString = "";
+            if( mVolumeScale !=-1 ) entryString += "," + "vol="  + mVolumeScale;
+            if( mBlockAfRecv ) entryString += "," + "bafr=" + mBlockAfRecv;
+            if( mBlockAfSend ) entryString += "," + "bafs=" + mBlockAfSend;
+            if( mConvertAfRecv ) entryString += "," + "cafr=" + mConvertAfRecv;
+            if( mConvertAfSend ) entryString += "," + "cafs=" + mConvertAfSend;
+            if( mForceSonification ) entryString += "," + "fsn=" + mForceSonification;
+
+            if( !entryString.equals("") ) {
+                entryString = "uid=" + mUid + entryString;
+                return entryString;
+            }
+            return null;
         }
 
         public static AudioEntry Deserialize(String val) {
@@ -1028,14 +1090,15 @@ public class BaikalSettings extends ContentObserver {
                 Slog.e(TAG, "Bad profile settings", e);
                 return null;
             }
-            profile.mUid = parser.getInt("uid",-1);
-            if( profile.mUid == -1 ) return null;
             try {
+                profile.mUid = parser.getInt("uid",-1);
+                if( profile.mUid == -1 ) return null;
                 profile.mVolumeScale = parser.getInt("vol",-1);
                 profile.mBlockAfRecv = parser.getBoolean("bafr",false);
                 profile.mBlockAfSend = parser.getBoolean("bafs",false);
                 profile.mConvertAfRecv = parser.getBoolean("cafr",false);
                 profile.mConvertAfSend = parser.getBoolean("cafs",false);
+                profile.mForceSonification = parser.getBoolean("fsn",false);
             } catch( Exception e ) {
     
             }
