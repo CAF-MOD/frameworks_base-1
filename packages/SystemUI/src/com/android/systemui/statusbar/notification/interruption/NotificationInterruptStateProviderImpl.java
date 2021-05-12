@@ -288,7 +288,6 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
             return false;
         }
 
-
         String notificationPackageName = sbn.getPackageName();
 
         if( mInCall && notificationPackageName.equals(getDefaultDialerPackage(mTm)) ) {
@@ -312,7 +311,6 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
         if (DEBUG_HEADS_UP) {
             Log.d(TAG, "Pulsing: " + sbn /*.getKey()*/);
         }
-
 
         boolean isDreaming = false;
         try {

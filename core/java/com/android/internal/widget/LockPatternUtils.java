@@ -962,16 +962,18 @@ public class LockPatternUtils {
      * @param  bytes The pattern serialized with {@link #patternToByteArray}
      * @return The pattern.
      */
-    public static List<LockPatternView.Cell> byteArrayToPattern(byte[] bytes) {
+    public static List<LockPatternView.Cell> byteArrayToPattern(byte[] bytes, byte gridSize) {
         if (bytes == null) {
             return null;
         }
 
         List<LockPatternView.Cell> result = Lists.newArrayList();
 
+        LockPatternView.Cell.updateSize(gridSize);
+
         for (int i = 0; i < bytes.length; i++) {
             byte b = (byte) (bytes[i] - '1');
-            result.add(LockPatternView.Cell.of(b / 3, b % 3));
+            result.add(LockPatternView.Cell.of(b / gridSize, b % gridSize, gridSize));
         }
         return result;
     }
@@ -981,7 +983,7 @@ public class LockPatternUtils {
      * @param pattern The pattern.
      * @return The pattern in byte array form.
      */
-    public static byte[] patternToByteArray(List<LockPatternView.Cell> pattern) {
+    public static byte[] patternToByteArray(List<LockPatternView.Cell> pattern, byte gridSize) {
         if (pattern == null) {
             return new byte[0];
         }
@@ -990,7 +992,7 @@ public class LockPatternUtils {
         byte[] res = new byte[patternSize];
         for (int i = 0; i < patternSize; i++) {
             LockPatternView.Cell cell = pattern.get(i);
-            res[i] = (byte) (cell.getRow() * 3 + cell.getColumn() + '1');
+            res[i] = (byte) (cell.getRow() * gridSize + cell.getColumn() + '1');
         }
         return res;
     }
@@ -1093,6 +1095,29 @@ public class LockPatternUtils {
             return (byte) size;
         }
         return LockPatternUtils.PATTERN_SIZE_DEFAULT;
+    }
+
+    /**
+     * Set the pattern lockscreen size
+     */
+    public void setLockPatternSize(long size, int userId) {
+        setLong(Settings.Secure.LOCK_PATTERN_SIZE, size, userId);
+    }
+
+    public void setVisibleDotsEnabled(boolean enabled, int userId) {
+        setBoolean(Settings.Secure.LOCK_DOTS_VISIBLE, enabled, userId);
+    }
+
+    public boolean isVisibleDotsEnabled(int userId) {
+        return getBoolean(Settings.Secure.LOCK_DOTS_VISIBLE, true, userId);
+    }
+
+    public void setShowErrorPath(boolean enabled, int userId) {
+        setBoolean(Settings.Secure.LOCK_SHOW_ERROR_PATH, enabled, userId);
+    }
+
+    public boolean isShowErrorPath(int userId) {
+        return getBoolean(Settings.Secure.LOCK_SHOW_ERROR_PATH, true, userId);
     }
 
     /**
@@ -1235,7 +1260,6 @@ public class LockPatternUtils {
         return deadline;
     }
 
-    /** @hide */
     protected boolean getBoolean(String secureSettingKey, boolean defaultValue, int userId) {
         try {
             return getLockSettings().getBoolean(secureSettingKey, defaultValue, userId);
@@ -1244,7 +1268,6 @@ public class LockPatternUtils {
         }
     }
 
-    /** @hide */
     protected void setBoolean(String secureSettingKey, boolean enabled, int userId) {
         try {
             getLockSettings().setBoolean(secureSettingKey, enabled, userId);

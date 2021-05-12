@@ -1562,6 +1562,10 @@ public class LockSettingsService extends ILockSettings.Stub {
                 && getSeparateProfileChallengeEnabledInternal(userId);
     }
 
+    public byte getLockPatternSize(int userId) {
+        return mStorage.getLockPatternSize(userId);
+    }
+
     /**
      * Send credentials for user {@code userId} to {@link RecoverableKeyStoreManager} during an
      * unlock operation.
@@ -1624,10 +1628,6 @@ public class LockSettingsService extends ILockSettings.Stub {
             }
         }
         return profiles;
-    }
-
-    public byte getLockPatternSize(int userId) {
-        return mStorage.getLockPatternSize(userId);
     }
 
     // This method should be called by LockPatternUtil only, all internal methods in this class
@@ -2263,10 +2263,10 @@ public class LockSettingsService extends ILockSettings.Stub {
         });
     }
 
-    private LockscreenCredential createPattern(String patternString) {
+    private LockscreenCredential createPattern(String patternString, byte patternSize) {
         final byte[] patternBytes = patternString.getBytes();
         LockscreenCredential pattern = LockscreenCredential.createPattern(
-                LockPatternUtils.byteArrayToPattern(patternBytes));
+                LockPatternUtils.byteArrayToPattern(patternBytes, patternSize), patternSize);
         Arrays.fill(patternBytes, (byte) 0);
         return pattern;
     }
@@ -2309,7 +2309,7 @@ public class LockSettingsService extends ILockSettings.Stub {
             final LockscreenCredential credential;
             switch (getCredentialTypeInternal(userId)) {
                 case CREDENTIAL_TYPE_PATTERN:
-                    credential = createPattern(password);
+                    credential = createPattern(password, mStorage.getLockPatternSize(userId));
                     break;
                 case CREDENTIAL_TYPE_PIN:
                     credential = LockscreenCredential.createPin(password);
@@ -2555,7 +2555,7 @@ public class LockSettingsService extends ILockSettings.Stub {
             Secure.LOCK_PATTERN_SIZE,
             Secure.LOCK_DOTS_VISIBLE,
             Secure.LOCK_SHOW_ERROR_PATH,
-            Settings.Secure.LOCK_PASS_TO_SECURITY_VIEW
+            Secure.LOCK_PASS_TO_SECURITY_VIEW
     };
 
     // Reading these settings needs the contacts permission

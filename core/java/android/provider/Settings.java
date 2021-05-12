@@ -6915,6 +6915,18 @@ public final class Settings {
         public static final String QS_PANEL_BG_ALPHA = "qs_panel_bg_alpha";
 
         /**
+         * Whether to change the transparency of the qs status bar
+         * @hide
+         */
+        public static final String QS_SB_BG_ALPHA = "qs_sb_bg_alpha";
+
+        /**
+         * Whether to show gradient below status bar in qs panel
+         * @hide
+         */
+        public static final String QS_SB_BG_GRADIENT = "qs_sb_bg_gradient";
+
+        /**
          * Show the pending notification counts as overlays on the status bar
          * @hide
          */
@@ -7049,11 +7061,10 @@ public final class Settings {
                 "network_traffic_indicator_mode";
 
         /**
-         * Indicates whether we should only show the app lock view when the device is woken up
-         * Or always.
+         * APP_LOCK_LOCK_AFTER key for user selected app lock timeout
          * @hide
          */
-        public static final String APP_LOCK_SHOW_ONLY_ON_WAKE = "app_lock_show_only_on_wake";
+        public static final String APP_LOCK_LOCK_AFTER = "applock_lock_after";
 
         /**
          * Sensor blocked packages
@@ -7343,6 +7354,8 @@ public final class Settings {
             AICP_SETTINGS_VALIDATORS.put(CAMERA_LAUNCH, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(OFF_GESTURE_HAPTIC_ENABLE, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(QS_PANEL_BG_ALPHA, ANY_INTEGER_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(QS_SB_BG_GRADIENT, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(QS_SB_BG_ALPHA, ANY_INTEGER_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(STATUS_BAR_NOTIF_COUNT, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(ADAPTIVE_PLAYBACK_ENABLED, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(ADAPTIVE_PLAYBACK_TIMEOUT, ANY_INTEGER_VALIDATOR);
@@ -7360,7 +7373,7 @@ public final class Settings {
             AICP_SETTINGS_VALIDATORS.put(BATTERY_LIGHT_BLEND_REVERSE, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(NOTIFICATION_MATERIAL_DISMISS, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(NETWORK_TRAFFIC_INDICATOR_MODE, ANY_INTEGER_VALIDATOR);
-            AICP_SETTINGS_VALIDATORS.put(APP_LOCK_SHOW_ONLY_ON_WAKE, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(APP_LOCK_LOCK_AFTER, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(SENSOR_BLOCKED_APP, ANY_STRING_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(SCREEN_STATE_GPS, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(SCREEN_STATE_MOBILE_DATA, BOOLEAN_VALIDATOR);
@@ -7418,10 +7431,14 @@ public final class Settings {
         @UnsupportedAppUsage
         private static final HashSet<String> MOVED_TO_GLOBAL;
         static {
-            MOVED_TO_LOCK_SETTINGS = new HashSet<>(3);
+            MOVED_TO_LOCK_SETTINGS = new HashSet<>(6);
             MOVED_TO_LOCK_SETTINGS.add(Secure.LOCK_PATTERN_ENABLED);
             MOVED_TO_LOCK_SETTINGS.add(Secure.LOCK_PATTERN_VISIBLE);
             MOVED_TO_LOCK_SETTINGS.add(Secure.LOCK_PATTERN_TACTILE_FEEDBACK_ENABLED);
+            MOVED_TO_LOCK_SETTINGS.add(Secure.LOCK_PATTERN_SIZE);
+            MOVED_TO_LOCK_SETTINGS.add(Secure.LOCK_DOTS_VISIBLE);
+            MOVED_TO_LOCK_SETTINGS.add(Secure.LOCK_SHOW_ERROR_PATH);
+            MOVED_TO_LOCK_SETTINGS.add(Secure.LOCK_PASS_TO_SECURITY_VIEW);
 
             MOVED_TO_GLOBAL = new HashSet<>();
             MOVED_TO_GLOBAL.add(Settings.Global.ADB_ENABLED);
@@ -8616,6 +8633,29 @@ public final class Settings {
         @Deprecated
         public static final String
                 LOCK_PATTERN_TACTILE_FEEDBACK_ENABLED = "lock_pattern_tactile_feedback_enabled";
+
+        /**
+         * Determines the width and height of the LockPatternView widget
+         * @hide
+         */
+        public static final String LOCK_PATTERN_SIZE = "lock_pattern_size";
+
+        /**
+         * Whether lock pattern will show dots (0 = false, 1 = true)
+         * @hide
+         */
+        public static final String LOCK_DOTS_VISIBLE = "lock_pattern_dotsvisible";
+
+        /**
+         * Whether lockscreen error pattern is visible (0 = false, 1 = true)
+         * @hide
+         */
+        public static final String LOCK_SHOW_ERROR_PATH = "lock_pattern_show_error_path";
+
+         /**
+         * @hide.
+         */
+        public static final String LOCK_PASS_TO_SECURITY_VIEW = "lock_screen_pass_to_security_view";
 
         /**
          * This preference allows the device to be locked given time after screen goes off,
@@ -10111,29 +10151,6 @@ public final class Settings {
         public static final String UI_NIGHT_MODE_OVERRIDE_OFF = "ui_night_mode_override_off";
 
         /**
-         * @hide.
-         */
-        public static final String LOCK_PASS_TO_SECURITY_VIEW = "lock_screen_pass_to_security_view";
-
-        /**
-         * Determines the width and height of the LockPatternView widget
-         * @hide
-         */
-        public static final String LOCK_PATTERN_SIZE = "lock_pattern_size";
-
-        /**
-         * Whether lock pattern will show dots (0 = false, 1 = true)
-         * @hide
-         */
-        public static final String LOCK_DOTS_VISIBLE = "lock_pattern_dotsvisible";
-
-        /**
-         * Whether lockscreen error pattern is visible (0 = false, 1 = true)
-         * @hide
-         */
-        public static final String LOCK_SHOW_ERROR_PATH = "lock_pattern_show_error_path";
-
-	/**
          * Whether screensavers are enabled.
          * @hide
          */
@@ -11482,6 +11499,13 @@ public final class Settings {
          * @hide
          */
         public static final String ALLOW_SIGNATURE_FAKE = "allow_signature_fake";
+
+        /**
+         * Whether the Touch Sensitivity option is enabled.
+         *
+         * @hide
+         */
+        public static final String TOUCH_SENSITIVITY_ENABLED = "touch_sensitivity_enabled";
 
         /*****************************
          * AICP Secure Settings end

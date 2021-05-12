@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 
-package com.android.internal.util.aicp.content;
+package com.android.internal.util.aicp;
+
 import android.Manifest;
 
 /**

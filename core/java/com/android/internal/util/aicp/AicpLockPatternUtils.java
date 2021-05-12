@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.android.internal.util.aicp.util;
+package com.android.internal.util.aicp;
+
 import android.content.Context;
 import com.android.internal.widget.LockPatternUtils;
 import android.provider.Settings;

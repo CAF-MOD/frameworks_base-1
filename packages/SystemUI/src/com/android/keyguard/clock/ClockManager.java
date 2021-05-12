@@ -151,6 +151,7 @@ public final class ClockManager {
 
         addBuiltinClock(() -> new DefaultClockController(res, layoutInflater, colorExtractor));
         addBuiltinClock(() -> new DefaultBoldClockController(res, layoutInflater, colorExtractor));
+        addBuiltinClock(() -> new AicpClockController(res, layoutInflater, colorExtractor));
         addBuiltinClock(() -> new SamsungClockController(res, layoutInflater, colorExtractor));
         addBuiltinClock(() -> new SamsungBoldClockController(res, layoutInflater, colorExtractor));
         addBuiltinClock(() -> new BubbleClockController(res, layoutInflater, colorExtractor));
@@ -160,6 +161,11 @@ public final class ClockManager {
         addBuiltinClock(() -> new SfunyClockController(res, layoutInflater, colorExtractor));
         addBuiltinClock(() -> new DividedLinesClockController(res, layoutInflater, colorExtractor));
         addBuiltinClock(() -> new FluidClockController(res, layoutInflater, colorExtractor));
+        addBuiltinClock(() -> new ShapeShiftClockController(res, layoutInflater, colorExtractor));
+        addBuiltinClock(() -> new IDEClockController(res, layoutInflater, colorExtractor, context));
+        addBuiltinClock(() -> new BinaryClockController(res, layoutInflater, colorExtractor));
+        addBuiltinClock(() -> new MNMLBoxClockController(res, layoutInflater, colorExtractor));
+        addBuiltinClock(() -> new MNMLMinimalClockController(res, layoutInflater, colorExtractor));
 
         // Store the size of the display for generation of clock preview.
         DisplayMetrics dm = res.getDisplayMetrics();

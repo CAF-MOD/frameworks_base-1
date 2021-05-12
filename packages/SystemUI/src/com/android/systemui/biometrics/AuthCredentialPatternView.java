@@ -65,7 +65,8 @@ public class AuthCredentialPatternView extends AuthCredentialView {
                 return;
             }
 
-            try (LockscreenCredential credential = LockscreenCredential.createPattern(pattern)) {
+            try (LockscreenCredential credential = LockscreenCredential.createPattern(
+                    pattern, mLockPatternUtils.getLockPatternSize(mUserId))) {
                 mPendingLockCheck = LockPatternChecker.verifyCredential(
                         mLockPatternUtils,
                         credential,
@@ -99,6 +100,7 @@ public class AuthCredentialPatternView extends AuthCredentialView {
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         mLockPatternView = findViewById(R.id.lockPattern);
+        mLockPatternView.setLockPatternSize(mLockPatternUtils.getLockPatternSize(mUserId));
         mLockPatternView.setOnPatternListener(new UnlockPatternListener());
         mLockPatternView.setInStealthMode(
                 !mLockPatternUtils.isVisiblePatternEnabled(mUserId));
