@@ -16098,6 +16098,8 @@ public final class Settings {
 
         public static final String BAIKALOS_HEADSUP_FORCE_SMS = "baikalos_headsup_force_sms";
 
+        public static final String BAIKALOS_SMART_NFC = "baikalos_smart_nfc";
+
         /* End of BaikalOS Global settings */
 
 
