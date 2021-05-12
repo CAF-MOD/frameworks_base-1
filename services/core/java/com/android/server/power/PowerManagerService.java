@@ -267,6 +267,8 @@ public final class PowerManagerService extends SystemService
     private final Clock mClock;
     private final Injector mInjector;
 
+    private final Boolean mReaderModeRequireDoze;
+
     private LightsManager mLightsManager;
     private BatteryManagerInternal mBatteryManagerInternal;
     private DisplayManagerInternal mDisplayManagerInternal;
@@ -963,6 +965,7 @@ public final class PowerManagerService extends SystemService
         final float dim = mContext.getResources().getFloat(com.android.internal.R.dimen
                 .config_screenBrightnessDimFloat);
 
+
         if (min == INVALID_BRIGHTNESS_IN_CONFIG || max == INVALID_BRIGHTNESS_IN_CONFIG
                 || def == INVALID_BRIGHTNESS_IN_CONFIG) {
             mScreenBrightnessMinimum = BrightnessSynchronizer.brightnessIntToFloat(
@@ -1060,6 +1063,9 @@ public final class PowerManagerService extends SystemService
             mNativeWrapper.nativeSetFeature(POWER_FEATURE_DOUBLE_TAP_TO_WAKE, 0);
             mInjector.invalidateIsInteractiveCaches();
         }
+
+        mReaderModeRequireDoze = mContext.getResources().getBoolean(com.android.internal.R.bool.config_readerModeRequireDoze);
+
     }
 
     @Override
@@ -3196,9 +3202,10 @@ public final class PowerManagerService extends SystemService
                         PowerManager.BRIGHTNESS_INVALID_FLOAT;
             }
 
-            if( mReaderMode && 
+            if( mReaderModeRequireDoze && mReaderMode && getWakefulnessLocked() == WAKEFULNESS_AWAKE &&
                 (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_BRIGHT ||
-                 mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DIM) ) {
+                 mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DIM || 
+                 mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE ) ) {
                 mDisplayPowerRequest.policy = DisplayPowerRequest.POLICY_DOZE;
                 mDisplayPowerRequest.dozeScreenState = Display.STATE_DOZE;
                 mDisplayPowerRequest.dozeScreenBrightness = screenBrightnessOverride;
@@ -3231,7 +3238,7 @@ public final class PowerManagerService extends SystemService
 			       (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DIM) | 
 			       (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE) | 
 			       (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_VR);
-                if( mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE && getWakefulnessLocked() == WAKEFULNESS_DOZING) {
+                if( mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE && getWakefulnessLocked() != WAKEFULNESS_AWAKE) {
             		Actions.sendScreenModeChanged(false);
                 } else {
             		Actions.sendScreenModeChanged(mode);
@@ -3509,7 +3516,7 @@ public final class PowerManagerService extends SystemService
 
     private boolean isReaderMode() {
         //Slog.i(TAG,"isReaderMode: mReaderMode=" + mReaderMode + ", mIsPowered=" + mIsPowered + ", isBrightOrDim=" + mDisplayPowerRequest.isBrightOrDim());
-        return mReaderMode && /*!mIsPowered && */
+        return mReaderMode &&  getWakefulnessLocked() == WAKEFULNESS_AWAKE && /*!mIsPowered && */
         (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DOZE ||
          mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_BRIGHT ||
          mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DIM);

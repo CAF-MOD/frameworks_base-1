@@ -30,4 +30,6 @@
     <!-- Whether device has a big physical display cutout -->
     <bool name="config_bigPhysicalDisplayCutout">false</bool>
 
+    <bool name="config_readerModeRequireDoze">false</bool>
+
 </resources>
