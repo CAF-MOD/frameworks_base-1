@@ -185,15 +185,18 @@ public class NavigationBarInflaterView extends FrameLayout
     @Override
     public void onTuningChanged(String key, String newValue) {
         if (NAV_BAR_VIEWS.equals(key)) {
+            Log.d(TAG, "NAV_BAR_VIEWS");
             setNavigationBarLayout(newValue);
         } else if (NAV_BAR_INVERSE.equals(key)) {
+            Log.d(TAG, "NAV_BAR_INVERSE");
             mInverseLayout = TunerService.parseIntegerSwitch(newValue, false);
             updateLayoutInversion();
-        } else if (KEY_NAVIGATION_HINT.equals(key)) {
+        } /*else if (KEY_NAVIGATION_HINT.equals(key)) {
+            Log.d(TAG, "KEY_NAVIGATION_HINT");
             mIsHintEnabled = TunerService.parseIntegerSwitch(newValue, true);
             updateHint();
             onLikelyDefaultLayoutChange();
-        }
+        }*/
     }
 
     @Override
@@ -203,6 +206,7 @@ public class NavigationBarInflaterView extends FrameLayout
     }
 
     public void setNavigationBarLayout(String layoutValue) {
+        Log.d(TAG, "setNavigationBarLayout:" + layoutValue);
         if (!Objects.equals(mCurrentLayout, layoutValue)) {
             clearViews();
             inflateLayout(layoutValue);
@@ -215,9 +219,11 @@ public class NavigationBarInflaterView extends FrameLayout
 
     public void onLikelyDefaultLayoutChange() {
 
+        if( mCurrentLayout == null) {
         // Reevaluate new layout
-        final String newValue = getDefaultLayout();
-        setNavigationBarLayout(newValue);
+            final String newValue = getDefaultLayout();
+            setNavigationBarLayout(newValue);
+        }
     }
 
     public void setButtonDispatchers(SparseArray<ButtonDispatcher> buttonDispatchers) {
@@ -303,6 +309,7 @@ public class NavigationBarInflaterView extends FrameLayout
     }
 
     protected void inflateLayout(String newLayout) {
+        Log.d(TAG, "inflateLayout:" + newLayout);
         mCurrentLayout = newLayout;
         if (newLayout == null) {
             newLayout = getDefaultLayout();

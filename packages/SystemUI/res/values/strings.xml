@@ -2167,6 +2167,8 @@
         <item>Compact</item>
         <item>Left-leaning</item>
         <item>Right-leaning</item>
+        <item>Left</item>
+        <item>Right</item>
     </string-array>
 
     <string-array name="nav_bar_layouts_values" translatable="false">
@@ -2174,6 +2176,8 @@
         <item>left;back,home,recent;right</item>
         <item>left,back,home,recent,right;space;space</item>
         <item>space;space;left,back,home,recent,right</item>
+        <item>back,home,recent,right;space;space;space</item>
+        <item>space;space;space;left,back,home,recent</item>
     </string-array>
 
     <!-- SysUI Tuner: Name of Combination Menu / Keyboard Switcher button [CHAR LIMIT=30] -->
