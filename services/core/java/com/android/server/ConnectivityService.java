@@ -264,7 +264,7 @@ public class ConnectivityService extends IConnectivityManager.Stub
     private static final String NETWORK_ARG = "networks";
     private static final String REQUEST_ARG = "requests";
 
-    private static final boolean DBG = true;
+    private static final boolean DBG = false;
     private static final boolean DDBG = Log.isLoggable(TAG, Log.DEBUG);
     private static final boolean VDBG = Log.isLoggable(TAG, Log.VERBOSE);
 
@@ -2065,7 +2065,8 @@ public class ConnectivityService extends IConnectivityManager.Stub
         reattachNetworkRequestsForUid(uid);
     }
 
-    private boolean isUidIsolated(int uid) {
+    @Override
+    public boolean isUidIsolated(int uid) {
         synchronized (mIsolatedUids) {
             return mIsolatedUids.get(uid);
         }
