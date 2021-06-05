@@ -45,6 +45,7 @@ import com.android.systemui.qs.tiles.DcDimmingTile;
 import com.android.systemui.qs.tiles.DndTile;
 import com.android.systemui.qs.tiles.FlashlightTile;
 import com.android.systemui.qs.tiles.FPSInfoTile;
+import com.android.systemui.qs.tiles.RRInfoTile;
 import com.android.systemui.qs.tiles.GamingModeTile;
 import com.android.systemui.qs.tiles.GoogleServicesTile;
 import com.android.systemui.qs.tiles.HeadsUpTile;
@@ -136,6 +137,7 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<HWKeysTile> mHWKeysTileProvider;
     private final Provider<GamingModeTile> mGamingModeTileProvider;
     private final Provider<FPSInfoTile> mFPSInfoTileProvider;
+    private final Provider<RRInfoTile> mRRInfoTileProvider;
     private final Provider<KillappTile> mKillappTileProvider;
     private final Provider<VpnTile> mVpnTileProvider;
     private final Provider<MonoToggleTile> mMonoToggleTileProvider;
@@ -195,6 +197,7 @@ public class QSFactoryImpl implements QSFactory {
             Provider<HWKeysTile> hwkeysTileProvider,
             Provider<GamingModeTile> gamingModeTileProvider,
             Provider<FPSInfoTile> fpsInfoTileProvider,
+            Provider<RRInfoTile> rrInfoTileProvider,
             Provider<KillappTile> killappTileProvider,
             Provider<VpnTile> vpnTileProvider,
             Provider<IdleModeTile> idleModeTileProvider,
@@ -249,6 +252,7 @@ public class QSFactoryImpl implements QSFactory {
         mHWKeysTileProvider = hwkeysTileProvider;
         mGamingModeTileProvider = gamingModeTileProvider;
         mFPSInfoTileProvider = fpsInfoTileProvider;
+        mRRInfoTileProvider = rrInfoTileProvider;
         mKillappTileProvider = killappTileProvider;
         mVpnTileProvider = vpnTileProvider;
         mIdleModeTileProvider = idleModeTileProvider;
@@ -358,6 +362,8 @@ public class QSFactoryImpl implements QSFactory {
                 return mGamingModeTileProvider.get();
             case "fpsinfo":
                 return mFPSInfoTileProvider.get();
+            case "rrinfo":
+                return mRRInfoTileProvider.get();
             case "killapp":
                 return mKillappTileProvider.get();
             case "vpn":
