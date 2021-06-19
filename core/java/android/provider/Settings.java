@@ -2888,7 +2888,7 @@ public final class Settings {
         public ArrayMap<String, String> getStringsForPrefix(ContentResolver cr, String prefix,
                 List<String> names) {
             String namespace = prefix.substring(0, prefix.length() - 1);
-            DeviceConfig.enforceReadPermission(ActivityThread.currentApplication(), namespace);
+            //DeviceConfig.enforceReadPermission(ActivityThread.currentApplication(), namespace);
             ArrayMap<String, String> keyValues = new ArrayMap<>();
             int currentGeneration = -1;
 
@@ -16123,6 +16123,8 @@ public final class Settings {
         public static final String BAIKALOS_HEADSUP_FORCE_SMS = "baikalos_headsup_force_sms";
 
         public static final String BAIKALOS_SMART_NFC = "baikalos_smart_nfc";
+
+        public static final String BAIKALOS_STATUSBAR_COLOR_ICONS = "baikalos_statusbar_color_icons";
 
         /* End of BaikalOS Global settings */
 
