@@ -779,7 +779,7 @@ public class FingerprintService extends BiometricServiceBase {
                         resetFailedAttemptsForUser(true /* clearAttemptCounter */,ActivityManager.getCurrentUser());
                         startCurrentClient(mClient.getCookie());
                     }
-                },500);
+                },750);
                 return;
             }
             
