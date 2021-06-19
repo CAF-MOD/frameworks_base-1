@@ -114,7 +114,7 @@ public class NavigationBarInflaterView extends FrameLayout
     private int mNavBarMode = NAV_BAR_MODE_3BUTTON;
 
     private boolean mInverseLayout;
-    private boolean mIsHintEnabled;
+    //private boolean mIsHintEnabled;
 
     public NavigationBarInflaterView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -185,17 +185,23 @@ public class NavigationBarInflaterView extends FrameLayout
     @Override
     public void onTuningChanged(String key, String newValue) {
         if (NAV_BAR_VIEWS.equals(key)) {
-            Log.d(TAG, "NAV_BAR_VIEWS");
-            setNavigationBarLayout(newValue);
+            if( mNavBarMode != NAV_BAR_MODE_GESTURAL ) {
+                Log.d(TAG, "NAV_BAR_VIEWS");
+                setNavigationBarLayout(newValue);
+            }
         } else if (NAV_BAR_INVERSE.equals(key)) {
-            Log.d(TAG, "NAV_BAR_INVERSE");
-            mInverseLayout = TunerService.parseIntegerSwitch(newValue, false);
-            updateLayoutInversion();
+            if( mNavBarMode != NAV_BAR_MODE_GESTURAL ) {
+                Log.d(TAG, "NAV_BAR_INVERSE");
+                mInverseLayout = TunerService.parseIntegerSwitch(newValue, false);
+                updateLayoutInversion();
+            }
         } /*else if (KEY_NAVIGATION_HINT.equals(key)) {
-            Log.d(TAG, "KEY_NAVIGATION_HINT");
-            mIsHintEnabled = TunerService.parseIntegerSwitch(newValue, true);
-            updateHint();
-            onLikelyDefaultLayoutChange();
+            if( mNavBarMode == NAV_BAR_MODE_GESTURAL ) {
+                Log.d(TAG, "KEY_NAVIGATION_HINT");
+                mIsHintEnabled = TunerService.parseIntegerSwitch(newValue, true);
+                updateHint();
+                onLikelyDefaultLayoutChange();
+            }
         }*/
     }
 
@@ -214,7 +220,7 @@ public class NavigationBarInflaterView extends FrameLayout
     }
 
     public boolean isHintEnabled() {
-        return mIsHintEnabled;
+        return mNavBarMode == NAV_BAR_MODE_GESTURAL; //mIsHintEnabled;
     }
 
     public void onLikelyDefaultLayoutChange() {
@@ -272,7 +278,7 @@ public class NavigationBarInflaterView extends FrameLayout
     private void updateHint() {
         final IOverlayManager iom = IOverlayManager.Stub.asInterface(
                 ServiceManager.getService(Context.OVERLAY_SERVICE));
-        final boolean state = mNavBarMode == NAV_BAR_MODE_GESTURAL && !mIsHintEnabled;
+        final boolean state = false; // mNavBarMode == NAV_BAR_MODE_GESTURAL; // && !mIsHintEnabled;
         final int userId = ActivityManager.getCurrentUser();
         try {
             iom.setEnabled(OVERLAY_NAVIGATION_HIDE_HINT, state, userId);
