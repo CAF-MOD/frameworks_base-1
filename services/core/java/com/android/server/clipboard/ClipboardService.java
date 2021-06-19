@@ -36,14 +36,19 @@ import android.content.Context;
 import android.content.IClipboard;
 import android.content.IOnPrimaryClipChangedListener;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.UserInfo;
+import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.IUserManager;
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
@@ -56,6 +61,7 @@ import android.text.TextUtils;
 import android.util.Slog;
 import android.util.SparseArray;
 import android.view.autofill.AutofillManagerInternal;
+import android.widget.Toast;
 
 import com.android.server.LocalServices;
 import com.android.server.SystemService;
@@ -175,6 +181,12 @@ public class ClipboardService extends SystemService {
 
     private final SparseArray<PerUserClipboard> mClipboards = new SparseArray<>();
 
+    private SettingsObserver mSettingsObserver;
+    private int mShouldToast;
+    private Handler mHandler;
+    private String mToastMessage;
+    private Toast mToast;
+
     /**
      * Instantiates the clipboard.
      */
@@ -209,6 +221,30 @@ public class ClipboardService extends SystemService {
                 });
             mHostMonitorThread = new Thread(mHostClipboardMonitor);
             mHostMonitorThread.start();
+        }
+
+        mHandler = new Handler();
+
+        mSettingsObserver = new SettingsObserver();
+        mSettingsObserver.update();
+    }
+
+    private class SettingsObserver extends ContentObserver {
+        SettingsObserver() {
+            super(mHandler);
+            getContext().getContentResolver().registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.CLIPBOARD_TOAST_INFO),
+                    false, this, UserHandle.USER_ALL);
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            update();
+        }
+
+        public void update() {
+            mShouldToast = Settings.System.getIntForUser(getContext().getContentResolver(),
+                    Settings.System.CLIPBOARD_TOAST_INFO, 0, UserHandle.USER_CURRENT);
         }
     }
 
@@ -738,6 +774,23 @@ public class ClipboardService extends SystemService {
         }
     }
 
+    private Runnable mRunnable = new Runnable() {
+        @Override
+        public void run() {
+            String msg = mToastMessage;
+
+            if (msg.isEmpty())
+                return;
+
+            if (mToast != null) {
+                mToast.cancel();
+                mToast = null;
+            }
+            mToast = Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT);
+            mToast.show();
+        }
+    };
+
     private boolean clipboardAccessAllowed(int op, String callingPackage, int uid,
             @UserIdInt int userId) {
         return clipboardAccessAllowed(op, callingPackage, uid, userId, true);
@@ -747,6 +800,22 @@ public class ClipboardService extends SystemService {
             @UserIdInt int userId, boolean shouldNoteOp) {
 
         boolean allowed = false;
+        boolean toastImportant = true;
+
+        Context context = getContext();
+        String applicationName = "(unknown)";
+        mToastMessage = "";
+
+        if (mShouldToast > 0) {
+            final PackageManager pm = context.getPackageManager();
+            ApplicationInfo ai = null;
+            try {
+                ai = pm.getApplicationInfo(callingPackage, 0);
+                if (ai != null) applicationName = pm.getApplicationLabel(ai).toString();
+            } catch (final NameNotFoundException e) {
+                // Do nothing
+            }
+        }
 
         // First, verify package ownership to ensure use below is safe.
         mAppOps.checkPackage(uid, callingPackage);
@@ -755,14 +824,16 @@ public class ClipboardService extends SystemService {
         if (mPm.checkPermission(android.Manifest.permission.READ_CLIPBOARD_IN_BACKGROUND,
                     callingPackage) == PackageManager.PERMISSION_GRANTED) {
             allowed = true;
+            toastImportant = false;
         }
         // The default IME is always allowed to access the clipboard.
-        String defaultIme = Settings.Secure.getStringForUser(getContext().getContentResolver(),
+        String defaultIme = Settings.Secure.getStringForUser(context.getContentResolver(),
                 Settings.Secure.DEFAULT_INPUT_METHOD, userId);
         if (!TextUtils.isEmpty(defaultIme)) {
             final String imePkg = ComponentName.unflattenFromString(defaultIme).getPackageName();
             if (imePkg.equals(callingPackage)) {
                 allowed = true;
+                toastImportant = false;
             }
         }
 
@@ -807,6 +878,11 @@ public class ClipboardService extends SystemService {
             Slog.e(TAG, "Denying clipboard access to " + callingPackage
                     + ", application is not in focus nor is it a system service for "
                     + "user " + userId);
+            if ((mShouldToast == 1 && toastImportant) || mShouldToast == 2) {
+                mToastMessage = String.format(context.getResources().getString(com.android.internal.R.string.app_clipboard_access_denied),
+                    applicationName);
+                mHandler.post(mRunnable);
+            }
             return false;
         }
         // Finally, check the app op.
@@ -815,6 +891,14 @@ public class ClipboardService extends SystemService {
             appOpsResult = mAppOps.noteOp(op, uid, callingPackage);
         } else {
             appOpsResult = mAppOps.checkOp(op, uid, callingPackage);
+        }
+
+        allowed = appOpsResult == AppOpsManager.MODE_ALLOWED;
+        if ((mShouldToast == 1 && toastImportant) || mShouldToast == 2) {
+            mToastMessage = String.format(context.getResources().getString(allowed ? 
+                com.android.internal.R.string.app_clipboard_access_granted : com.android.internal.R.string.app_clipboard_access_denied),
+                applicationName);
+            mHandler.post(mRunnable);
         }
 
         return appOpsResult == AppOpsManager.MODE_ALLOWED;

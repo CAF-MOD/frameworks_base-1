@@ -516,11 +516,11 @@
     <!-- Flag indicating whether we should enable smart battery. -->
     <bool name="config_smart_battery_available">false</bool>
 
-    <!-- Fast brightness animation ramp rate in brightness units per second-->
-    <integer translatable="false" name="config_brightness_ramp_rate_fast">180</integer>
+    <!-- Slow brightness animation ramp rate in float. -->
+    <item name="config_brightnessRampRateSlowFloat" format="float" type="dimen">0.2352941</item>
 
-    <!-- Slow brightness animation ramp rate in brightness units per second-->
-    <integer translatable="false" name="config_brightness_ramp_rate_slow">60</integer>
+    <!-- Fast brightness animation ramp rate in float. -->
+    <item name="config_brightnessRampRateFastFloat" format="float" type="dimen">0.7058823</item>
 
     <!-- Don't name config resources like this.  It should look like config_annoyDianne -->
     <bool name="config_annoy_dianne">true</bool>
@@ -2040,8 +2040,13 @@
          it should be disabled in that locale's resources. -->
     <bool name="config_actionMenuItemAllCaps">true</bool>
 
+    <!-- Network derived time preferred protocol
+         Supports "ntp" or "https" only now -->
+    <string translatable="false" name="config_ntpMode">https</string>
     <!-- Remote server that can provide NTP responses. -->
     <string translatable="false" name="config_ntpServer">time.android.com</string>
+    <!-- Remote server that can provide HTTPS time responses -->
+    <string translatable="false" name="config_httpsTimeServer">https://time.grapheneos.org</string>
     <!-- Normal polling frequency in milliseconds -->
     <integer name="config_ntpPollingInterval">86400000</integer>
     <!-- Try-again polling interval in milliseconds, in case the network request failed -->
@@ -2426,7 +2431,7 @@
     <bool name="config_useDevInputEventForAudioJack">false</bool>
 
     <!-- Whether safe headphone volume is enabled or not (country specific). -->
-    <bool name="config_safe_media_volume_enabled">true</bool>
+    <bool name="config_safe_media_volume_enabled">false</bool>
 
     <!-- Whether safe headphone volume warning dialog is disabled on Vol+ (operator specific). -->
     <bool name="config_safe_media_disable_on_volume_up">true</bool>
@@ -4144,6 +4149,35 @@
     <!-- Default refresh rate in the zone defined by brightness and ambient thresholds.
          If non-positive, then the refresh rate is unchanged even if thresholds are configured. -->
     <integer name="config_defaultRefreshRateInZone">0</integer>
+
+    <!-- The display uses different gamma curves for different refresh rates. It's hard for panel
+         vendor to tune the curves to have exact same brightness for different refresh rate. So
+         flicker could be observed at switch time. The issue can be observed on the screen with
+         even full white content at the high brightness. To prevent flickering, we support fixed
+         refresh rates if the display and ambient brightness are equal to or above the provided
+         thresholds. You can define multiple threshold levels as higher brightness environments
+         may have lower display brightness requirements for the flickering is visible. And the
+         high brightness environment could have higher threshold.
+         For example, fixed refresh rate if
+             display brightness >= disp0 && ambient brightness >= amb0
+             || display brightness >= disp1 && ambient brightness >= amb1 -->
+    <integer-array translatable="false" name="config_highDisplayBrightnessThresholdsOfFixedRefreshRate">
+         <!--
+           <item>disp0</item>
+           <item>disp1</item>
+        -->
+    </integer-array>
+
+    <integer-array translatable="false" name="config_highAmbientBrightnessThresholdsOfFixedRefreshRate">
+         <!--
+           <item>amb0</item>
+           <item>amb1</item>
+        -->
+    </integer-array>
+
+    <!-- Default refresh rate in the high zone defined by brightness and ambient thresholds.
+         If non-positive, then the refresh rate is unchanged even if thresholds are configured. -->
+    <integer name="config_fixedRefreshRateInHighZone">0</integer>
 
     <!-- The type of the light sensor to be used by the display framework for things like
          auto-brightness. If unset, then it just gets the default sensor of type TYPE_LIGHT. -->

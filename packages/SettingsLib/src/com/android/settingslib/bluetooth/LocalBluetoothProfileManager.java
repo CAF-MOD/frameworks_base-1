@@ -49,6 +49,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 
 /**
@@ -94,6 +96,7 @@ public class LocalBluetoothProfileManager {
     private MapProfile mMapProfile;
     private MapClientProfile mMapClientProfile;
     private HidProfile mHidProfile;
+    private LocalBluetoothProfile mBCProfile;
     private HidDeviceProfile mHidDeviceProfile;
     private OppProfile mOppProfile;
     private PanProfile mPanProfile;
@@ -102,6 +105,8 @@ public class LocalBluetoothProfileManager {
     private HearingAidProfile mHearingAidProfile;
     private SapProfile mSapProfile;
 
+    private static final String BC_CONNECTION_STATE_CHANGED =
+            "android.bluetooth.bc.profile.action.CONNECTION_STATE_CHANGED";
     /**
      * Mapping from profile name, e.g. "HEADSET" to profile object.
      */
@@ -213,6 +218,23 @@ public class LocalBluetoothProfileManager {
             addProfile(mPbapClientProfile, PbapClientProfile.NAME,
                     BluetoothPbapClient.ACTION_CONNECTION_STATE_CHANGED);
         }
+        if (mBCProfile == null && supportedList.contains(BluetoothProfile.BC_PROFILE)) {
+            if (DEBUG) Log.d(TAG, "Adding local BC profile");
+           try {
+              Class<?> classBCProfile =
+                  Class.forName("com.android.settingslib.bluetooth.BCProfile");
+              Constructor ctor;
+              ctor = classBCProfile.getDeclaredConstructor(new Class[] {Context.class,
+                                                          CachedBluetoothDeviceManager.class,
+                                                          LocalBluetoothProfileManager.class});
+              mBCProfile = (LocalBluetoothProfile)ctor.newInstance(mContext, mDeviceManager, this);
+              addProfile(mBCProfile, "BCProfile",
+                    BC_CONNECTION_STATE_CHANGED);
+            } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
+                  | InstantiationException | InvocationTargetException e) {
+              e.printStackTrace();
+            }
+        }
         if (mSapProfile == null && supportedList.contains(BluetoothProfile.SAP)) {
             if (DEBUG) {
                 Log.d(TAG, "Adding local SAP profile");
@@ -269,6 +291,11 @@ public class LocalBluetoothProfileManager {
         }
 
         public void onReceive(Context context, Intent intent, BluetoothDevice device) {
+            if (device == null) {
+                if(DEBUG) Log.d(TAG, "StateChangedHandler receives state-change for invalid device");
+                return;
+            }
+
             CachedBluetoothDevice cachedDevice = mDeviceManager.findDevice(device);
             if (cachedDevice == null) {
                 Log.w(TAG, "StateChangedHandler found new device: " + device);
@@ -441,6 +468,10 @@ public class LocalBluetoothProfileManager {
         return mHearingAidProfile;
     }
 
+    public LocalBluetoothProfile getBCProfile() {
+        Log.d(TAG, "getBCProfile returning: " + mBCProfile);
+        return mBCProfile;
+    }
     @VisibleForTesting
     HidProfile getHidProfile() {
         return mHidProfile;
@@ -543,12 +574,13 @@ public class LocalBluetoothProfileManager {
             mPbapProfile.setEnabled(device, true);
         }
 
-        if (mMapClientProfile != null) {
+        if ((mMapClientProfile != null)
+                && BluetoothUuid.containsAnyUuid(uuids, MapClientProfile.UUIDS)) {
             profiles.add(mMapClientProfile);
             removedProfiles.remove(mMapClientProfile);
         }
 
-        if ((mPbapClientProfile != null) && ArrayUtils.contains(localUuids, BluetoothUuid.PBAP_PCE)
+        if ((mPbapClientProfile != null)
                 && BluetoothUuid.containsAnyUuid(uuids, PbapClientProfile.SRC_UUIDS)) {
             profiles.add(mPbapClientProfile);
             removedProfiles.remove(mPbapClientProfile);
@@ -564,6 +596,11 @@ public class LocalBluetoothProfileManager {
             removedProfiles.remove(mSapProfile);
         }
 
+        if (mBCProfile != null) {
+            profiles.add(mBCProfile);
+            removedProfiles.remove(mBCProfile);
+            if(DEBUG) Log.d(TAG, "BC profile removed");
+        }
         if (DEBUG) {
             Log.d(TAG,"New Profiles" + profiles.toString());
         }

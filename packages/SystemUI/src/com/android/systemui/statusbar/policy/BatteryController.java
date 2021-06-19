@@ -110,6 +110,8 @@ public interface BatteryController extends DemoMode, Dumpable,
         }
 
         default void onStaminaChanged(boolean isStamina) {
+
+        default void onBatteryUnknownStateChanged(boolean isUnknown) {
         }
 
         default void onReverseChanged(boolean isReverse, int level, String name) {

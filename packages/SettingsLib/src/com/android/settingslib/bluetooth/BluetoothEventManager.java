@@ -27,7 +27,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
@@ -42,6 +44,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * BluetoothEventManager receives broadcasts and callbacks from the Bluetooth
@@ -61,6 +65,8 @@ public class BluetoothEventManager {
     private final android.os.Handler mReceiverHandler;
     private final UserHandle mUserHandle;
     private final Context mContext;
+    private final String ACT_BROADCAST_SOURCE_INFO =
+          "android.bluetooth.BroadcastAudioSAManager.action.BROADCAST_SOURCE_INFO";
 
     interface Handler {
         void onReceive(Context context, Intent intent, BluetoothDevice device);
@@ -128,8 +134,38 @@ public class BluetoothEventManager {
         addHandler(BluetoothDevice.ACTION_ACL_CONNECTED, new AclStateChangedHandler());
         addHandler(BluetoothDevice.ACTION_ACL_DISCONNECTED, new AclStateChangedHandler());
         addHandler(BluetoothA2dp.ACTION_CODEC_CONFIG_CHANGED, new A2dpCodecConfigChangedHandler());
+        Object sourceInfoHandler = null;
+        try {
+           Class<?> classSourceInfoHandler =
+               Class.forName("com.android.settingslib.bluetooth.BroadcastSourceInfoHandler");
+           Constructor ctor;
+           ctor = classSourceInfoHandler.getDeclaredConstructor(
+                      new Class[] {CachedBluetoothDeviceManager.class});
+           sourceInfoHandler = ctor.newInstance(mDeviceManager);
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
+                  | InstantiationException | InvocationTargetException e) {
+              e.printStackTrace();
+        }
+        if (sourceInfoHandler != null) {
+           Log.d(TAG, "adding SourceInfo Handler");
+           addHandler(ACT_BROADCAST_SOURCE_INFO,
+                    (Handler)sourceInfoHandler);
+        }
 
         registerAdapterIntentReceiver();
+
+        mContext.getContentResolver().registerContentObserver(
+                Settings.Global.getUriFor(Settings.Global.BLUETOOTH_OFF_TIMEOUT),
+                false,
+                new ContentObserver(handler) {
+            @Override
+            public void onChange(boolean selfChange) {
+                super.onChange(selfChange);
+                BluetoothTimeoutReceiver.setTimeoutAlarm(mContext,
+                        Settings.Global.getLong(context.getContentResolver(),
+                                Settings.Global.BLUETOOTH_OFF_TIMEOUT, 0));
+            }
+        });
     }
 
     /** Register to start receiving callbacks for Bluetooth events. */
@@ -281,6 +317,10 @@ public class BluetoothEventManager {
             }
             // Inform CachedDeviceManager that the adapter state has changed
             mDeviceManager.onBluetoothStateChanged(state);
+            if (state == BluetoothAdapter.STATE_ON)
+                BluetoothTimeoutReceiver.setTimeoutAlarm(context,
+                        Settings.Global.getLong(context.getContentResolver(),
+                                Settings.Global.BLUETOOTH_OFF_TIMEOUT, 0));
         }
     }
 
@@ -296,6 +336,9 @@ public class BluetoothEventManager {
                 callback.onScanningStateChanged(mStarted);
             }
             mDeviceManager.onScanningStateChanged(mStarted);
+            BluetoothTimeoutReceiver.setTimeoutAlarm(context,
+                    mStarted ? 0 : Settings.Global.getLong(context.getContentResolver(),
+                            Settings.Global.BLUETOOTH_OFF_TIMEOUT, 0));
         }
     }
 
@@ -334,6 +377,11 @@ public class BluetoothEventManager {
             int state = intent.getIntExtra(BluetoothAdapter.EXTRA_CONNECTION_STATE,
                     BluetoothAdapter.ERROR);
             dispatchConnectionStateChanged(cachedDevice, state);
+            if (state == BluetoothAdapter.STATE_DISCONNECTED) {
+                BluetoothTimeoutReceiver.setTimeoutAlarm(context,
+                        Settings.Global.getLong(context.getContentResolver(),
+                                Settings.Global.BLUETOOTH_OFF_TIMEOUT, 0));
+            }
         }
     }
 

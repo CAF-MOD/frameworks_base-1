@@ -96,6 +96,8 @@ import static com.android.server.policy.HardkeyActionHandler.KEY_MASK_MENU;
 import static com.android.server.policy.HardkeyActionHandler.KEY_MASK_ASSIST;
 import static com.android.server.policy.HardkeyActionHandler.KEY_MASK_APP_SWITCH;
 import static com.android.server.policy.HardkeyActionHandler.KEY_MASK_CAMERA;
+import static com.android.server.policy.HardkeyActionHandler.KEY_MASK_VOLUME;
+
 
 import android.Manifest;
 import android.annotation.Nullable;
@@ -416,6 +418,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     final Object mServiceAquireLock = new Object();
     Vibrator mVibrator; // Vibrator for giving feedback of orientation changes
     SearchManager mSearchManager;
+    private boolean interceptPowerKeyAuthOrEnroll = false;
+    private long interceptPowerKeyTimeByFinger = -1;
+    private boolean isAuthenOrEnrollRunningWhenDown = false;
     AccessibilityManager mAccessibilityManager;
     BurnInProtectionHelper mBurnInProtectionHelper;
     private DisplayFoldController mDisplayFoldController;
@@ -537,6 +542,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private HardkeyActionHandler mKeyHandler;
 
     int mDeviceHardwareKeys;
+
+    boolean mVolumeAnswerCall;
 
     // Camera button control flags and actions
     boolean mCameraLaunch;
@@ -675,6 +682,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     private final SparseArray<KeyCharacterMap.FallbackAction> mFallbackActions =
             new SparseArray<KeyCharacterMap.FallbackAction>();
 
+    private WindowManagerPolicy.FingerListener mFingerListener;
+
     private final LogDecelerateInterpolator mLogDecelerateInterpolator
             = new LogDecelerateInterpolator(100, 0);
 
@@ -775,6 +784,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     boolean mKillAppLongpressBack;
     int mBackKillTimeout;
+
+    private boolean mHasPowerButtonFingerprint;
 
     private class PolicyHandler extends Handler {
         @Override
@@ -1029,6 +1040,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.CAMERA_LAUNCH), false, this,
                     UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.VOLUME_ANSWER_CALL), false, this,
+                    UserHandle.USER_ALL);
             updateSettings();
         }
 
@@ -1227,6 +1241,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         sendSystemKeyToStatusBarAsync(event.getKeyCode());
 
         schedulePossibleVeryLongPressReboot();
+
+        isAuthenOrEnrollRunningWhenDown = interceptPowerKeyAuthOrEnroll;
 
         // If the power key has still not yet been handled, then detect short
         // press, long press, or multi press and decide what to do.
@@ -1428,6 +1444,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
      * @return True if the was device was sent to sleep, false if sleep was suppressed.
      */
     private boolean goToSleepFromPowerButton(long eventTime, int flags) {
+        if ((eventTime - interceptPowerKeyTimeByFinger < 700 || isAuthenOrEnrollRunningWhenDown) && mHasPowerButtonFingerprint) {
+            return false;
+        }
         // Before we actually go to sleep, we check the last wakeup reason.
         // If the device very recently woke up from a gesture (like user lifting their device)
         // then ignore the sleep instruction. This is because users have developed
@@ -2109,6 +2128,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         mWakeOnBackKeyPress =
                 res.getBoolean(com.android.internal.R.bool.config_wakeOnBackKeyPress);
 
+        mHasPowerButtonFingerprint = res.getBoolean(
+                com.android.internal.R.bool.config_powerButtonFingerprint);
+
         // Init display burn-in protection
         boolean burnInProtectionEnabled = context.getResources().getBoolean(
                 com.android.internal.R.bool.config_enableBurnInProtection);
@@ -2627,6 +2649,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mVolumeRockerWake = Settings.System.getIntForUser(resolver,
                     Settings.System.VOLUME_ROCKER_WAKE, 0, UserHandle.USER_CURRENT) != 0;
 
+            mVolumeAnswerCall = (Settings.System.getIntForUser(resolver,
+                    Settings.System.VOLUME_ANSWER_CALL, 0, UserHandle.USER_CURRENT) == 1)
+                    && ((mDeviceHardwareWakeKeys & KEY_MASK_VOLUME) != 0);
+
             mVolumeMusicControl = Settings.System.getIntForUser(resolver,
                     Settings.System.VOLUME_BUTTON_MUSIC_CONTROL, 0,
                     UserHandle.USER_CURRENT) != 0;
@@ -2939,9 +2965,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     /** {@inheritDoc} */
     @Override
-    public StartingSurface addSplashScreen(IBinder appToken, String packageName, int theme,
-            CompatibilityInfo compatInfo, CharSequence nonLocalizedLabel, int labelRes, int icon,
-            int logo, int windowFlags, Configuration overrideConfig, int displayId) {
+    public StartingSurface addSplashScreen(IBinder appToken, int userId, String packageName,
+            int theme, CompatibilityInfo compatInfo, CharSequence nonLocalizedLabel, int labelRes,
+            int icon, int logo, int windowFlags, Configuration overrideConfig, int displayId) {
         if (!SHOW_SPLASH_SCREENS) {
             return null;
         }
@@ -2968,10 +2994,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
             if (theme != context.getThemeResId() || labelRes != 0) {
                 try {
-                    context = context.createPackageContext(packageName, CONTEXT_RESTRICTED);
+                    context = context.createPackageContextAsUser(packageName, CONTEXT_RESTRICTED,
+                            UserHandle.of(userId));
                     context.setTheme(theme);
                 } catch (PackageManager.NameNotFoundException e) {
-                    // Ignore
+                    Slog.w(TAG, "Failed creating package context with package name "
+                            + packageName + " for user " + userId, e);
                 }
             }
 
@@ -3197,6 +3225,21 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             WindowManager.LayoutParams.TYPE_SYSTEM_ALERT,
             WindowManager.LayoutParams.TYPE_SYSTEM_ERROR,
         };
+
+    /**
+     * Fingerprint unlock on press
+     */
+    public void registerFingerListener(WindowManagerPolicy.FingerListener listener) {
+        mFingerListener = listener;
+    }
+
+    public void interceptPowerKeyByFinger(long time) {
+        interceptPowerKeyTimeByFinger = time;
+    }
+
+    public void notifySideFpAuthenOrEnroll(boolean start) {
+        interceptPowerKeyAuthOrEnroll = start;
+    }
 
     // TODO(b/117479243): handle it in InputPolicy
     /** {@inheritDoc} */
@@ -4777,6 +4820,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                         // When {@link #mHandleVolumeKeysInWM} is set, volume key events
                         // should be dispatched to WM.
                         if (telecomManager.isRinging()) {
+                            if (mVolumeAnswerCall) {
+                                telecomManager.acceptRingingCall();
+                            }
+
                             // If an incoming call is ringing, either VOLUME key means
                             // "silence ringer".  We handle these keys here, rather than
                             // in the InCallScreen, to make sure we'll respond to them
@@ -4948,6 +4995,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             }
 
             case KeyEvent.KEYCODE_POWER: {
+                if (mFingerListener != null) {
+                    mFingerListener.powerDown(down);
+                }
                 EventLogTags.writeInterceptPower(
                         KeyEvent.actionToString(event.getAction()),
                         mPowerKeyHandled ? 1 : 0, mPowerKeyPressCounter);
@@ -5674,6 +5724,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     }
 
     private void wakeUpFromPowerKey(long eventTime) {
+        if ((eventTime - this.interceptPowerKeyTimeByFinger < 700) && mHasPowerButtonFingerprint) {
+            return;
+        }
         wakeUp(eventTime, mAllowTheaterModeWakeFromPowerKey,
                 PowerManager.WAKE_REASON_POWER_BUTTON, "android.policy:POWER");
     }

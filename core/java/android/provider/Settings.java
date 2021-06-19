@@ -7115,6 +7115,25 @@ public final class Settings {
         public static final String STATUS_BAR_TICKER_TICK_DURATION =
                 "status_bar_ticker_tick_duration";
 
+        /**
+         * boolean value. toggles using arrow key locations on nav bar
+         * as left and right dpad keys
+         * @hide
+         */
+        public static final String NAVIGATION_BAR_MENU_ARROW_KEYS = "navigation_bar_menu_arrow_keys";
+
+        /**
+         * Whether to answer the call with the volume keys, the value is boolean.
+         * 0 = 0ff, 1 = on
+         */
+        public static final String VOLUME_ANSWER_CALL = "volume_answer_call";
+
+        /**
+         * Clipboard access info
+         * @hide
+         */
+        public static final String CLIPBOARD_TOAST_INFO = "clipboard_toast_info";
+
         /***************************
          * AICP System Settings end
          ***************************/
@@ -7382,6 +7401,9 @@ public final class Settings {
             AICP_SETTINGS_VALIDATORS.put(STATUS_BAR_SHOW_TICKER, BOOLEAN_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(STATUS_BAR_TICKER_ANIMATION_MODE, ANY_INTEGER_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(STATUS_BAR_TICKER_TICK_DURATION, ANY_INTEGER_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(NAVIGATION_BAR_MENU_ARROW_KEYS, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(VOLUME_ANSWER_CALL, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(CLIPBOARD_TOAST_INFO, ANY_INTEGER_VALIDATOR);
         }
 
         /**
@@ -12499,6 +12521,11 @@ public final class Settings {
 
        /** Preferred NTP server. {@hide} */
        public static final String NTP_SERVER = "ntp_server";
+       /** Preferred HTTPS time server. {@hide} */
+       public static final String HTTPS_TIME_SERVER = "https_time_server";
+       /** Prefered method to get NTP. {@hide} */
+       public static final String NTP_MODE = "ntp_mode";
+
        /** Timeout in milliseconds to wait for NTP server. {@hide} */
        public static final String NTP_TIMEOUT = "ntp_timeout";
 
@@ -17259,6 +17286,31 @@ public final class Settings {
          */
         public static final String NR_NSA_TRACKING_SCREEN_OFF_MODE =
                 "nr_nsa_tracking_screen_off_mode";
+
+        /**
+         * Global cleartext (aka non-TLS) traffic blocking
+         *
+         * Values are:
+         * 0: StrictMode.NETWORK_POLICY_ACCEPT - Allow all cleartext traffic.
+         * 1: StrictMode.NETWORK_POLICY_LOG - Log all cleartext traffic.
+         *    This is not in logcat by default but it piggy backs on the existing
+         *    StrictMode code for cleartext network penalties.
+         * 2: StrictMode.NETWORK_POLICY_REJECT - Reject all cleartext traffic.
+         * @hide
+         */
+        public static final String CLEARTEXT_NETWORK_POLICY = "cleartext_network_policy";
+
+        /**
+         * The amount of time in milliseconds before wifi is turned off
+         * @hide
+         */
+        public static final String WIFI_OFF_TIMEOUT = "wifi_off_timeout";
+
+        /**
+         * The amount of time in milliseconds before bluetooth is turned off
+         * @hide
+         */
+        public static final String BLUETOOTH_OFF_TIMEOUT = "bluetooth_off_timeout";
     }
 
     /**
