@@ -1351,7 +1351,9 @@ public final class Display {
      * @hide
      */
     public static boolean isSuspendedState(int state) {
-        return state == STATE_OFF || state == STATE_DOZE_SUSPEND || state == STATE_ON_SUSPEND;
+        if( state == STATE_OFF ) return true;
+        if( BaikalSettings.getReaderMode() ) return false;
+        return state == STATE_DOZE_SUSPEND || state == STATE_ON_SUSPEND;
     }
 
     /**
