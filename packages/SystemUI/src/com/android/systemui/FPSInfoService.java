@@ -57,6 +57,7 @@ public class FPSInfoService extends Service {
     private final String TAG = "FPSInfoService";
     private String mFps = null;
     private String MEASURED_FPS = "";
+    private String CURRENT_RR = "";
 
     private IDreamManager mDreamManager;
 
@@ -78,7 +79,7 @@ public class FPSInfoService extends Service {
                 }
                 if(msg.what==1){
                     String msgData = (String) msg.obj;
-                    msgData = msgData.substring(0, Math.min(msgData.length(), 9));
+                    //msgData = msgData.substring(0, Math.min(msgData.length(), 9));
                     mFps = msgData;
                     mDataAvail = true;
                     updateDisplay();
@@ -105,7 +106,8 @@ public class FPSInfoService extends Service {
             float descent = mOnlinePaint.descent();
             mFH = (int)(descent - mAscent + .5f);
 
-            final String maxWidthStr="fps: 60.1";
+            String maxWidthStr="99.9";
+            if( CURRENT_RR !=null && !CURRENT_RR.equals("") ) maxWidthStr += ", 120" ;
             mMaxWidth = (int)mOnlinePaint.measureText(maxWidthStr);
 
             updateDisplay();
@@ -191,10 +193,14 @@ public class FPSInfoService extends Service {
         public void run() {
             try {
                 while (!mInterrupt) {
-                    sleep(500);
+                    sleep(250);
                     StringBuffer sb=new StringBuffer();
                     String fpsVal = FPSInfoService.readOneLine(MEASURED_FPS);
-                    mHandler.sendMessage(mHandler.obtainMessage(1, fpsVal));
+                    if( fpsVal != null && fpsVal.length() >=9 ) {
+                        fpsVal = fpsVal.substring(5, Math.min(fpsVal.length(), 9));
+                        if( CURRENT_RR != null && !CURRENT_RR.equals("") ) fpsVal += ", " + FPSInfoService.readOneLine(CURRENT_RR);
+                        mHandler.sendMessage(mHandler.obtainMessage(1, fpsVal));
+                    }
                 }
             } catch (InterruptedException e) {
                 return;
@@ -207,6 +213,7 @@ public class FPSInfoService extends Service {
         super.onCreate();
 
         MEASURED_FPS = getResources().getString(R.string.config_fpsInfoSysNode);
+        CURRENT_RR = getResources().getString(R.string.config_rrInfoSysNode);
 
         mView = new FPSView(this);
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
