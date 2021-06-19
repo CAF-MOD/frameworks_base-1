@@ -86,6 +86,11 @@ public class PictureAdjustmentController extends LiveDisplayFeature {
     }
 
     @Override
+    protected synchronized void onScreenStateChanged() {
+        updatePictureAdjustment();
+    }
+
+    @Override
     protected void onUpdate() {
         updatePictureAdjustment();
     }
