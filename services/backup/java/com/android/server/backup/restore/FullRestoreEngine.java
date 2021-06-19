@@ -252,6 +252,9 @@ public class FullRestoreEngine extends RestoreEngine {
                     RestorePolicy policy = mPackagePolicies.get(pkg);
                     switch (policy) {
                         case IGNORE:
+                            if (DEBUG) {
+                                Slog.d(TAG, "IGNORE");
+                            }
                             okay = false;
                             break;
 
@@ -282,6 +285,9 @@ public class FullRestoreEngine extends RestoreEngine {
                                 // File data before (or without) the apk.  We can't
                                 // handle it coherently in this case so ignore it.
                                 mPackagePolicies.put(pkg, RestorePolicy.IGNORE);
+                                if (DEBUG) {
+                                    Slog.d(TAG, "ACCEPT_IF_APK but apk is not present");
+                                }
                                 okay = false;
                             }
                             break;
@@ -310,7 +316,13 @@ public class FullRestoreEngine extends RestoreEngine {
                     }
 
                     // Is it a *file* we need to drop or is it not a canonical path?
-                    if (!isRestorableFile(info) || !isCanonicalFilePath(info.path)) {
+                    if (!isRestorableFile(info)) {
+                        Slog.e(TAG, "!isRestorableFile");
+                        okay = false;
+                    }
+
+                    if (!isCanonicalFilePath(info.path)) {
+                        Slog.e(TAG, "!isCanonicalFilePath:" + info.path);
                         okay = false;
                     }
 
