@@ -49,6 +49,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 
+
+import com.android.internal.baikalos.AppProfile;
+import com.android.internal.baikalos.AppProfileSettings;
+import com.android.internal.baikalos.AppProfileManager;
+
+import com.android.internal.baikalos.BaikalSpoofer;
+import com.android.internal.baikalos.SpoofDeviceInfo;
+
+
 /** @hide */
 public final class Zygote {
     /*
@@ -791,7 +800,7 @@ public final class Zygote {
 
     private static native void nativeBoostUsapPriority();
 
-    private static void setBuildField(String loggingTag, String key, String value) {
+    public static void setBuildField(String loggingTag, String key, String value) {
         /*
          * This would be much prettier if we just removed "final" from the Build fields,
          * but that requires changing the API.
@@ -831,6 +840,27 @@ public final class Zygote {
         }
     }
 
+    private static void maybeSpoofDevice(String packageName, String loggingTag) {
+
+        if( packageName == null ) return;
+        try {
+            String val = SystemProperties.get("b.spf." + packageName,"0");
+            Log.e(loggingTag, "Spoof Device Profile :" + packageName);
+            Log.e(loggingTag, "Spoof Device :" + val);
+
+            int device_id = Integer.parseInt(val) - 1;
+            if( device_id < 0 ) return;
+
+            SpoofDeviceInfo device = BaikalSpoofer.Devices[device_id];
+            setBuildField(loggingTag, "MODEL", device.deviceModel);
+            setBuildField(loggingTag, "MANUFACTURER", device.deviceManufacturer);
+            //setBuildField(loggingTag, "NAME", device.deviceName);
+        } catch(Exception e) {
+            Log.e(loggingTag, "Failed to spoof Device :" + packageName, e);
+        }
+        
+    }
+
     static void setAppProcessName(ZygoteArguments args, String loggingTag) {
         if (args.mNiceName != null) {
             Process.setArgV0(args.mNiceName);
@@ -841,6 +871,7 @@ public final class Zygote {
         }
 
         maybeSpoofBuild(args.mPackageName, loggingTag);
+        maybeSpoofDevice(args.mPackageName, loggingTag);
     }
 
     private static final String USAP_ERROR_PREFIX = "Invalid command to USAP: ";
