@@ -70,6 +70,10 @@ import android.os.SystemClock;
 import android.app.AlarmManager;
 
 
+import com.android.server.BaikalStaticService;
+import com.android.internal.baikalos.BaikalConstants;
+
+
 public class BaikalStaticService {
 
     private static final String TAG = "BaikalService";
@@ -105,7 +109,7 @@ public class BaikalStaticService {
 	    com.android.internal.baikalos.BaikalSettings baikalSettings) {
 
         mContext = context;
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
             Slog.i(TAG,"BaikalStatic()");
         }
 
@@ -120,7 +124,7 @@ public class BaikalStaticService {
     }
 
     static void setSystemReady(boolean ready) {
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
             Slog.i(TAG,"setSystemReady(" + ready + ")");
         }
 	    mSystemReady = ready;
@@ -140,7 +144,7 @@ public class BaikalStaticService {
     public static boolean processAlarmLocked(AlarmManagerService.Alarm a, AlarmManagerService.Alarm pendingUntil) {
 
         if ( a == pendingUntil ) {
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_ALARM ) {
                 Slog.i(TAG,"DeviceIdleAlarm: unrestricted:" + a.statsTag + ":" + a.toString() + ", ws=" + a.workSource );
             }
             return false;
@@ -216,7 +220,7 @@ public class BaikalStaticService {
                     | AlarmManager.FLAG_ALLOW_WHILE_IDLE
                     | AlarmManager.FLAG_ALLOW_WHILE_IDLE_UNRESTRICTED);
 
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_ALARM ) {
                 Slog.i(TAG,"DeviceIdleAlarm: restricted:" + a.statsTag + ":" + a.toString() + ", ws=" + a.workSource ); 
             }
 	    }
@@ -226,14 +230,14 @@ public class BaikalStaticService {
 	        if( a.type == AlarmManager.ELAPSED_REALTIME_WAKEUP ) a.type = AlarmManager.ELAPSED_REALTIME;
 	        else a.type = AlarmManager.RTC;
             a.wakeup = false;
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_ALARM ) {
                 Slog.i(TAG,"DeviceIdleAlarm: blocked:" + a.statsTag + ":" + a.toString() + ", ws=" + a.workSource );
             }
 
 	    }
 
         if( a.wakeup ) {
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_ALARM ) {
                 Slog.i(TAG,"DeviceIdleAlarm: unrestricted:" + a.statsTag + ":" + a.toString() + ", ws=" + a.workSource );
             }
         }
@@ -246,7 +250,7 @@ public class BaikalStaticService {
         if( !BaikalSettings.getStaminaMode() &&
             !BaikalSettings.getExtremeIdleEnabled() &&
             !BaikalSettings.getAggressiveIdleEnabled() ) {
-            if( DEBUG ) Slog.i(TAG,"isJobBlacklisted: Not in energy saving mode ");
+            if( BaikalConstants.BAIKAL_DEBUG_ALARM ) Slog.i(TAG,"isJobBlacklisted: Not in energy saving mode ");
             return false;
         }
 
@@ -254,14 +258,14 @@ public class BaikalStaticService {
         if( BaikalSettings.getTopAppUid() == uId ) return false;
 
         if( BaikalSettings.getAppBlocked(uId, packageName) ) {
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_ALARM ) {
                 Slog.i(TAG,"isJobBlacklisted: blocked: uid=" + uId + ", pkg=" + packageName + " -> " + job + " : " + work);
             }
             return true;
         }
 
         if( !allowBackgroundStart(uId, packageName) ) {
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_ALARM ) {
                 Slog.i(TAG,"isJobBlacklisted: restricted: uid=" + uId + ", pkg=" + packageName + " -> " + job + " : " + work);
             }
             return true;
@@ -280,7 +284,7 @@ public class BaikalStaticService {
         if( !BaikalSettings.getStaminaMode() &&
             !BaikalSettings.getExtremeIdleEnabled() &&
             !BaikalSettings.getAggressiveIdleEnabled() ) {
-            if( DEBUG ) Slog.i(TAG,"updateSingleJobRestrictionLocked: Not in energy saving mode ");
+            if( BaikalConstants.BAIKAL_DEBUG_SERVICES ) Slog.i(TAG,"updateSingleJobRestrictionLocked: Not in energy saving mode ");
             return canRun;
         }
 
@@ -292,7 +296,7 @@ public class BaikalStaticService {
 
         if( BaikalUtils.isGmsUid(uid)  ) {
             if( BaikalSettings.getAppBlocked(uid, packageName) ) {
-                if( DEBUG ) {
+                if( BaikalConstants.BAIKAL_DEBUG_SERVICES ) {
                     Slog.i(TAG,"updateSingleJobRestrictionLocked: GMS blocked: uid=" + uid + ", pkg=" + packageName + ", job=" + jobInfo);
                 }
                 return false;
@@ -302,13 +306,13 @@ public class BaikalStaticService {
 
         
         if( profile.mBackground < 0 ) {
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_SERVICES ) {
                 Slog.i(TAG,"updateSingleJobRestrictionLocked: whitelisted: uid=" + uid + ", pkg=" + packageName + ", job=" + jobInfo);
             }
             return true;
         }
         if( !getBackgroundMode(profile) ) {
-            if( DEBUG ) { 
+            if( BaikalConstants.BAIKAL_DEBUG_SERVICES ) { 
                 Slog.i(TAG,"updateSingleJobRestrictionLocked: restricted : uid=" + uid + ", pkg=" + packageName + ", job=" + jobInfo);
             }
             return false;
@@ -318,7 +322,7 @@ public class BaikalStaticService {
 
 
     private static boolean jobGmsBlackListed(JobInfo jobInfo) {
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_SERVICES ) {
             Slog.i(TAG,"updateSingleJobRestrictionLocked: GMS job service=" + jobInfo.getService().toString());
         }
         return false;
@@ -329,7 +333,7 @@ public class BaikalStaticService {
         if( !BaikalSettings.getStaminaMode() &&
             !BaikalSettings.getExtremeIdleEnabled() &&
             !BaikalSettings.getAggressiveIdleEnabled() ) {
-            if( DEBUG ) Slog.i(TAG,"allowBackgroundStart: Not in energy saving mode ");
+            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"allowBackgroundStart: Not in energy saving mode ");
             return true;
         }
 

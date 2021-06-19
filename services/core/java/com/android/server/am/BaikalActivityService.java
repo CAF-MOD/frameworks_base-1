@@ -61,6 +61,8 @@ import com.android.internal.baikalos.AppProfileSettings;
 import com.android.internal.baikalos.AppProfileSettings.IAppProfileSettingsNotifier;
 import com.android.internal.baikalos.AppProfile;
 
+import com.android.internal.baikalos.BaikalConstants;
+
 public class BaikalActivityService implements com.android.internal.baikalos.AppProfileSettings.IAppProfileSettingsNotifier {
 
     private static final String TAG = "BaikalActivityService";
@@ -77,7 +79,7 @@ public class BaikalActivityService implements com.android.internal.baikalos.AppP
     BaikalActivityService(Handler handler, Context context) {
         mContext = context;
         mHandler = handler;
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
             Slog.i(TAG,"BaikalActivityService()");
         }
 
@@ -85,7 +87,7 @@ public class BaikalActivityService implements com.android.internal.baikalos.AppP
     }
 
     public void setSystemReady(boolean ready) {
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
             Slog.i(TAG,"setSystemReady(" + ready + ")");
         }
 

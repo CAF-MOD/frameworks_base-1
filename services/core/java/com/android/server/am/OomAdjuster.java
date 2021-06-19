@@ -111,6 +111,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import com.android.internal.baikalos.BaikalConstants;
+
 /**
  * All of the code required to compute proc states and oom_adj values.
  */
@@ -2066,6 +2068,8 @@ public final class OomAdjuster {
                 schedGroup = ProcessList.SCHED_GROUP_RESTRICTED;
             }
         }
+
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"Baikal OOM: " + app + ": sched=" + schedGroup);
 
         // apply capability from FGS.
         if (app.hasForegroundServices()) {
