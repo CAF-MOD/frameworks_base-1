@@ -1201,7 +1201,7 @@ public interface WindowManagerPolicy extends WindowManagerPolicyConstants {
     /**
      * @return true if in keyguard is on.
      */
-    boolean isKeyguardShowing();
+    public boolean isKeyguardShowing();
 
     /**
      * @return true if in keyguard is on and not occluded.
