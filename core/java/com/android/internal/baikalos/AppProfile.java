@@ -52,6 +52,7 @@ public class AppProfile {
     public boolean mIgnoreAudioFocus;
     public int mRotation;
     public int mAudioMode;
+    public int mSpoofDevice;
 
     public AppProfile() {
         mPerfProfile = "default";
@@ -60,6 +61,7 @@ public class AppProfile {
         mFrameRate = 0;
         mRotation = 0;
         mAudioMode = 0;
+        mSpoofDevice = 0;
     }
 
     public boolean isDefault() {
@@ -74,6 +76,7 @@ public class AppProfile {
             !mIgnoreAudioFocus &&
             mRotation == 0 &&
             mAudioMode == 0 &&
+            mSpoofDevice == 0 &&
             mPerfProfile.equals("default") &&
             mThermalProfile.equals("default") ) return true;
         return false;
@@ -95,6 +98,7 @@ public class AppProfile {
         if( mIgnoreAudioFocus ) result +=  "," + "af=" + mIgnoreAudioFocus;
         if( mRotation != 0 ) result +=  "," + "ro=" + mRotation;
         if( mAudioMode != 0 ) result +=  "," + "am=" + mAudioMode;
+        if( mSpoofDevice != 0 ) result +=  "," + "sd=" + mSpoofDevice;
         return result;
     }
 
@@ -125,6 +129,7 @@ public class AppProfile {
             profile.mIgnoreAudioFocus = parser.getBoolean("af",false);
             profile.mRotation = parser.getInt("ro",0);
             profile.mAudioMode = parser.getInt("am",0);
+            profile.mSpoofDevice = parser.getInt("sd",0);
         } catch( Exception e ) {
 
         }
