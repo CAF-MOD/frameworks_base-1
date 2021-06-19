@@ -52,4 +52,7 @@
     <!-- Asus stitch editor component name -->
     <string name="config_stitchEditor">com.asus.stitchimage/com.asus.stitchimage.editor.ScreenshotEditorActivity</string>
 
+    <!-- FPSInfoService Refresh Rate node file path -->
+    <string name="config_rrInfoSysNode" translatable="false"></string>
+
 </resources>
