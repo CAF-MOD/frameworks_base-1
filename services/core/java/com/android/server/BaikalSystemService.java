@@ -65,10 +65,15 @@ import android.os.SystemClock;
 import com.android.server.SystemService;
 
 import com.android.internal.custom.hardware.LineageHardwareManager;
+import com.android.internal.custom.hardware.HSIC;
 import com.android.internal.custom.hardware.DisplayMode;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+
+import com.android.server.BaikalStaticService;
+import com.android.internal.baikalos.BaikalConstants;
+
 
 public class BaikalSystemService extends SystemService {
 
@@ -102,7 +107,7 @@ public class BaikalSystemService extends SystemService {
     public BaikalSystemService(Context context) {
         super(context);
         mContext = context;
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
             Slog.i(TAG,"BaikalSystemService()");
         }
 
@@ -126,7 +131,7 @@ public class BaikalSystemService extends SystemService {
 
     @Override
     public void onStart() {
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
             Slog.i(TAG,"onStart()");
         }
 /*
@@ -139,19 +144,19 @@ public class BaikalSystemService extends SystemService {
 
     @Override
     public void onBootPhase(int phase) {
-        if( DEBUG ) {
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
             Slog.i(TAG,"onBootPhase(" + phase + ")");
         }
 
         if (phase == PHASE_SYSTEM_SERVICES_READY) {
             synchronized(this) {
-                Slog.i(TAG,"onBootPhase(" + phase + "): Core BaikalOS componenets init");
+                if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"onBootPhase(" + phase + "): Core BaikalOS componenets init");
                 mBaikalSettings.loadStaticConstants(mContext);
                 updateDolbyService();
 	        }
     	} else if( phase == PHASE_BOOT_COMPLETED) {
 
-            if( DEBUG ) {
+            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) {
                 Slog.i(TAG,"onBootPhase(PHASE_BOOT_COMPLETED)");
             }
 
@@ -209,7 +214,7 @@ public class BaikalSystemService extends SystemService {
                 uid = getPackageUidLocked("com.android.systemui");
                 BaikalUtils.setSystemUiUid(uid);
 
-                setPackageEnabled("com.tencent.soter.soterserver",false);
+                //setPackageEnabled("com.tencent.soter.soterserver",false);
 
                 //mConstants.updateConstantsLocked();
 
@@ -223,7 +228,7 @@ public class BaikalSystemService extends SystemService {
         try {
             ApplicationInfo ai = pm.getApplicationInfo(packageName,PackageManager.MATCH_ALL);
             if( ai != null ) {
-                Slog.i(TAG,"getPackageUidLocked package=" + packageName + ", uid=" + ai.uid);
+                if ( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"getPackageUidLocked package=" + packageName + ", uid=" + ai.uid);
                 return ai.uid;
             }
         } catch(Exception e) {
@@ -261,9 +266,11 @@ public class BaikalSystemService extends SystemService {
     }
 
     private void updateDolbyService() {
-        Boolean isDolbyAvail = SystemProperties.getBoolean("persist.baikal.dolby.enable",false);
-        if( DEBUG ) Slog.i(TAG,"updateDolbyService isDolbyAvail=" + isDolbyAvail);
-        updateDolbyConfiguration(isDolbyAvail);
+        if( SystemProperties.getBoolean("sys.baikal.dolby.avail",false) ) {
+            Boolean isDolbyAvail = SystemProperties.getBoolean("persist.baikal.dolby.enable",false);
+            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"updateDolbyService isDolbyAvail=" + isDolbyAvail);
+            updateDolbyConfiguration(isDolbyAvail);
+        }
     }
 
     private void updateDolbyConfiguration(boolean enabled) {
@@ -299,18 +306,26 @@ public class BaikalSystemService extends SystemService {
 
                 if( screen != mScreenMode ) {
                     mScreenMode = screen;
-                    if( mHardware != null ) {
+                    /*if( mScreenMode && mHardware != null ) {
+                        
                         DisplayMode mode = mHardware.getDefaultDisplayMode();
                         if( mode != null ) {
-                            if( DEBUG ) Slog.i(TAG,"setDisplayMode default=(" + mode.id + "," + mode.name + ")");
+                            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"setDisplayMode default=(" + mode.id + "," + mode.name + ")");
                             mHandler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
-                                    mHardware.setDisplayMode(mode,false);
+//                                    mHardware.setDisplayMode(mode,false);
+                                    final HSIC hsic = mHardware.getDefaultPictureAdjustment();
+                                    if (hsic != null) {
+                                        Slog.e(TAG, "setDisplayMode: Update picture adjustment! " + hsic.toString());
+                                        if (!mHardware.setPictureAdjustment(hsic)) {
+                                            Slog.e(TAG, "Failed to set picture adjustment! " + hsic.toString());
+                                        }
+                                    }
                                 }
                             }, 50);
                         }
-                    }
+                    }*/
                 }
             }
         }
@@ -321,11 +336,11 @@ public class BaikalSystemService extends SystemService {
         @Override
         public void onReceive(Context context, Intent intent) {
             synchronized (BaikalSystemService.this) {
-
+                    
                     if( mHardware != null ) {
                         DisplayMode mode = mHardware.getDefaultDisplayMode();
                         if( mode != null ) {
-                            if( DEBUG ) Slog.i(TAG,"setDisplayMode default=(" + mode.id + "," + mode.name + ")");
+                            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"setDisplayMode default=(" + mode.id + "," + mode.name + ")");
                             mHandler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
@@ -334,9 +349,9 @@ public class BaikalSystemService extends SystemService {
                             }, 50);
                         }
                     }
+                    
 
-                /*  Require Lineage Hardware Manager. Postpone.
-                String action = intent.getAction();
+                /*String action = intent.getAction();
                 String packageName = (String)intent.getExtra(Actions.EXTRA_PACKAGENAME);
                 int uid = (int)intent.getExtra(Actions.EXTRA_UID);
                 if( mHardware != null ) {
