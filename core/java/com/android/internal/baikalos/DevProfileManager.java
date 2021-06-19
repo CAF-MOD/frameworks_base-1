@@ -33,7 +33,7 @@ public class DevProfileManager extends MessageHandler {
     protected void initialize() {
     	synchronized(mLock) {
     	}
-    	if( Constants.DEBUG_DEV_PROFILE ) Slog.i(TAG,"initialize()");                
+    	if( BaikalConstants.BAIKAL_DEBUG_DEV_PROFILE ) Slog.i(TAG,"initialize()");                
     }
 
 

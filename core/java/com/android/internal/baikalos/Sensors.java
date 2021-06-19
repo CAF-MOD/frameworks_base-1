@@ -57,10 +57,10 @@ public class Sensors extends MessageHandler {
 
    @Override
     protected void initialize() {
-	if( Constants.DEBUG_SENSORS ) Slog.i(TAG,"initialize()");
+	if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) Slog.i(TAG,"initialize()");
 
             mSensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
-	    if( Constants.DEBUG_SENSORS ) Slog.i(TAG,"SensorManager initialized");
+	    if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) Slog.i(TAG,"SensorManager initialized");
 
 	    mPowerManager = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
 	    mProximityWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "*baikal_proximity*");
@@ -167,13 +167,13 @@ public class Sensors extends MessageHandler {
             if( mProximitySensor != null ) { 
                 mProximityThreshold = mProximitySensor.getMaximumRange();
             }
-            if( Constants.DEBUG_SENSORS ) {
+            if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                 Slog.i(TAG,"Proximity Initialize: sensor=" + mProximitySensor);
             }
         }
 
         void setProximitySensorEnabled(boolean enable) {
-            if( Constants.DEBUG_SENSORS ) {
+            if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                 Slog.i(TAG,"setProximitySensorEnabled: enable=" + enable);
             }
             if( mProximitySensor == null ) return; 
@@ -196,7 +196,7 @@ public class Sensors extends MessageHandler {
 
                 boolean isInteractive = mPowerManager.isInteractive();
 
-                if( Constants.DEBUG_SENSORS ) {
+                if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                     Slog.i(TAG,"handleProximitySensorEvent: value=" + positive + ", time=" + time);
                 }
 
@@ -213,14 +213,14 @@ public class Sensors extends MessageHandler {
                     proximityNegativeTime = time;
                     if( (time - proximityClickStart) < 2500 ) {
                         proximityClickCount++;
-                        if( Constants.DEBUG_SENSORS ) {
+                        if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                             Slog.i(TAG,"handleProximitySensorEvent: open <2000 :" + (time-proximityClickStart) + ":" + proximityClickCount);
                         }
                         if( proximityClickCount == 2 ) {
                             handleWakeup(isInteractive);
                         }
                     } else {
-                        if( Constants.DEBUG_SENSORS ) {
+                        if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                             Slog.i(TAG,"handleProximitySensorEvent: open >2000 :" + (time-proximityClickStart) + ":0");
                         }
                         proximityClickCount = 0;
@@ -230,11 +230,11 @@ public class Sensors extends MessageHandler {
                     if( (time - proximityClickStart) > 2500 ) {
                         proximityClickStart = time;
                         proximityClickCount = 0;
-                        if( Constants.DEBUG_SENSORS ) {
+                        if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                             Slog.i(TAG,"handleProximitySensorEvent: closed > 2000 :" + (time-proximityClickStart) + ":0");
                         }
                     } else {
-                        if( Constants.DEBUG_SENSORS ) {
+                        if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                             Slog.i(TAG,"handleProximitySensorEvent: closed < 2000 :" + (time-proximityClickStart) + ":" + proximityClickCount);
                         }
                     }
@@ -243,7 +243,7 @@ public class Sensors extends MessageHandler {
         }
 
         void handleWakeup(boolean interactive) {
-            if( Constants.DEBUG_SENSORS ) {
+            if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                 Slog.i(TAG,"handleProximitySensorWakeup()");
             }
             if( mPowerManager != null && interactive ) {
@@ -266,7 +266,7 @@ public class Sensors extends MessageHandler {
 
         private void ReleaseWakelock() {
             if (mProximityWakeLock.isHeld()) {
-                if( Constants.DEBUG_SENSORS ) {
+                if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                     Slog.i(TAG,"ProximitySensor: ReleaseWakelock()");
                 }
                 mProximityWakeLock.release();
@@ -276,7 +276,7 @@ public class Sensors extends MessageHandler {
         private void AcquireWakelock(boolean wakeonly) {
             setProximityTimeout(wakeonly);
             if (!mProximityWakeLock.isHeld()) {
-                if( Constants.DEBUG_SENSORS ) {
+                if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                     Slog.i(TAG,"ProximitySensor: AcquireWakelock()");
                 }
                 mProximityWakeLock.acquire();
@@ -310,19 +310,19 @@ public class Sensors extends MessageHandler {
 
         void Initialize() {
             mHallSensor = mSensorManager.getDefaultSensor(SENSOR_HALL_TYPE, true);
-            if( Constants.DEBUG_SENSORS ) {
+            if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                 Slog.i(TAG,"Hall Initialize (wakeup): sensor=" + mHallSensor);
             }
             if( mHallSensor == null ) {
                 mHallSensor = mSensorManager.getDefaultSensor(SENSOR_HALL_TYPE,false);
-                if( Constants.DEBUG_SENSORS ) {
+                if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                     Slog.i(TAG,"Hall Initialize (non-wake): sensor=" + mHallSensor);
                 }
             }
         }
 
         void setHallSensorEnabled(boolean enable) {
-            if( Constants.DEBUG_SENSORS ) {
+            if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                 Slog.i(TAG,"setHallSensorEnabled: enable=" + enable);
             }
             if( mHallSensor == null ) return; 
@@ -342,7 +342,7 @@ public class Sensors extends MessageHandler {
 
         private void handleHallSensorEvent(long time, boolean positive) {
             if (mHallSensorEnabled) {
-                if( Constants.DEBUG_SENSORS ) {
+                if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                     Slog.i(TAG,"handleHallSensorEvent: value=" + positive + ", time=" + time);
                 }
                 handleWakeup(!positive);
@@ -350,7 +350,7 @@ public class Sensors extends MessageHandler {
         }
 
         void handleWakeup(boolean wakeup) {
-            if( Constants.DEBUG_SENSORS ) {
+            if( BaikalConstants.BAIKAL_DEBUG_SENSORS ) {
                 Slog.i(TAG,"handleHallSensorWakeup()");
             }
             if( wakeup ) {

@@ -72,14 +72,14 @@ public class Actions extends MessageHandler {
 
     @Override
     protected void initialize() {
-    	if( Constants.DEBUG_ACTIONS ) Slog.i(TAG,"initialize()");                
+    	if( BaikalConstants.BAIKAL_DEBUG_ACTIONS ) Slog.i(TAG,"initialize()");                
     }
 
     @Override
     public boolean onMessage(Message msg) {
     	switch(msg.what) {
     	    case Messages.MESSAGE_SEND_INTENT:
-        	if( Constants.DEBUG_ACTIONS ) Slog.i(TAG,"sendIntent:" + (Intent)msg.obj);
+        	if( BaikalConstants.BAIKAL_DEBUG_ACTIONS ) Slog.i(TAG,"sendIntent:" + (Intent)msg.obj);
     		sendIntent((Intent)msg.obj);
     		return true;
     	}

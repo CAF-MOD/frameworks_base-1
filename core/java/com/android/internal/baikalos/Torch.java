@@ -47,7 +47,7 @@ public class Torch extends MessageHandler {
 	    } catch (CameraAccessException e) {
 	    }
 	}
-	if( Constants.DEBUG_TORCH ) Slog.i(TAG,"initialize()");                
+	if( BaikalConstants.BAIKAL_DEBUG_TORCH ) Slog.i(TAG,"initialize()");                
     }
 
 

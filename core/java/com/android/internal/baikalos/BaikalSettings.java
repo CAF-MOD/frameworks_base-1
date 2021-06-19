@@ -51,7 +51,7 @@ public class BaikalSettings extends ContentObserver {
     private static Context mContext;
    	private static Object _staticLock = new Object();
 
-    private static long mDebug;
+    private static long mDebug = -1;
 
    	private static boolean mHallSensorEnabled;
    	private static boolean mProximityWakeEnabled;
@@ -183,7 +183,7 @@ public class BaikalSettings extends ContentObserver {
 
         boolean ret = getAppRestrictedInternal(uid,packageName);
 
-        if( ret && Constants.DEBUG_RAW ) {
+        if( ret && BaikalConstants.BAIKAL_DEBUG_RAW ) {
             Slog.e(TAG, "getAppRestricted: ret=" + ret + ", uid=" + uid + ", pkg=" + packageName + ", top=" + mTopAppUid );
         }
         return ret;
@@ -197,7 +197,7 @@ public class BaikalSettings extends ContentObserver {
 
         boolean ret = getAppBlockedInternal(uid,packageName);
 
-        if( ret && Constants.DEBUG_RAW ) {
+        if( ret && BaikalConstants.BAIKAL_DEBUG_RAW ) {
             Slog.e(TAG, "getAppBlocked: ret=" + ret + ", uid=" + uid + ", pkg=" + packageName + ", top=" + mTopAppUid );
         }
         return ret;
@@ -520,13 +520,16 @@ public class BaikalSettings extends ContentObserver {
                 mAlarmsNoWake = Settings.Global.getString(context.getContentResolver(),
                         Settings.Global.BAIKALOS_ALARMS_NOWAKE);
 
-                mDebug = Settings.Global.getLong(context.getContentResolver(),
+                long debug = Settings.Global.getLong(context.getContentResolver(),
                         Settings.Global.BAIKALOS_DEBUG,0);
 
                 mDefaultRotation = Settings.Global.getInt(context.getContentResolver(),
                         Settings.Global.BAIKALOS_DEFAULT_ROTATION,0);
-
-
+            
+                if( debug != mDebug ) {
+                    mDebug = debug;
+                    updateDebug();
+                }
 
                 updateStaticConstantsLocked();
 
@@ -538,7 +541,7 @@ public class BaikalSettings extends ContentObserver {
 
     private static void updateStaticConstantsLocked() {
         //updateFilters();
-        updateDebug();
+        
     }
 
     public void updateConstantsLocked(boolean startup) {
@@ -1024,19 +1027,35 @@ public class BaikalSettings extends ContentObserver {
     }
 
     private static void updateDebug() {
-        if( (mDebug&Constants.DEBUG_MASK_TEMPLATE) !=0 ) Constants.DEBUG_TEMPLATE = true;
-        if( (mDebug&Constants.DEBUG_MASK_SENSORS) !=0 ) Constants.DEBUG_SENSORS = true;
-        if( (mDebug&Constants.DEBUG_MASK_TORCH) !=0 ) Constants.DEBUG_TORCH = true;
-        if( (mDebug&Constants.DEBUG_MASK_TELEPHONY) !=0 ) Constants.DEBUG_TELEPHONY = true;
-        if( (mDebug&Constants.DEBUG_MASK_TELEPHONY_RAW) !=0 ) Constants.DEBUG_TELEPHONY_RAW = true;
-        if( (mDebug&Constants.DEBUG_MASK_BLUETOOTH) !=0 ) Constants.DEBUG_BLUETOOTH = true;
-        if( (mDebug&Constants.DEBUG_MASK_ACTIONS) !=0 ) Constants.DEBUG_ACTIONS = true;
-        if( (mDebug&Constants.DEBUG_MASK_APP_PROFILE) !=0 ) Constants.DEBUG_APP_PROFILE = true;
-        if( (mDebug&Constants.DEBUG_MASK_DEV_PROFILE) !=0 ) Constants.DEBUG_DEV_PROFILE = true;
-        if( (mDebug&Constants.DEBUG_MASK_SERVICES) !=0 ) Constants.DEBUG_SERVICES = true;
-        if( (mDebug&Constants.DEBUG_MASK_ACTIVITY) !=0 ) Constants.DEBUG_ACTIVITY = true;
-        if( (mDebug&Constants.DEBUG_MASK_ALARM) !=0 ) Constants.DEBUG_ALARM = true;
-        if( (mDebug&Constants.DEBUG_MASK_BROADCAST) !=0 ) Constants.DEBUG_BROADCAST = true;
+
+        BaikalConstants.BAIKAL_DEBUG_TEMPLATE = false;
+        BaikalConstants.BAIKAL_DEBUG_SENSORS = false;
+        BaikalConstants.BAIKAL_DEBUG_TORCH = false;
+        BaikalConstants.BAIKAL_DEBUG_TELEPHONY = false;
+        BaikalConstants.BAIKAL_DEBUG_TELEPHONY_RAW = false;
+        BaikalConstants.BAIKAL_DEBUG_BLUETOOTH = false;
+        BaikalConstants.BAIKAL_DEBUG_ACTIONS = false;
+        BaikalConstants.BAIKAL_DEBUG_APP_PROFILE = false;
+        BaikalConstants.BAIKAL_DEBUG_DEV_PROFILE = false;
+        BaikalConstants.BAIKAL_DEBUG_SERVICES = false;
+        BaikalConstants.BAIKAL_DEBUG_ACTIVITY = false;
+        BaikalConstants.BAIKAL_DEBUG_ALARM = false;
+        BaikalConstants.BAIKAL_DEBUG_BROADCAST = false;
+
+        if( (mDebug&BaikalConstants.DEBUG_MASK_ALL) != 0 ) mDebug =0xFFFFFF; 
+        if( (mDebug&BaikalConstants.DEBUG_MASK_TEMPLATE) !=0 ) BaikalConstants.BAIKAL_DEBUG_TEMPLATE = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_SENSORS) !=0 ) BaikalConstants.BAIKAL_DEBUG_SENSORS = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_TORCH) !=0 ) BaikalConstants.BAIKAL_DEBUG_TORCH = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_TELEPHONY) !=0 ) BaikalConstants.BAIKAL_DEBUG_TELEPHONY = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_TELEPHONY_RAW) !=0 ) BaikalConstants.BAIKAL_DEBUG_TELEPHONY_RAW = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_BLUETOOTH) !=0 ) BaikalConstants.BAIKAL_DEBUG_BLUETOOTH = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_ACTIONS) !=0 ) BaikalConstants.BAIKAL_DEBUG_ACTIONS = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_APP_PROFILE) !=0 ) BaikalConstants.BAIKAL_DEBUG_APP_PROFILE = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_DEV_PROFILE) !=0 ) BaikalConstants.BAIKAL_DEBUG_DEV_PROFILE = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_SERVICES) !=0 ) BaikalConstants.BAIKAL_DEBUG_SERVICES = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_ACTIVITY) !=0 ) BaikalConstants.BAIKAL_DEBUG_ACTIVITY = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_ALARM) !=0 ) BaikalConstants.BAIKAL_DEBUG_ALARM = true;
+        if( (mDebug&BaikalConstants.DEBUG_MASK_BROADCAST) !=0 ) BaikalConstants.BAIKAL_DEBUG_BROADCAST = true;
     }
 }
 

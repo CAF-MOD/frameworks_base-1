@@ -16,23 +16,23 @@
 
 package com.android.internal.baikalos;
 
-public class Constants { 
+public class BaikalConstants { 
 
-    public static /*final*/ boolean DEBUG = true;
-    public static /*final*/ boolean DEBUG_RAW = false;
-    public static /*final*/ boolean DEBUG_TEMPLATE = DEBUG | false;
-    public static /*final*/ boolean DEBUG_SENSORS = DEBUG | false;
-    public static /*final*/ boolean DEBUG_TORCH = DEBUG | false;
-    public static /*final*/ boolean DEBUG_TELEPHONY = DEBUG | false;
-    public static /*final*/ boolean DEBUG_TELEPHONY_RAW = DEBUG_RAW | false;
-    public static /*final*/ boolean DEBUG_BLUETOOTH = DEBUG | false;
-    public static /*final*/ boolean DEBUG_ACTIONS = DEBUG | false;
-    public static /*final*/ boolean DEBUG_APP_PROFILE = DEBUG | false;
-    public static /*final*/ boolean DEBUG_DEV_PROFILE = DEBUG | false;
-    public static /*final*/ boolean DEBUG_SERVICES = DEBUG | false;
-    public static /*final*/ boolean DEBUG_ACTIVITY = DEBUG | false;
-    public static /*final*/ boolean DEBUG_ALARM = DEBUG | false;
-    public static /*final*/ boolean DEBUG_BROADCAST = DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG = true;
+    public static /*final*/ boolean BAIKAL_DEBUG_RAW = false;
+    public static /*final*/ boolean BAIKAL_DEBUG_TEMPLATE = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_SENSORS = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_TORCH = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_TELEPHONY = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_TELEPHONY_RAW = BAIKAL_DEBUG_RAW | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_BLUETOOTH = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_ACTIONS = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_APP_PROFILE = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_DEV_PROFILE = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_SERVICES = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_ACTIVITY = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_ALARM = BAIKAL_DEBUG | false;
+    public static /*final*/ boolean BAIKAL_DEBUG_BROADCAST = BAIKAL_DEBUG | false;
 
     public static final int MESSAGE_MIN = 10000;
 
@@ -49,7 +49,7 @@ public class Constants {
     public static final int MESSAGE_MAX = MESSAGE_DEV_PROFILE + 1000;
 
 
-    public static final int DEBUG_MASK_ALL = 0xFFFF;
+    public static final int DEBUG_MASK_ALL = 0x0001;
     public static final int DEBUG_MASK_TEMPLATE = 0x0002;
     public static final int DEBUG_MASK_SENSORS = 0x0004;
     public static final int DEBUG_MASK_TORCH = 0x0008;
@@ -63,4 +63,5 @@ public class Constants {
     public static final int DEBUG_MASK_ACTIVITY = 0x0800;
     public static final int DEBUG_MASK_ALARM = 0x1000;
     public static final int DEBUG_MASK_BROADCAST = 0x2000;
+
 }

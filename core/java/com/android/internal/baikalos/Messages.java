@@ -18,10 +18,10 @@ package com.android.internal.baikalos;
 
 public class Messages { 
 
-    public static final int MESSAGE_SEND_INTENT = Constants.MESSAGE_ACTIONS;
+    public static final int MESSAGE_SEND_INTENT = BaikalConstants.MESSAGE_ACTIONS;
 
-    public static final int MESSAGE_SETTINGS_UPDATE = Constants.MESSAGE_SETTINGS;
-    public static final int MESSAGE_SENSOR_PROXIMITY_TIMEOUT = Constants.MESSAGE_SENSORS;
+    public static final int MESSAGE_SETTINGS_UPDATE = BaikalConstants.MESSAGE_SETTINGS;
+    public static final int MESSAGE_SENSOR_PROXIMITY_TIMEOUT = BaikalConstants.MESSAGE_SENSORS;
 
 
 }
