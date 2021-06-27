@@ -705,12 +705,12 @@ static void SetCapabilities(uint64_t permitted, uint64_t effective, uint64_t inh
 static void SetSchedulerPolicy(fail_fn_t fail_fn, bool is_top_app) {
   SchedPolicy policy = is_top_app ? SP_TOP_APP : SP_DEFAULT;
 
-  //if (/*is_top_app &&*/ cpusets_enabled()) {
+  if (is_top_app && cpusets_enabled()) {
     errno = -set_cpuset_policy(0, policy);
     if (errno != 0) {
       fail_fn(CREATE_ERROR("set_cpuset_policy(0, %d) failed: %s", policy, strerror(errno)));
     }
-  //}
+  }
 
   errno = -set_sched_policy(0, policy);
   if (errno != 0) {
