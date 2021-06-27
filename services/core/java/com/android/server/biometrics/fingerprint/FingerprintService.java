@@ -123,7 +123,9 @@ public class FingerprintService extends BiometricServiceBase {
     private IBiometricService mBiometricService;
 
     public boolean isScreenOnWhenFingerdown = false;
-    public long mOpId;
+
+    AuthenticationClientImpl mClient = null;
+    public long mOpId = -1;
     public String mOpPackage;
     BiometricAuthenticator.Identifier identifier;
     ArrayList<Byte> token;
@@ -148,23 +150,20 @@ public class FingerprintService extends BiometricServiceBase {
     }
 
  
-        AuthenticationClientImpl mClient = null;
-        String mOpPackageName = null;
-        long mOpId = -1;
 
-        @Override
-        protected void authenticateInternal(AuthenticationClientImpl client, long opId,
-                String opPackageName) {
-            final int callingUid = Binder.getCallingUid();
-            final int callingPid = Binder.getCallingPid();
-            final int callingUserId = UserHandle.getCallingUserId();
-            
-            mClient = client;
-            mOpPackageName = opPackageName;
-            mOpId = opId;
+    @Override
+    protected void authenticateInternal(AuthenticationClientImpl client, long opId,
+            String opPackageName) {
+        final int callingUid = Binder.getCallingUid();
+        final int callingPid = Binder.getCallingPid();
+        final int callingUserId = UserHandle.getCallingUserId();
+        
+        mClient = client;
+        mOpPackage = opPackageName;
+        mOpId = opId;
 
-            authenticateInternal(client, opId, opPackageName, callingUid, callingPid, callingUserId);
-        }
+        authenticateInternal(client, opId, opPackageName, callingUid, callingPid, callingUserId);
+    }
 
 
     private final class FingerprintAuthClient extends AuthenticationClientImpl {

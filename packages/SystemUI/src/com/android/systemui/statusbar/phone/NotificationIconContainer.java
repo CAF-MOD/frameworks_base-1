@@ -28,6 +28,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Icon;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Property;
 import android.view.View;
@@ -171,6 +172,10 @@ public class NotificationIconContainer extends AlphaOptimizedFrameLayout {
     private Rect mIsolatedIconLocation;
     private int[] mAbsolutePosition = new int[2];
     private View mIsolatedIconForAnimation;
+
+    private boolean mColorizedIcons = Settings.Global.getInt(mContext.getContentResolver(),
+            Settings.Global.BAIKALOS_STATUSBAR_COLOR_ICONS, 0) == 1;
+
 
     public NotificationIconContainer(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -825,7 +830,10 @@ public class NotificationIconContainer extends AlphaOptimizedFrameLayout {
         public void initFrom(View view) {
             super.initFrom(view);
             if (view instanceof StatusBarIconView) {
-                iconColor = ((StatusBarIconView) view).getStaticDrawableColor();
+                StatusBarIconView icon = (StatusBarIconView) view;
+                if (icon.getStatusBarIcon().pkg.contains("systemui") || !mColorizedIcons) {
+                    iconColor = ((StatusBarIconView) view).getStaticDrawableColor();
+                }
             }
         }
     }

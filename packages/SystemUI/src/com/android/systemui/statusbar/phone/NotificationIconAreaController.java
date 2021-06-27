@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -83,6 +84,8 @@ public class NotificationIconAreaController implements DarkReceiver,
     private boolean mIsPulsing;
     private boolean mShowLowPriority = true;
 
+    private boolean mColorizedIcons;
+
     @VisibleForTesting
     final NotificationListener.NotificationSettingsListener mSettingsListener =
             new NotificationListener.NotificationSettingsListener() {
@@ -120,6 +123,9 @@ public class NotificationIconAreaController implements DarkReceiver,
 
         initializeNotificationAreaViews(context);
         reloadAodColor();
+
+        mColorizedIcons = Settings.Global.getInt(mContext.getContentResolver(),
+            Settings.Global.BAIKALOS_STATUSBAR_COLOR_ICONS, 0) == 1;
     }
 
     protected View inflateIconArea(LayoutInflater inflater) {
@@ -516,8 +522,11 @@ public class NotificationIconAreaController implements DarkReceiver,
         if (colorize) {
             color = DarkIconDispatcher.getTint(mTintArea, v, tint);
         }
-        v.setStaticDrawableColor(color);
-        v.setDecorColor(tint);
+
+        if (v.getStatusBarIcon().pkg.contains("systemui") || !mColorizedIcons) {
+            v.setStaticDrawableColor(color);
+            v.setDecorColor(tint);  
+        }
     }
 
     /**

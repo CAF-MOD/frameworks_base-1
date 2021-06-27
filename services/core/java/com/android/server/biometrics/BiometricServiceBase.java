@@ -687,8 +687,8 @@ public abstract class BiometricServiceBase extends SystemService
         mPostResetRunnableForAllClients = mContext.getResources().getBoolean(
                 com.android.internal.R.bool
                         .config_fingerprintPostResetRunnableForAllClients);
-        mHasPowerButtonFingerprint = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_powerButtonFingerprint);
+        mHasPowerButtonFingerprint = false; //mContext.getResources().getBoolean(
+                //com.android.internal.R.bool.config_powerButtonFingerprint);
     }
 
     @Override
