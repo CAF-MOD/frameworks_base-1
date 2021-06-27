@@ -321,6 +321,12 @@ void android_os_Process_setProcessGroup(JNIEnv* env, jobject clazz, int pid, jin
 
         if (isDefault) {
             if (t_pri >= ANDROID_PRIORITY_BACKGROUND) {
+                grp = SP_BACKGROUND;
+            } else {     
+                grp = SP_FOREGROUND;
+            }
+
+                    
                 // This task wants to stay at background
                 // update its cpuset so it doesn't only run on bg core(s)
                 err = SetTaskProfiles(t_pid, {get_cpuset_policy_profile_name((SchedPolicy)grp)}, true) ? 0 : -1;
@@ -329,7 +335,7 @@ void android_os_Process_setProcessGroup(JNIEnv* env, jobject clazz, int pid, jin
                     break;
                 }
                 continue;
-            }
+            //}
         }
 
         err = SetTaskProfiles(t_pid, {get_cpuset_policy_profile_name((SchedPolicy)grp)}, true) ? 0 : -1;
