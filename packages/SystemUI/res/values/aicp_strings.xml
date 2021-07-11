@@ -347,4 +347,13 @@
     <!-- Navigation bar dpad -->
     <string name="accessibility_dpad_left">Cursor left</string>
     <string name="accessibility_dpad_right">Cursor right</string>
+
+    <!-- Oneplus Numbers clock -->
+    <string name="clock_title_oneplus_numbers" translatable="false">OnePlus Numbers</string>
+
+    <!-- Oneplus Analog clock -->
+    <string name="clock_title_oneplus_minimal" translatable="false">OnePlus Minimal</string>
+
+    <!-- Oneplus Analog clock -->
+    <string name="clock_title_oneplus_roman" translatable="false">OnePlus Roman</string>
 </resources>

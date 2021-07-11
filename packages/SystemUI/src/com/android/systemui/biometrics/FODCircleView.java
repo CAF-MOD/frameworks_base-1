@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2019-2020 The LineageOS Project
+ * Copyright (C) 2021 Android Ice Cold Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +17,26 @@
 
 package com.android.systemui.biometrics;
 
+import android.app.WallpaperColors;
+import android.app.WallpaperManager;
+import android.content.ContentResolver;
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.biometrics.BiometricSourceType;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.view.Display;
 import android.view.Gravity;
@@ -37,6 +45,7 @@ import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import androidx.palette.graphics.Palette;
 
 import com.android.internal.widget.LockPatternUtils;
 import com.android.keyguard.KeyguardSecurityModel.SecurityMode;
@@ -87,6 +96,9 @@ public class FODCircleView extends ImageView {
     private LockPatternUtils mLockPatternUtils;
 
     private Timer mBurnInProtectionTimer;
+
+    private WallpaperManager mWallManager;
+    private int iconcolor = 0xFF3980FF;
 
     private IFingerprintInscreenCallback mFingerprintInscreenCallback =
             new IFingerprintInscreenCallback.Stub() {
@@ -375,13 +387,139 @@ public class FODCircleView extends ImageView {
     public void hideCircle() {
         mIsCircleShowing = false;
 
-        setImageResource(R.drawable.fod_icon_default);
+        setFODIcon();
         invalidate();
 
         dispatchRelease();
         setDim(false);
 
         setKeepScreenOn(false);
+    }
+
+    private boolean useWallpaperColor() {
+        return Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.FOD_ICON_WALLPAPER_COLOR, 0) != 0;
+    }
+
+    private int getFODIcon() {
+        return Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.FOD_ICON, 0);
+    }
+
+    private void setFODIcon() {
+        int fodicon = getFODIcon();
+
+        switch (fodicon){
+            case 0:
+                this.setImageResource(R.drawable.fod_icon_aicp);
+                break;
+            case 1:
+                this.setImageResource(R.drawable.fod_icon_aicp_1);
+                break;
+            case 2:
+                this.setImageResource(R.drawable.fod_icon_aicp_2);
+                break;
+            case 3:
+                this.setImageResource(R.drawable.fod_icon_default);
+                break;
+            case 4:
+                this.setImageResource(R.drawable.fod_icon_default_1);
+                break;
+            case 5:
+                this.setImageResource(R.drawable.fod_icon_default_2);
+                break;
+            case 6:
+                this.setImageResource(R.drawable.fod_icon_default_3);
+                break;
+            case 7:
+                this.setImageResource(R.drawable.fod_icon_default_4);
+                break;
+            case 8:
+                this.setImageResource(R.drawable.fod_icon_default_5);
+                break;
+            case 9:
+                this.setImageResource(R.drawable.fod_icon_arc_reactor);
+                break;
+            case 10:
+                this.setImageResource(R.drawable.fod_icon_cpt_america_flat);
+                break;
+            case 11:
+                this.setImageResource(R.drawable.fod_icon_cpt_america_flat_gray);
+                break;
+            case 12:
+                this.setImageResource(R.drawable.fod_icon_dragon_black_flat);
+                break;
+            case 13:
+                this.setImageResource(R.drawable.fod_icon_future);
+                break;
+            case 14:
+                this.setImageResource(R.drawable.fod_icon_glow_circle);
+                break;
+            case 15:
+                this.setImageResource(R.drawable.fod_icon_neon_arc);
+                break;
+            case 16:
+                this.setImageResource(R.drawable.fod_icon_neon_arc_gray);
+                break;
+            case 17:
+                this.setImageResource(R.drawable.fod_icon_neon_circle_pink);
+                break;
+            case 18:
+                this.setImageResource(R.drawable.fod_icon_neon_triangle);
+                break;
+            case 19:
+                this.setImageResource(R.drawable.fod_icon_paint_splash_circle);
+                break;
+            case 20:
+                this.setImageResource(R.drawable.fod_icon_rainbow_horn);
+                break;
+            case 21:
+                this.setImageResource(R.drawable.fod_icon_shooky);
+                break;
+            case 22:
+                this.setImageResource(R.drawable.fod_icon_spiral_blue);
+                break;
+            case 23:
+                this.setImageResource(R.drawable.fod_icon_sun_metro);
+                break;
+        } 
+        this.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+
+        if (useWallpaperColor()) {
+            try {
+                WallpaperManager wallpaperManager = WallpaperManager.getInstance(mContext);
+                Drawable wallpaperDrawable = wallpaperManager.getDrawable();
+                Bitmap bitmap = ((BitmapDrawable)wallpaperDrawable).getBitmap();
+                if (bitmap != null) {
+                    Palette p = Palette.from(bitmap).generate();
+                    int wallColor = p.getDominantColor(iconcolor);
+                    if (iconcolor != wallColor) {
+                        iconcolor = wallColor;
+                    }
+                    this.setColorFilter(lighter(iconcolor, 3));
+                }
+            } catch (Exception e) {
+                // Nothing to do
+            }
+        } else {
+            this.setColorFilter(null);
+        }
+    }
+
+    private static int lighter(int color, int factor) {
+        int red = Color.red(color);
+        int green = Color.green(color);
+        int blue = Color.blue(color);
+
+        blue = blue * factor;
+        green = green * factor;
+        blue = blue * factor;
+
+        blue = blue > 255 ? 255 : blue;
+        green = green > 255 ? 255 : green;
+        red = red > 255 ? 255 : red;
+
+        return Color.argb(Color.alpha(color), red, green, blue);
     }
 
     public void show() {
