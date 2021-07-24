@@ -184,20 +184,19 @@ public final class BatteryService extends SystemService {
     private boolean mBatteryLevelLow;
 
     private boolean mDashCharger;
-    private boolean mHasDashCharger;
     private boolean mLastDashCharger;
 
     private boolean mWarpCharger;
-    private boolean mHasWarpCharger;
     private boolean mLastWarpCharger;
 
     private boolean mVoocCharger;
-    private boolean mHasVoocCharger;
     private boolean mLastVoocCharger;
 
     private boolean mTurboPower;
-    private boolean mHasTurboPower;
     private boolean mLastTurboPower;
+
+    private boolean mOemFastCharger;
+    private boolean mLastOemFastCharger;
 
     private long mDischargeStartTime;
     private int mDischargeStartLevel;
@@ -254,15 +253,6 @@ public final class BatteryService extends SystemService {
         mLed = new Led(context, getLocalService(LightsManager.class));
         mBatteryStats = BatteryStatsService.getService();
         mActivityManagerInternal = LocalServices.getService(ActivityManagerInternal.class);
-
-        mHasDashCharger = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_hasDashCharger);
-        mHasWarpCharger = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_hasWarpCharger);
-        mHasVoocCharger = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_hasVoocCharger);
-        mHasTurboPower = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_hasTurboPowerCharger);
 
         mCriticalBatteryLevel = mContext.getResources().getInteger(
                 com.android.internal.R.integer.config_criticalBatteryWarningLevel);
@@ -698,10 +688,11 @@ public final class BatteryService extends SystemService {
         shutdownIfNoPowerLocked();
         shutdownIfOverTempLocked();
 
-        mDashCharger = mHasDashCharger && isDashCharger();
-        mWarpCharger = mHasWarpCharger && isWarpCharger();
-        mVoocCharger = mHasVoocCharger && isVoocCharger();
-        mTurboPower = mHasTurboPower && isTurboPower();
+        mDashCharger = isDashCharger();
+        mWarpCharger = isWarpCharger();
+        mVoocCharger = isVoocCharger();
+        mTurboPower = isTurboPower();
+        mOemFastCharger = isOemFastCharger();
 
         if (force || (mHealthInfo.batteryStatus != mLastBatteryStatus ||
                 mHealthInfo.batteryHealth != mLastBatteryHealth ||
@@ -718,6 +709,7 @@ public final class BatteryService extends SystemService {
                 mWarpCharger != mLastWarpCharger ||
                 mVoocCharger != mLastVoocCharger ||
                 mTurboPower != mLastTurboPower ||
+                mOemFastCharger != mLastOemFastCharger ||
                 mBatteryModProps.modLevel != mLastModLevel ||
                 mBatteryModProps.modStatus != mLastModStatus ||
                 mBatteryModProps.modFlag != mLastModFlag ||
@@ -897,12 +889,12 @@ public final class BatteryService extends SystemService {
             mLastWarpCharger = mWarpCharger;
             mLastVoocCharger = mVoocCharger;
             mLastTurboPower = mTurboPower;
+            mLastOemFastCharger = mOemFastCharger;
             mLastModLevel = mBatteryModProps.modLevel;
             mLastModStatus = mBatteryModProps.modStatus;
             mLastModFlag = mBatteryModProps.modFlag;
             mLastModType = mBatteryModProps.modType;
             mLastModPowerSource = mBatteryModProps.modPowerSource;
-
         }
     }
 
@@ -934,6 +926,7 @@ public final class BatteryService extends SystemService {
         intent.putExtra(BatteryManager.EXTRA_WARP_CHARGER, mWarpCharger);
         intent.putExtra(BatteryManager.EXTRA_VOOC_CHARGER, mVoocCharger);
         intent.putExtra(BatteryManager.EXTRA_TURBO_POWER, mTurboPower);
+        intent.putExtra(BatteryManager.EXTRA_OEM_FAST_CHARGER, mOemFastCharger);
         intent.putExtra(BatteryManager.EXTRA_MOD_LEVEL, mBatteryModProps.modLevel);
         intent.putExtra(BatteryManager.EXTRA_MOD_STATUS, mBatteryModProps.modStatus);
         intent.putExtra(BatteryManager.EXTRA_MOD_FLAG, mBatteryModProps.modFlag);
@@ -1046,6 +1039,21 @@ public final class BatteryService extends SystemService {
             return "Turbo".equals(state);
         } catch (FileNotFoundException e) {
         } catch (IOException e) {
+        }
+        return false;
+    }
+
+    private boolean isOemFastCharger() {
+        for (String path : mContext.getResources().getStringArray(
+                com.android.internal.R.array.config_oemFastChargerStatusPaths)) {
+            try {
+                if ("1".equals(FileUtils.readTextFile(new File(path), 1, null))) {
+                    return true;
+                }
+            } catch (IOException e) {
+                Slog.e(TAG, "Failed to read oem fast charger status path: "
+                    + path);
+            }
         }
         return false;
     }

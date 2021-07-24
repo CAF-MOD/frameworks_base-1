@@ -2125,7 +2125,7 @@ public final class SystemServer {
                 t.traceEnd();
             }
 
-            // LiveDisplay
+            // Lineage services
             if (!mOnlyCore){
                 t.traceBegin("StartLineageHardwareService");
                 mSystemServiceManager.startService(LineageHardwareService.class);

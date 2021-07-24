@@ -111,9 +111,13 @@
     <string name="keyguard_indication_vooc_charging_time"><xliff:g id="percentage">%2$s</xliff:g> • VOOC Charging (<xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g> until full)</string>
     <string name="keyguard_plugged_in_vooc_charging"><xliff:g id="percentage">%s</xliff:g> • VOOC Charging</string>
 
-    <!-- Indication on the keyguard that is shown when the device is charging with a turbo power charger. Should match keyguard_plugged_in_turbo_power_charging [CHAR LIMIT=40]-->
+    <!-- Indication on the keyguard that is shown when the device is charging with a turbo power charger. Should match keyguard_plugged_in_turbo_charging [CHAR LIMIT=40]-->
     <string name="keyguard_indication_turbo_power_time"><xliff:g id="percentage">%2$s</xliff:g> • Turbo Charging (<xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g> until full)</string>
     <string name="keyguard_plugged_in_turbo_charging"><xliff:g id="percentage">%s</xliff:g> • Turbo Charging</string>
+
+    <!-- Indication on the keyguard that is shown when the device is charging with an oem fast power charger. Should match keyguard_plugged_in_turbo_charging [CHAR LIMIT=40]-->
+    <string name="keyguard_indication_oem_power_time"><xliff:g id="percentage">%2$s</xliff:g> • Fast Charging (<xliff:g id="charging_time_left" example="4 hours and 2 minutes">%1$s</xliff:g> until full)</string>
+    <string name="keyguard_plugged_in_oem_charging"><xliff:g id="percentage">%s</xliff:g> • Fast Charging</string>
 
     <!-- Heads up QS tile -->
     <string name="quick_settings_heads_up_label">Heads up</string>
@@ -182,7 +186,8 @@
 
     <!-- Screenshot QS tile -->
     <string name="quick_settings_screenshot_label">Screenshot</string>
-    <string name="quick_settings_region_screenshot_label">Partial screenshot</string>
+    <string name="quick_settings_full_screenshot_label">Full</string>
+    <string name="quick_settings_region_screenshot_label">Partial</string>
 
     <string name="tuner_show_brightness_mode">Show brightness mode switch</string>
     <string name="tuner_show_brightness_side_buttons">Show brightness slider side buttons</string>
@@ -319,8 +324,8 @@
     <string name="quick_settings_powershare_enabled_label">Wireless PowerShare is enabled</string>
 
     <!-- Screenrecord options -->
-    <string name="screenrecord_stopdot_label">Show stop dot\nLongpress to move it</string>
-    <string name="screenrecord_lowquality_label">Lower quality for smaller file size</string>
+    <string name="screenrecord_stopdot_label">Show dot to stop recording</string>
+    <string name="screenrecord_lowquality_label">Lower recording quality</string>
 
     <!-- Text to use when the number in a notification info is too large
          (greater than status_bar_notification_info_maxnum, defined in
@@ -356,4 +361,7 @@
 
     <!-- Oneplus Analog clock -->
     <string name="clock_title_oneplus_roman" translatable="false">OnePlus Roman</string>
+
+   <!-- Change clockface -->
+   <string name="change_clock_face">Swipe to change the clock face</string>
 </resources>

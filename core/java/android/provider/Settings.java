@@ -7148,6 +7148,31 @@ public final class Settings {
          */
         public static final String CLIPBOARD_TOAST_INFO = "clipboard_toast_info";
 
+        /**
+         * Whether to use the Android 11 searchbar in settings, the value is boolean.
+         * 0 = 0ff, 1 = on
+         */
+        public static final String USE_NEW_SEARCHBAR = "use_new_searchbar";
+
+        /**
+         * Custom vibration pattern
+         * format: ms,ms,ms each a range from 0 to 1000 ms
+         * @hide
+         */
+        public static final String CUSTOM_RINGTONE_VIBRATION_PATTERN = "custom_ringtone_vibration_pattern";
+
+        /**
+         * Which Vibration Pattern to use
+         * 0: dzzz-dzzz
+         * 1: dzzz-da
+         * 2: mm-mm-mm
+         * 3: da-da-dzzz
+         * 4: da-dzzz-da
+         * 5: custom
+         * @hide
+         */
+        public static final String RINGTONE_VIBRATION_PATTERN = "ringtone_vibration_pattern";
+
         /***************************
          * AICP System Settings end
          ***************************/
@@ -7420,6 +7445,9 @@ public final class Settings {
             AICP_SETTINGS_VALIDATORS.put(CLIPBOARD_TOAST_INFO, ANY_INTEGER_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(FOD_ICON, ANY_INTEGER_VALIDATOR);
             AICP_SETTINGS_VALIDATORS.put(FOD_ICON_WALLPAPER_COLOR, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(USE_NEW_SEARCHBAR, BOOLEAN_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(RINGTONE_VIBRATION_PATTERN, ANY_INTEGER_VALIDATOR);
+            AICP_SETTINGS_VALIDATORS.put(CUSTOM_RINGTONE_VIBRATION_PATTERN, ANY_STRING_VALIDATOR);
         }
 
         /**
@@ -8690,10 +8718,11 @@ public final class Settings {
          */
         public static final String LOCK_SHOW_ERROR_PATH = "lock_pattern_show_error_path";
 
-         /**
-         * @hide.
+        /**
+         * Should directly show unlock screen
+         * @hide
          */
-        public static final String LOCK_PASS_TO_SECURITY_VIEW = "lock_screen_pass_to_security_view";
+        public static final String LOCK_PASS_TO_SECURITY_VIEW = "lock_pass_to_security_view";
 
         /**
          * This preference allows the device to be locked given time after screen goes off,
@@ -16238,6 +16267,30 @@ public final class Settings {
          * @hide
          */
         public static final String SCREEN_STATE_ON_DELAY = "screen_state_on_delay";
+
+        /**
+         * Enable blocking wakelock
+         * @hide
+         */
+        public static final String WAKELOCK_BLOCKING_ENABLED = "wakelock_blocking_enabled";
+
+         /**
+         * List of wakelock blocks selected
+         * @hide
+         */
+        public static final String WAKELOCK_BLOCKING_LIST = "wakelock_blocking_list";
+
+        /**
+         * List of alarms blocks selected
+         * @hide
+         */
+        public static final String ALARM_BLOCKING_LIST = "alarm_blocking_list";
+
+        /**
+         * Enable blocking alarm
+         * @hide
+         */
+        public static final String ALARM_BLOCKING_ENABLED = "alarm_blocking_enabled";
 
         /***************************
          * AICP Global Settings end

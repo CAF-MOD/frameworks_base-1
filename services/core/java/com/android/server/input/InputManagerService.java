@@ -77,6 +77,7 @@ import android.view.InputDevice;
 import android.view.InputEvent;
 import android.view.InputMonitor;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.PointerIcon;
 import android.view.Surface;
 import android.view.VerifiedInputEvent;
@@ -2004,6 +2005,7 @@ public class InputManagerService extends IInputManager.Stub
     final boolean filterInputEvent(InputEvent event, int policyFlags) {
         synchronized (mInputFilterLock) {
             if (mInputFilter != null) {
+                mInputFilterHost.setPreFilterEventLocked(event);
                 try {
                     mInputFilter.filterInputEvent(event, policyFlags);
                 } catch (RemoteException e) {
@@ -2066,8 +2068,7 @@ public class InputManagerService extends IInputManager.Stub
         };
         for (File baseDir: baseDirs) {
             File confFile = new File(baseDir, EXCLUDED_DEVICES_PATH);
-            try {
-                InputStream stream = new FileInputStream(confFile);
+            try (InputStream stream = new FileInputStream(confFile)) {
                 names.addAll(ConfigurationProcessor.processExcludedDeviceNames(stream));
             } catch (FileNotFoundException e) {
                 // It's ok if the file does not exist.
@@ -2100,8 +2101,7 @@ public class InputManagerService extends IInputManager.Stub
         final File baseDir = Environment.getVendorDirectory();
         final File confFile = new File(baseDir, PORT_ASSOCIATIONS_PATH);
 
-        try {
-            final InputStream stream = new FileInputStream(confFile);
+        try (final InputStream stream = new FileInputStream(confFile)) {
             return ConfigurationProcessor.processInputPortAssociations(stream);
         } catch (FileNotFoundException e) {
             // Most of the time, file will not exist, which is expected.
@@ -2213,10 +2213,10 @@ public class InputManagerService extends IInputManager.Stub
             @Override
             public void visitKeyboardLayout(Resources resources,
                     int keyboardLayoutResId, KeyboardLayout layout) {
-                try {
+                try (final InputStreamReader stream = new InputStreamReader(
+                               resources.openRawResource(keyboardLayoutResId))) {
                     result[0] = layout.getDescriptor();
-                    result[1] = Streams.readFully(new InputStreamReader(
-                            resources.openRawResource(keyboardLayoutResId)));
+                    result[1] = Streams.readFully(stream);
                 } catch (IOException ex) {
                 } catch (NotFoundException ex) {
                 }
@@ -2350,6 +2350,7 @@ public class InputManagerService extends IInputManager.Stub
      */
     private final class InputFilterHost extends IInputFilterHost.Stub {
         private boolean mDisconnected;
+        private InputEvent mPreFilterEvent;
 
         public void disconnectLocked() {
             mDisconnected = true;
@@ -2363,12 +2364,36 @@ public class InputManagerService extends IInputManager.Stub
 
             synchronized (mInputFilterLock) {
                 if (!mDisconnected) {
+                    if (isEventEqual(event, mPreFilterEvent)) {
+                        policyFlags |= WindowManagerPolicy.FLAG_INJECTED_IS_UNCHANGED;
+                        setPreFilterEventLocked(null);
+                    } else {
+                        policyFlags &= ~WindowManagerPolicy.FLAG_INJECTED_IS_UNCHANGED;
+                    }
+
                     nativeInjectInputEvent(mPtr, event, 0, 0,
                             InputManager.INJECT_INPUT_EVENT_MODE_ASYNC, 0,
                             policyFlags | WindowManagerPolicy.FLAG_FILTERED);
                 }
             }
         }
+
+        private void setPreFilterEventLocked(InputEvent event) {
+            if (mPreFilterEvent != null) {
+                mPreFilterEvent.recycle();
+            }
+            mPreFilterEvent = event != null ? event.copy() : null;
+        }
+    }
+
+    private boolean isEventEqual(InputEvent a, InputEvent b) {
+        if (a instanceof KeyEvent && b instanceof KeyEvent) {
+            return ((KeyEvent) a).equals((KeyEvent) b);
+        }
+        if (a instanceof MotionEvent && b instanceof MotionEvent) {
+            return ((MotionEvent) a).equals((MotionEvent) b);
+        }
+        return false;
     }
 
     /**

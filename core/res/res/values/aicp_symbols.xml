@@ -54,9 +54,6 @@
   <!-- In-display Fingerprint -->
   <java-symbol type="bool" name="config_supportsInDisplayFingerprint" />
 
-  <!-- Whether device has dash charging support -->
-  <java-symbol type="bool" name="config_hasDashCharger" />
-
   <!-- Cleanup unused fingerprints -->
   <java-symbol type="bool" name="config_cleanupUnusedFingerprints" />
   <java-symbol type="bool" name="config_fingerprintPostResetRunnableForAllClients" />
@@ -87,15 +84,6 @@
 
   <!-- Rotation sensor -->
   <java-symbol type="bool" name="config_useSystemClockforRotationSensor" />
-
-  <!-- Whether device has warp charging support -->
-  <java-symbol type="bool" name="config_hasWarpCharger" />
-
-  <!-- Whether device has VOOC charging support -->
-  <java-symbol type="bool" name="config_hasVoocCharger" />
-
-  <!-- Whether device has turbo power charging support -->
-  <java-symbol type="bool" name="config_hasTurboPowerCharger" />
 
   <!-- Toast Animation -->
   <java-symbol type="style" name="Animation.Toast.Fade" />
@@ -130,10 +118,7 @@
   <java-symbol type="string" name="url_copy_failed" />
 
   <!-- Pocket Lock -->
-  <java-symbol type="layout" name="pocket_lock_view_layout" />
-  <java-symbol type="id" name="pocket_hint_container" />
-  <java-symbol type="id" name="pocket_hint_image" />
-  <java-symbol type="id" name="pocket_hint_message" />
+  <java-symbol type="layout" name="pocket_lock_view" />
 
   <!-- Pocket bridge -->
   <java-symbol type="string" name="config_pocketBridgeSysfsInpocket" />
@@ -303,4 +288,7 @@
   <!-- Clipboard access toast -->
   <java-symbol type="string" name="app_clipboard_access_denied" />
   <java-symbol type="string" name="app_clipboard_access_granted" />
+
+  <!-- Path to fast charging status file to detect whether an oem fast charger is active -->
+  <java-symbol type="array" name="config_oemFastChargerStatusPaths" />
 </resources>
