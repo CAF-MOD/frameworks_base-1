@@ -32,5 +32,9 @@ public class BaikalSpoofer {
         new SpoofDeviceInfo("OnePlus8T","KB2005","OnePlus","OnePlus 8T" ),
         new SpoofDeviceInfo("OnePlus8Pro","IN2025","OnePlus","OnePlus 8 Pro" ),
         new SpoofDeviceInfo("WW_I001D", "ASUS_I001D","asus", "ASUS ROG2"),
+        new SpoofDeviceInfo("XQ-AS52", "XQ-AS52","Sony", "Sony Xperia 2 5G (Europe)"),
+        new SpoofDeviceInfo("XQ-AS72", "XQ-AS72","Sony", "Sony Xperia 2 5G (Asia)"),
+        new SpoofDeviceInfo("SM-G9880", "SM-G9880","Samsung", "Samsung S20 Ultra 5G"),
+        new SpoofDeviceInfo("Mi 10 Pro", "Mi 10 Pro","Xiaomi", "Xiaomi Mi 10 Pro"),
     };
 }
