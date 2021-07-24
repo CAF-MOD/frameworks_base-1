@@ -171,7 +171,7 @@ public class LockIcon extends KeyguardAffordanceView {
         int iconRes = isAnim ? getThemedAnimationResId(lockAnimIndex) : getIconForState(newState);
 
         if (!mDrawableCache.contains(iconRes)) {
-            mDrawableCache.put(iconRes, getResources().getDrawable(iconRes));
+            mDrawableCache.put(iconRes, getResources().getDrawable(iconRes, getContext().getTheme()));
         }
 
         return mDrawableCache.get(iconRes);
