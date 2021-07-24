@@ -88,6 +88,8 @@ public class BaikalSettings extends ContentObserver {
 
     private static String mSbcBitrateString;
 
+    private static boolean mKeepOn;
+
     private static int mTopAppUid;
     private static String mTopAppPackageName;
 
@@ -97,6 +99,13 @@ public class BaikalSettings extends ContentObserver {
 
     private static boolean mIdleMode;
 
+    public static boolean getKeepOn() {
+        return mKeepOn;
+    }
+
+    public static void setKeepOn(boolean keepOn) {
+        mKeepOn = keepOn;
+    }
 
     public static boolean getScreenOn() {
         return mScreenOn;
@@ -884,11 +893,11 @@ public class BaikalSettings extends ContentObserver {
             updateAudioDatabaseLocked(getContext());
 
             if( !mAudioDatabase.containsKey(uid) ) {
-                Slog.i(TAG, "audio: block focus send is not set: uid=" + uid);
+                Slog.i(TAG, "audio: force sonification is not set: uid=" + uid);
                 return false;
             }
             AudioEntry ad = mAudioDatabase.get(uid);
-            Slog.i(TAG, "audio: block focus send:uid=" + ad.mUid + ", rc="  + ad.mForceSonification);
+            Slog.i(TAG, "audio: force sonification :uid=" + ad.mUid + ", rc="  + ad.mForceSonification);
             return ad.mForceSonification;
         }
     }
