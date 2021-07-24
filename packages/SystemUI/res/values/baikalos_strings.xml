@@ -35,7 +35,7 @@
     <string name="quick_settings_torch_incall_label">Torch on Call</string>
 
     <!-- Refresh Rate Info tile -->
-    <string name="quick_settings_rrinfo_label">Fefresh Rate</string>
+    <string name="quick_settings_rrinfo_label">Refresh Rate</string>
     <string name="accessibility_quick_settings_rrinfo_off">Refresh Rate Info off</string>
     <string name="accessibility_quick_settings_rrinfo_on">Refresh Rate Info on</string>
 
