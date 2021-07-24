@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.provider.Settings.Global;
 import android.service.quicksettings.Tile;
@@ -117,7 +118,7 @@ public class RRInfoTile extends QSTileImpl<BooleanState> {
 
     @Override
     public boolean isAvailable() {
-        return true;
+        return SystemProperties.get("sys.baikal.var_fps", "1").equals("1");
     }
 
     @Override
