@@ -65,7 +65,7 @@ public class PowerWhitelistBackend {
     }
 
     public boolean isSysWhitelisted(String pkg) {
-        return mSysWhitelistedApps.contains(pkg);
+        return mSysWhitelistedApps.contains(pkg) || mSysWhitelistedAppsExceptIdle.contains(pkg) || mDefaultActiveApps.contains(pkg);
     }
 
     public boolean isWhitelisted(String pkg) {
@@ -73,9 +73,9 @@ public class PowerWhitelistBackend {
             return true;
         }
 
-        /*if (isDefaultActiveApp(pkg)) {
+        if (isDefaultActiveApp(pkg)) {
             return true;
-        }*/
+        }
 
         return false;
     }
