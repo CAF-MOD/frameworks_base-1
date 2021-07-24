@@ -147,14 +147,31 @@ public class BaikalUtils {
     }
 
 
-    public static void boost() {
-        if( BaikalConstants.BAIKAL_DEBUG_RAW ) Slog.i(TAG, "Boost!");
-        try {
-            SystemProperties.set("baikal.perf.boost", "1");
-        } catch( Exception e )  {
-            Slog.e(TAG, "Can' set BOOST profile for wakeup: ", e);
-        } finally {
-        }
+    public static void setPowerWrapper(IPowerHalWrapper wrapper) {
+        AppProfileManager.setPowerWrapper(wrapper);
+    }
+
+    public static boolean boost() {
+        return boost(0,2000);
+    }
+
+    public static boolean unboost() {
+        return boost(0,-1);
+    }
+
+    public static boolean boost(int boost, int durationMs) {
+        if( AppProfileManager.Instance() != null ) return AppProfileManager.Instance().boost(boost,durationMs);
+        return false;
+    }
+
+    public static boolean setPowerMode(int mode, boolean enabled) {
+        if( AppProfileManager.Instance() != null ) return AppProfileManager.Instance().setPowerMode(mode,enabled);
+        return false;
+    }
+
+    public static boolean setPowerHint(int hintId, int data) {
+        if( AppProfileManager.Instance() != null ) return AppProfileManager.Instance().setPowerHint(hintId,data);
+        return false;
     }
 
 }

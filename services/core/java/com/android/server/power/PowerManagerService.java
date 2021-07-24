@@ -122,6 +122,7 @@ import java.util.Objects;
 import com.android.internal.baikalos.Actions;
 import com.android.internal.baikalos.BaikalSettings;
 import com.android.internal.baikalos.BaikalUtils;
+import com.android.internal.baikalos.IPowerHalWrapper;
 
 
 /**
@@ -639,6 +640,8 @@ public final class PowerManagerService extends SystemService
     // doze on charge
     private boolean mDozeOnChargeEnabled;
 
+    private BaikalPowerWrapper mBaikalPowerWrapper;
+
     private final class ForegroundProfileObserver extends SynchronousUserSwitchObserver {
         @Override
         public void onUserSwitching(@UserIdInt int newUserId) throws RemoteException {
@@ -806,6 +809,24 @@ public final class PowerManagerService extends SystemService
         public boolean nativeForceSuspend() {
             return PowerManagerService.nativeForceSuspend();
         }
+    }
+
+    public static class BaikalPowerWrapper implements IPowerHalWrapper {
+        @Override
+        public void wrapperSendPowerHint(int hintId, int data) {
+            PowerManagerService.nativeSendPowerHint(hintId, data);
+        }
+
+        @Override
+        public void wrapperSetPowerBoost(int boost, int durationMs) {
+            PowerManagerService.nativeSetPowerBoost(boost, durationMs);
+        }
+
+        @Override
+        public boolean wrapperSetPowerMode(int mode, boolean enabled) {
+            return PowerManagerService.nativeSetPowerMode(mode, enabled);
+        }
+
     }
 
     /** Functional interface for providing time. */
@@ -1276,6 +1297,9 @@ public final class PowerManagerService extends SystemService
         filter.addAction(com.android.internal.baikalos.Actions.ACTION_BRIGHTNESS_OVERRIDE);
         mContext.registerReceiver(new BrightnessOverrideReceiver(), filter, null, mHandler);
 
+        mBaikalPowerWrapper = new BaikalPowerWrapper();
+        BaikalUtils.setPowerWrapper(mBaikalPowerWrapper);
+
     }
 
     @VisibleForTesting
@@ -1653,9 +1677,12 @@ public final class PowerManagerService extends SystemService
                     wakeLock.mWorkSource, wakeLock.mHistoryTag);
 
             if ((wakeLock.mFlags & PowerManager.WAKE_LOCK_LEVEL_MASK) == PowerManager.PARTIAL_WAKE_LOCK ) {
-                if( !wakeLock.mTag.startsWith("AudioMix") ) {
+
+                int appid = UserHandle.getAppId(wakeLock.mOwnerUid);
+                if ( appid < Process.FIRST_APPLICATION_UID && !wakeLock.mTag.startsWith("*job*") ) return;
+
+                if( !wakeLock.mTag.startsWith("Audio") ) {
                 
-                    int appid = UserHandle.getAppId(wakeLock.mOwnerUid);
                     int wsid = appid;
 
                     if (wakeLock.mWorkSource != null && !wakeLock.mWorkSource.isEmpty()) {
@@ -1769,7 +1796,7 @@ public final class PowerManagerService extends SystemService
     }
 
     private boolean userActivityNoUpdateLocked(long eventTime, int event, int flags, int uid) {
-        /*if (DEBUG_SPEW)*/ {
+        if (DEBUG_SPEW) {
             Slog.d(TAG, "userActivityNoUpdateLocked: eventTime=" + eventTime
                     + ", event=" + event + ", flags=0x" + Integer.toHexString(flags)
                     + ", uid=" + uid);
@@ -2900,6 +2927,7 @@ public final class PowerManagerService extends SystemService
     private boolean isBeingKeptAwakeLocked() {
         return mStayOn
                 || mProximityPositive
+                || (BaikalSettings.getKeepOn() && (getWakefulnessLocked() == WAKEFULNESS_AWAKE))
                 || (mWakeLockSummary & WAKE_LOCK_STAY_AWAKE) != 0
                 || (mUserActivitySummary & (USER_ACTIVITY_SCREEN_BRIGHT
                         | USER_ACTIVITY_SCREEN_DIM)) != 0
@@ -3318,12 +3346,13 @@ public final class PowerManagerService extends SystemService
         if ((mWakeLockSummary & WAKE_LOCK_SCREEN_BRIGHT) != 0
                 || (mUserActivitySummary & USER_ACTIVITY_SCREEN_BRIGHT) != 0
                 || !mBootCompleted
+                || (BaikalSettings.getKeepOn() && (getWakefulnessLocked() == WAKEFULNESS_AWAKE))
                 || mScreenBrightnessBoostInProgress) {
             if (DEBUG_SPEW) Slog.d(TAG, "getDesiredScreenPolicyLocked: POLICY_BRIGHT");
             return DisplayPowerRequest.POLICY_BRIGHT;
         }
 
-        if (DEBUG_SPEW) Slog.d(TAG, "getDesiredScreenPolicyLocked: POLICY_BRIGHT");
+        if (DEBUG_SPEW) Slog.d(TAG, "getDesiredScreenPolicyLocked: POLICY_DIM");
         return DisplayPowerRequest.POLICY_DIM;
     }
 
@@ -4081,6 +4110,10 @@ public final class PowerManagerService extends SystemService
 
     private void powerHintInternal(int hintId, int data) {
         // Maybe filter the event.
+        // Slog.d(TAG, "powerHintInternal: hintId=" + hintId + ", data=" + data);
+
+        if( BaikalUtils.setPowerHint(hintId,data) ) return;
+
         switch (hintId) {
             case PowerHint.LAUNCH: // 1: activate launch boost 0: deactivate.
                 if (data == 1 && mBatterySaverController.isLaunchBoostDisabled()) {
@@ -4089,42 +4122,59 @@ public final class PowerManagerService extends SystemService
                 break;
         }
 
+        Slog.d(TAG, "powerHintInternal: hintId=" + hintId + ", data=" + data);
         mNativeWrapper.nativeSendPowerHint(hintId, data);
     }
 
     private void setPowerBoostInternal(int boost, int durationMs) {
         // Maybe filter the event.
+        // Slog.d(TAG, "setPowerBoostInternal: boost=" + boost + ", durationMs=" + durationMs);
+
+        if( BaikalUtils.boost(boost,durationMs) ) return;
+
+        Slog.d(TAG, "setPowerBoostInternal: boost=" + boost + ", durationMs=" + durationMs);
         mNativeWrapper.nativeSetPowerBoost(boost, durationMs);
     }
 
     private boolean setPowerModeInternal(int mode, boolean enabled) {
         // Maybe filter the event.
+        // Slog.d(TAG, "setPowerModeInternal: mode=" + mode + ", enabled=" + enabled);
+
+        if( BaikalUtils.setPowerMode(mode,enabled) ) return true;
+
+        Slog.d(TAG, "setPowerModeInternal: mode=" + mode + ", enabled=" + enabled);
         return mNativeWrapper.nativeSetPowerMode(mode, enabled);
     }
 
+    boolean mBaikalScreenMode = true;
     private void setBaikalScreenState(int state) {
-
-
+        boolean mode = false;
         switch(state) {
             case Display.STATE_UNKNOWN:
-                break;
+                return;
             case Display.STATE_OFF:
-                Actions.sendScreenModeChanged(false);
+                mode = false;
                 break;
             case Display.STATE_ON:
             case Display.STATE_VR:
-                Actions.sendScreenModeChanged(true);
+                mode = true;
                 break;
             case Display.STATE_DOZE:
             case Display.STATE_DOZE_SUSPEND:
             case Display.STATE_ON_SUSPEND:
                 if( !mPolicy.isKeyguardShowing() && mReaderMode &&  getWakefulnessLocked() == WAKEFULNESS_AWAKE ) {
-                    Actions.sendScreenModeChanged(true);
+                    mode = true;
                 } else {
-                    Actions.sendScreenModeChanged(false);
+                    mode = false;
                 }
+                break;
+            default:
+                return;
         }
-
+        if( mBaikalScreenMode != mode ) {   
+            mBaikalScreenMode = mode;
+            Actions.sendScreenModeChanged(mode);
+        }
     }
 
     @VisibleForTesting

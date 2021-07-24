@@ -153,6 +153,8 @@ public class BaikalSystemService extends SystemService {
                 if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"onBootPhase(" + phase + "): Core BaikalOS componenets init");
                 mBaikalSettings.loadStaticConstants(mContext);
                 updateDolbyService();
+                updateViperService();
+                setPackageEnabled("com.tencent.soter.soterserver",false);
 	        }
     	} else if( phase == PHASE_BOOT_COMPLETED) {
 
@@ -252,7 +254,8 @@ public class BaikalSystemService extends SystemService {
 	    if( mBaikalSensors.onMessage(msg) ) return; 
 	    if( mBaikalTelephony.onMessage(msg) ) return; 
 	    if( mBaikalBluetooth.onMessage(msg) ) return; 
-	    if( mBaikalTorch.onMessage(msg) ) return; 
+	    if( mBaikalTorch.onMessage(msg) ) return;
+	    if( mBaikalAppProfileManager.onMessage(msg) ) return;
         }
     }
 
@@ -267,11 +270,30 @@ public class BaikalSystemService extends SystemService {
 
     private void updateDolbyService() {
         if( SystemProperties.getBoolean("sys.baikal.dolby.avail",false) ) {
-            Boolean isDolbyAvail = SystemProperties.getBoolean("persist.baikal.dolby.enable",false);
-            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"updateDolbyService isDolbyAvail=" + isDolbyAvail);
-            updateDolbyConfiguration(isDolbyAvail);
+            Boolean isDolbyEnabled = SystemProperties.getBoolean("persist.baikal.dolby.enable",false);
+            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"updateDolbyService isDolbyEnabled=" + isDolbyEnabled);
+            updateDolbyConfiguration(isDolbyEnabled);
         }
     }
+
+    private void updateViperService() {
+        if( SystemProperties.getBoolean("sys.baikal.viper.avail",false) ) {
+            Boolean isViperEnabled = SystemProperties.getBoolean("persist.baikal.viper.enable",false);
+            if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"updateViperService isViperEnabled=" + isViperEnabled);
+            updateViperConfiguration(isViperEnabled);
+        }
+    }
+
+    private void updateViperConfiguration(boolean enabled) {
+        if( !enabled ) {
+            setPackageEnabled("com.pittvandewitt.viperfx",false);
+            setPackageEnabled("com.android.musicfx",true);
+        } else {
+            setPackageEnabled("com.pittvandewitt.viperfx",true);
+            setPackageEnabled("com.android.musicfx",false);
+        }
+    }
+
 
     private void updateDolbyConfiguration(boolean enabled) {
 

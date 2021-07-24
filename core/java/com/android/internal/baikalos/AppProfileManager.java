@@ -21,9 +21,11 @@ import android.util.Slog;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
+import android.os.IPowerManager;
 import android.os.PowerManager;
 import android.os.SystemProperties;
 import android.os.Process;
+import android.os.SystemClock;
 
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -55,9 +57,12 @@ public class AppProfileManager extends MessageHandler {
 
     private static final String TAG = "Baikal.AppProfile";
 
+    private static final int MESSAGE_APP_PROFILE_UPDATE = BaikalConstants.MESSAGE_APP_PROFILE + 100;
+
     private static Object mLock = new Object();
 
     private AppProfileSettings mAppSettings;
+    private IPowerManager mPowerManager;
 
     private boolean mOnCharger=false;
     private boolean mDeviceIdleMode = false;
@@ -86,7 +91,23 @@ public class AppProfileManager extends MessageHandler {
     private boolean mReaderModeAvailable = false;
     private boolean mVariableFps = false;
 
+    private boolean mPerfAvailable = false;
+    private boolean mThermAvailable = false;
+
+    private boolean mPerformanceBoostLocked = false;
+    private boolean mGpuBoostLocked = false;
+    private boolean mSustainedPerformanceLocked = false;
+    private boolean mLaunchBoostLocked = false;
+    private boolean mCameraBoostLocked = false;
+    private boolean mAudioBoostLocked = false;
+
+    private boolean mBaikalPowerHal = true;
+
+    private static IPowerHalWrapper mPowerWrapper = null;
+
     TelephonyManager mTelephonyManager;
+
+    static AppProfileManager mInstance;
 
     public static AppProfile getCurrentProfile() {
         synchronized(mCurrentProfileSync) {
@@ -94,12 +115,20 @@ public class AppProfileManager extends MessageHandler {
         }
     }
 
+    static AppProfileManager Instance() {
+        return mInstance;
+    }
+
     @Override
     protected void initialize() {
         if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG,"initialize()");                
         synchronized(mLock) {
 
-            mAppSettings = AppProfileSettings.getInstance(getHandler(), getContext(), getContext().getContentResolver(), null);
+            mInstance = this;
+            mAppSettings = AppProfileSettings.getInstance(getHandler(), getContext(), getContext().getContentResolver(), null, true);
+
+//            mPowerManager = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+            mPowerManager = IPowerManager.Stub.asInterface(ServiceManager.getService(Context.POWER_SERVICE));
 
             IntentFilter topAppFilter = new IntentFilter();
             topAppFilter.addAction(Actions.ACTION_TOP_APP_CHANGED);
@@ -126,13 +155,13 @@ public class AppProfileManager extends MessageHandler {
 
             mReaderModeAvailable  = SystemProperties.get("sys.baikal.reader", "1").equals("1");
             mVariableFps = SystemProperties.get("sys.baikal.var_fps", "0").equals("1");
+
+            mPerfAvailable = SystemProperties.get("baikal.eng.perf", "0").equals("1");
+            mThermAvailable = SystemProperties.get("baikal.eng.therm", "0").equals("1");
+
+            
+    
         }
-    }
-
-
-    @Override
-    public boolean onMessage(Message msg) {
-        return false;
     }
 
     protected void setActivePerfProfileLocked(String profile) {
@@ -201,10 +230,19 @@ public class AppProfileManager extends MessageHandler {
             mPhoneCall = state;
     
             if( mPhoneCall ) {
-                BaikalUtils.boost();
-                setActivePerfProfileLocked("default");
-                setActiveThermProfileLocked("incall");
-            } 
+                /*mGpuBoostLocked = true;
+                mActivePerfProfile = "temporary";
+                SystemPropertiesSet("baikal.perf.incall", "1"); 
+                //scheduleBoostCancel(4000);
+
+                //BaikalUtils.boost();
+                //setActivePerfProfileLocked("default");
+                setActiveThermProfileLocked("incall");*/
+                setPowerHint(2,4000);
+            } else {
+                //SystemPropertiesSet("baikal.perf.incall", "0"); 
+                setPowerHint(2,2000);
+            }
         }
     }
 
@@ -272,6 +310,7 @@ public class AppProfileManager extends MessageHandler {
                 setActiveFrameRateLocked(-1);
                 Actions.sendBrightnessOverrideChanged(setBrightnessOverrideLocked(0));
                 setRotation(-1);
+                BaikalSettings.setKeepOn(false);
             } else {
                 setActivePerfProfileLocked(profile.mPerfProfile);
                 setActiveThermProfileLocked(profile.mThermalProfile);
@@ -280,6 +319,7 @@ public class AppProfileManager extends MessageHandler {
                 else setReaderModeLocked(false);
                 Actions.sendBrightnessOverrideChanged(setBrightnessOverrideLocked(profile.mBrightness));
                 setRotation(profile.mRotation-1);
+                BaikalSettings.setKeepOn(profile.mKeepOn);
             }
     }
 
@@ -386,15 +426,25 @@ public class AppProfileManager extends MessageHandler {
     };
 
     private void setHwPerfProfileLocked(String profile, boolean override) {
+        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG,"setHwPerfProfileLocked profile=" + profile + ", ovr=" + override);
         if( (!mScreenMode || mIdleProfileActive) && !override ) return;
-        mActivePerfProfile = profile;
-        SystemPropertiesSet("baikal.perf.profile", profile);
+        if( !mPerfAvailable ) return;
+
+        if( !isBoostLocked() ) {
+            mActivePerfProfile = profile;
+            if( !mBaikalPowerHal )
+                SystemPropertiesSet("baikal.perf.profile", profile);
+            else 
+                wrapperSendPowerHint(10000, AppProfileSettings.perfProfileIdFromName(profile));
+        } 
+        return;
     }
 
     private void setHwThermProfileLocked(String profile, boolean override) {
         if( (!mScreenMode || mIdleProfileActive) && !override ) return;
         mActiveThermProfile = profile;
-        SystemPropertiesSet("baikal.therm.profile", profile);
+        if( mThermAvailable )
+            SystemPropertiesSet("baikal.therm.profile", profile);
     }
 
     private boolean setHwFrameRateLocked(int fps, boolean override) {
@@ -524,6 +574,252 @@ public class AppProfileManager extends MessageHandler {
     }
 
 
+    public static void setPowerWrapper(IPowerHalWrapper wrapper) {
+        mPowerWrapper = wrapper;
+    }
+
+
+    private void wrapperSendPowerHint(int hintId, int data) {
+        if( mPowerWrapper != null ) {
+            if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "wrapperSendPowerHint " + hintId + " data=" + data);
+            mPowerWrapper.wrapperSetPowerBoost(hintId,data);
+        } else {
+            if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "wrapperSendPowerHint wrapper = null");
+        }
+    }
+
+    public boolean boost(int boost, int durationMs) {
+        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Boost " + boost + " dur=" + durationMs);
+        if( !mPerfAvailable ) return false;
+
+        if( !mBaikalPowerHal ) return false;
+
+        //SystemPropertiesSet("baikal.perf.boost", durationMs <= 0 ? "0" : "1" ); 
+
+        if( durationMs < 0 ) {
+            //mPerformanceBoostLocked = false;
+            //if( !isBoostLocked() ) {    
+            //    getHandler().removeMessages(MESSAGE_APP_PROFILE_UPDATE);
+            //    restoreProfileForCurrentMode();
+            //}                                            
+            wrapperSendPowerHint(12000, 0);
+        } else if( durationMs > 0 ) {
+            //mActivePerfProfile = "temporary";
+            //if( durationMs > 0 ) scheduleBoostCancel(durationMs);
+            wrapperSendPowerHint(12000, 1);
+            scheduleBoostCancel(durationMs);
+        }
+
+        return true;
+
+    }
+
+    String [] mPowerModes = {
+    "MODE_DOUBLE_TAP_TO_WAKE",
+    "MODE_LOW_POWER",
+    "MODE_SUSTAINED_PERFORMANCE",
+    "MODE_FIXED_PERFORMANCE ",
+    "MODE_VR",
+    "MODE_LAUNCH",
+    "MODE_EXPENSIVE_RENDERING",
+    "MODE_INTERACTIVE",
+    "MODE_DEVICE_IDLE",
+    "MODE_DISPLAY_INACTIVE",
+    "MODE_AUDIO_STREAMING_LOW_LATENCY",
+    "MODE_CAMERA_STREAMING_SECURE",
+    "MODE_CAMERA_STREAMING_LOW",
+    "MODE_CAMERA_STREAMING_MID",
+    "MODE_CAMERA_STREAMING_HIGH"
+     };
+
+
+    public boolean setPowerMode(int mode, boolean enabled) {
+        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) { 
+            if( mode >=0 && mode <=14 ) Slog.i(TAG, "setPowerMode " + mPowerModes[mode] + " en=" + enabled);
+            else Slog.i(TAG, "setPowerMode " + mode + " en=" + enabled);
+        }
+        if( mode == 0 ) return false;
+        if( !mPerfAvailable ) return false;
+
+        if( !mBaikalPowerHal ) return false;
+
+
+        return true;
+    }
+
+
+    String [] mPowerHints = {
+        "POWER_HINT_NONE",
+        "POWER_HINT_VSYNC",
+        "POWER_HINT_INTERACTION",
+        "POWER_HINT_VIDEO_ENCODE",
+        "POWER_HINT_VIDEO_DECODE",
+        "POWER_HINT_LOW_POWER",
+        "POWER_HINT_SUSTAINED_PERFORMANCE",
+        "POWER_HINT_VR_MODE",
+        "POWER_HINT_LAUNCH",
+        "POWER_HINT_AUDIO_STREAMING",
+        "POWER_HINT_AUDIO_LOW_LATENCY",
+        "POWER_HINT_CAMERA_LAUNCH",
+        "POWER_HINT_CAMERA_STREAMING",
+        "POWER_HINT_CAMERA_SHOT",
+        "POWER_HINT_EXPENSIVE_RENDERING",
+    };
+
+
+
+    public boolean setPowerHint(int hintId, int data) {
+        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) {
+            if( hintId >= 0 && hintId <= 14 ) Slog.i(TAG, "setPowerHint " + mPowerHints[hintId] + " data=" + data);
+            else Slog.i(TAG, "setPowerHint " + hintId + " data=" + data);
+        }
+        if( !mPerfAvailable ) return false;
+        if( !mBaikalPowerHal ) return false;
+
+        switch(hintId) {
+            case 14: /// POWER_HINT_EXPENSIVE_RENDERING
+                /*mActivePerfProfile = "temporary";
+                SystemPropertiesSet("baikal.perf.hint_exp_rend", "" + data); 
+                if( data != 0 ) {
+                    mGpuBoostLocked = true;
+                } else {
+                    if( mGpuBoostLocked ) {
+                        mGpuBoostLocked = false;
+                        if( !isBoostLocked() ) {    
+                            getHandler().removeMessages(MESSAGE_APP_PROFILE_UPDATE);
+                            restoreProfileForCurrentMode();
+                        }
+                    }
+                }*/
+                wrapperSendPowerHint(12002, data); // Expensive Rendering
+                break;
+
+            case 2:
+                
+                if( data > 0 )  {   
+                    //mGpuBoostLocked = true;
+                    //mActivePerfProfile = "temporary";
+                    //SystemPropertiesSet("baikal.perf.hint_gpu", "1"); 
+                    wrapperSendPowerHint(12000, 1); // Interaction
+                    scheduleBoostCancel(data);
+                } else if( data < 0 ) {
+                    wrapperSendPowerHint(12000, 0); // Interaction
+                }
+                
+                break;
+
+            case 11:
+            case 12:
+            case 13:
+                /*
+                mActivePerfProfile = "temporary";
+                SystemPropertiesSet("baikal.perf.hint_camera", "" + data); 
+                if( data != 0 ) {
+                    mCameraBoostLocked = true;
+                } else {
+                    if( mAudioBoostLocked ) { 
+                        mAudioBoostLocked = false;
+                        if( !isBoostLocked() ) {
+                            getHandler().removeMessages(MESSAGE_APP_PROFILE_UPDATE);
+                            restoreProfileForCurrentMode();
+                        }
+                    }
+                }*/
+                wrapperSendPowerHint(12004, data); // Camera
+                break;
+
+            case 9:
+            case 10:
+                /*
+                mActivePerfProfile = "temporary";
+                SystemPropertiesSet("baikal.perf.hint_audio", "" + data); 
+                if( data != 0 ) {
+                    mAudioBoostLocked = true;
+                } else {
+                    if( mAudioBoostLocked ) { 
+                        mAudioBoostLocked = false;
+                        if( !isBoostLocked() ) {
+                            getHandler().removeMessages(MESSAGE_APP_PROFILE_UPDATE);
+                            restoreProfileForCurrentMode();
+                        }
+                    }
+                }*/
+
+                wrapperSendPowerHint(12003, data); // Audio
+                break;
+
+            case 8:
+                /*
+                mActivePerfProfile = "temporary";
+                SystemPropertiesSet("baikal.perf.hint_launch", "" + data); 
+                if( data != 0 ) {
+                    mLaunchBoostLocked = true;
+                    //scheduleBoostCancel(5000);
+                } else {
+                    if( mLaunchBoostLocked ) { 
+                        mLaunchBoostLocked = false;
+                        if( !isBoostLocked() ) { 
+                            getHandler().removeMessages(MESSAGE_APP_PROFILE_UPDATE);
+                            restoreProfileForCurrentMode();
+                        }
+                    }
+                }*/
+                wrapperSendPowerHint(12001, data); // LUNCH
+                break;
+        }
+
+        return true;
+    }
+
+    private boolean isBoostLocked() {
+        return mPerformanceBoostLocked || 
+            mGpuBoostLocked || 
+            mSustainedPerformanceLocked || 
+            mLaunchBoostLocked ||
+            mCameraBoostLocked ||
+            mAudioBoostLocked;
+    }
+
+
+    private long nextTime = 0;
+    public void scheduleBoostCancel(long timeout) {
+        final long now = SystemClock.elapsedRealtime();
+        
+        if( (now + timeout) > nextTime ) { 
+            Slog.i(TAG, "MESSAGE_APP_PROFILE_UPDATE in " + timeout + " msec");
+            nextTime = now + timeout;
+            getHandler().removeMessages(MESSAGE_APP_PROFILE_UPDATE);
+
+        	Message msg = getHandler().obtainMessage(MESSAGE_APP_PROFILE_UPDATE);
+            getHandler().sendMessageDelayed(msg, timeout);
+        }
+    }
+
+
+    @Override
+    public boolean onMessage(Message msg) {
+    	switch(msg.what) {
+    	    case MESSAGE_APP_PROFILE_UPDATE:
+                Slog.i(TAG, "MESSAGE_APP_PROFILE_UPDATE cancel all boost requests");
+                /*mLaunchBoostLocked = false;
+                mGpuBoostLocked = false;
+                mSustainedPerformanceLocked = false;
+                mPerformanceBoostLocked = false;
+                mCameraBoostLocked = false;
+                mAudioBoostLocked = false;
+                SystemPropertiesSet("baikal.perf.boost", "0" ); 
+                SystemPropertiesSet("baikal.perf.hint_gpu", "0" ); 
+                SystemPropertiesSet("baikal.perf.hint_exp_rend", "0" ); 
+                SystemPropertiesSet("baikal.perf.hint_audio", "0" ); 
+                SystemPropertiesSet("baikal.perf.hint_camera", "0" ); 
+                restoreProfileForCurrentMode();*/
+                wrapperSendPowerHint(12000, 0);
+    		return true;
+    	}
+    	return false;
+    }
+
+
     PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
         /**
          * Callback invoked when device call state changes.
@@ -539,10 +835,9 @@ public class AppProfileManager extends MessageHandler {
         @Override
         public void onCallStateChanged(int state, String incomingNumber) {
             if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG,"PhoneStateListener: onCallStateChanged(" + state + "," + incomingNumber + ")");
-
-            synchronized (AppProfileManager.this) {
+            //synchronized (AppProfileManager.this) {
                 onCallStateChangedLocked(state,incomingNumber);
-            }
+            //}
 
         // default implementation empty
         }
@@ -555,9 +850,9 @@ public class AppProfileManager extends MessageHandler {
         @Override
         public void onPreciseCallStateChanged(PreciseCallState callState) {
             if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG,"PhoneStateListener: onPreciseCallStateChanged(" + callState + ")");
-            synchronized (AppProfileManager.this) {
+            //synchronized (AppProfileManager.this) {
                 onPreciseCallStateChangedLocked(callState);
-            }
+            //}
         }
 
     };

@@ -65,6 +65,32 @@ public class AppProfileSettings extends ContentObserver {
     private final PowerWhitelistBackend mBackend;
     private AppOpsManager mAppOpsManager;
 
+    static String [] config_performanceValues = {
+        "default",
+        "balance",
+        "limited",
+        "video",
+        "performance",
+        "gaming",
+        "gaming2",
+        "battery",
+        "reader",
+        "screen_off",
+        "idle",
+
+    };
+
+    private static HashMap<String, Integer> _performanceToId = new HashMap<String, Integer>();
+
+    public static String perfProfileNameFromId(int id) {
+        if( id < 0 || id > config_performanceValues.length ) return "default";
+        return config_performanceValues[id];
+    }
+
+    public static int perfProfileIdFromName(String name) {
+        return _performanceToId.get(name);
+    }
+
 
     public interface IAppProfileSettingsNotifier {
         void onAppProfileSettingsChanged();
@@ -73,6 +99,10 @@ public class AppProfileSettings extends ContentObserver {
     private IAppProfileSettingsNotifier mNotifier = null;
 
     private AppProfileSettings(Handler handler,Context context, ContentResolver resolver, IAppProfileSettingsNotifier notifier) {
+        this(handler, context, resolver, notifier, false);
+    }
+
+    private AppProfileSettings(Handler handler,Context context, ContentResolver resolver, IAppProfileSettingsNotifier notifier, boolean boot) {
         super(handler);
         mContext = context;
         mResolver = resolver;
@@ -81,7 +111,11 @@ public class AppProfileSettings extends ContentObserver {
         mPackageManager = mContext.getPackageManager();
 
         mBackend = PowerWhitelistBackend.getInstance(mContext);
-        mBackend.refreshList(); 
+        mBackend.refreshList();
+
+        for( int i=0; i < config_performanceValues.length;i++ ) {
+            _performanceToId.put( config_performanceValues[i], i );    
+        }  
 
         try {
                 resolver.registerContentObserver(
@@ -92,52 +126,155 @@ public class AppProfileSettings extends ContentObserver {
         }
 
         updateConstants();
-        updateProfilesAndOps();
+        if( boot ) updateProfilesOnBoot();
     }
+
+
+
 
     @Override
     public void onChange(boolean selfChange, Uri uri) {
         updateConstants();
     }
 
-
-    private void updateProfilesAndOps() {
+    private void updateProfilesOnBoot() {
         synchronized (this) {
-            updateProfilesAndOpsLocked();
+            updateProfilesOnBootLocked();
         }
     }
 
-    private void updateProfilesAndOpsLocked() {
+    private void updateProfilesOnBootLocked() {
         boolean changed = false;
         List<PackageInfo> installedAppInfo = mPackageManager.getInstalledPackages(/*PackageManager.GET_PERMISSIONS*/0);
         for (PackageInfo info : installedAppInfo) {
+
+            boolean isSystemWhitelisted = mBackend.isSysWhitelisted(info.packageName);
+            boolean isWhitelisted = mBackend.isWhitelisted(info.packageName);
+
+            boolean runInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_IN_BACKGROUND,
+                    info.applicationInfo.uid, info.packageName) == AppOpsManager.MODE_ALLOWED;        
+
+            boolean runAnyInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,
+                    info.applicationInfo.uid, info.packageName) == AppOpsManager.MODE_ALLOWED;
+
+
             AppProfile profile = getProfile(info.packageName);
             if( profile != null ) {
-                changed = updateSystemSettingsProfile(profile);
+                if( isSystemWhitelisted && profile.mBackground != -1 ) {
+                    profile.mBackground = -1;
+                    if( !runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                    if( !runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                    updateProfileLocked(profile);
+                    changed = true;
+                }
+                if( isWhitelisted && profile.mBackground != -1 ) {
+                    //synchronized(mBackend) {
+                        mBackend.removeApp(info.packageName);
+                    //}
+                }
+
+                switch(profile.mBackground) {
+                    case -1:
+                    if( !isSystemWhitelisted && !isWhitelisted ) {
+                        //synchronized(mBackend) {
+                            if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Add unrestricted app to whitelist packageName=" + profile.mPackageName + ", uid=" + info.applicationInfo.uid);
+                            mBackend.addApp(profile.mPackageName);
+                        //}
+                    }
+                    if( !runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                    if( !runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                    break;
+
+                case 0:
+                    if( !runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                    if( !runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                    break;
+
+                case 1:
+                    if( runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                    if( runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                    break;
+
+                case 2:
+                    if( runAnyInBackground  ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                    if( runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                    break;
+    
+                case 3:
+                    if( runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                    if( runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                    break;
+                }
+                updateProfileSystemPropertiesSettings(profile);
             } else {
-
-                int runInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_IN_BACKGROUND,
-                    info.applicationInfo.uid, info.packageName);        
-
-                int runAnyInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,
-                    info.applicationInfo.uid, info.packageName);
-
-                boolean whitelisted = mBackend.isWhitelisted(info.packageName);
-
-                if( runInBackground == AppOpsManager.MODE_ALLOWED &&
-                    runAnyInBackground == AppOpsManager.MODE_ALLOWED &&
-                    !whitelisted ) continue;
-
-                profile = new AppProfile();
-                profile.mPackageName = info.packageName;
-                if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Sync profile for packageName=" + profile.mPackageName + ", uid=" + info.applicationInfo.uid);
-                updateProfileSystemSettings(profile);
-                updateProfileLocked(profile);
-                changed = true;
+               if( isSystemWhitelisted ) {
+                    profile = new AppProfile();
+                    profile.mPackageName = info.packageName;
+                    profile.mBackground = -1;
+                    updateProfileLocked(profile);
+                    changed = true;
+               }
+               if( isWhitelisted ) {
+                    //synchronized(mBackend) {
+                       mBackend.removeApp(info.packageName);
+                    //}
+               }
+               if( !runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, info.packageName,AppOpsManager.MODE_ALLOWED); 
+               if( !runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, info.packageName,AppOpsManager.MODE_ALLOWED); 
             }
         }
         if( changed ) {
             saveLocked();
+        }
+    }
+
+    private void updateSystemSettingsLocked(AppProfile profile) {
+
+        int uid = getAppUidLocked(profile.mPackageName);
+        if( uid == -1 ) return;
+
+        boolean isSystemWhitelisted = mBackend.isSysWhitelisted(profile.mPackageName);
+        boolean isWhitelisted = mBackend.isWhitelisted(profile.mPackageName);
+
+        boolean runInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_IN_BACKGROUND,
+                    uid, profile.mPackageName) == AppOpsManager.MODE_ALLOWED;        
+
+        boolean runAnyInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,
+                    uid, profile.mPackageName) == AppOpsManager.MODE_ALLOWED;
+
+
+
+        switch(profile.mBackground) {
+            case -1:
+                if( !isSystemWhitelisted && !isWhitelisted ) {
+                    //synchronized(mBackend) {
+                        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Add to whitelist packageName=" + profile.mPackageName + ", uid=" + uid);
+                        mBackend.addApp(profile.mPackageName);
+                    //}
+                }
+                if( !runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                if( !runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+            break;
+
+            case 0:
+                if( !runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+                if( !runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+            break;
+
+            case 1:
+                if( runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                if( runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
+            break;
+
+            case 2:
+                if( runAnyInBackground  ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                if( runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+            break;
+    
+            case 3:
+                if( runAnyInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+                if( runInBackground ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
+            break;
         }
     }
 
@@ -147,6 +284,7 @@ public class AppProfileSettings extends ContentObserver {
         for (PackageInfo info : installedAppInfo) {
             AppProfile profile = getProfile(info.packageName);
             if( profile != null ) {
+                updateSystemSettingsLocked(profile);
                 continue;
             } else {
 
@@ -157,14 +295,19 @@ public class AppProfileSettings extends ContentObserver {
                     info.applicationInfo.uid, info.packageName);
 
                 boolean whitelisted = mBackend.isWhitelisted(info.packageName);
+                boolean syswhitelisted = mBackend.isSysWhitelisted(info.packageName);
 
                 if( !SystemProperties.get("b.spf."+info.packageName,"0").equals("0") ) {
                     setZygoteSettings("b.spf.",info.packageName,"0");
                 }
 
+                if( !SystemProperties.get("b.hpka."+info.packageName,"0").equals("0") ) {
+                    setZygoteSettings("b.hpka.",info.packageName,"0");
+                }
+
                 if( runInBackground == AppOpsManager.MODE_ALLOWED &&
                     runAnyInBackground == AppOpsManager.MODE_ALLOWED &&
-                    !whitelisted ) continue;
+                    !whitelisted && !syswhitelisted) continue;
 
                 if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Clearing background constraints packageName=" + info.packageName + 
                             ", uid=" + info.applicationInfo.uid);
@@ -174,12 +317,23 @@ public class AppProfileSettings extends ContentObserver {
                     setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,info.applicationInfo.uid, info.packageName,AppOpsManager.MODE_ALLOWED); 
                 if( runInBackground != AppOpsManager.MODE_ALLOWED ) 
                     setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,info.applicationInfo.uid, info.packageName,AppOpsManager.MODE_ALLOWED); 
-                if(whitelisted) {
-                    synchronized(mBackend) {
+
+                if(syswhitelisted) {
+                    profile = new AppProfile();
+                    profile.mPackageName = info.packageName;
+                    if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Create profile for packageName=" + profile.mPackageName + ", uid=" + info.applicationInfo.uid);
+                    profile.mBackground = -1;
+                    updateProfileLocked(profile);
+                    changed = true;
+                } else if(whitelisted) {
+                    //synchronized(mBackend) {
                         mBackend.removeApp(info.packageName);
-                    }
+                    //}
                 }
             }
+        }
+        if( changed ) {
+            saveLocked();
         }
     }
 
@@ -194,9 +348,9 @@ public class AppProfileSettings extends ContentObserver {
 
     private void updateConstantsLocked() {
 
-        synchronized(mBackend) {
-           mBackend.refreshList();
-        }
+        //synchronized(mBackend) {
+        mBackend.refreshList();
+        //}
 
         try {
             String appProfiles = Settings.Global.getString(mResolver,
@@ -234,9 +388,7 @@ public class AppProfileSettings extends ContentObserver {
                             Slog.e(TAG, "Duplicated profile for uid=" + uid + ", packageName=" + profile.mPackageName);
                         }
                     }
-                    updateProfileSystemSettings(profile);
-                    updateSystemSettingsProfile(profile);
-                    updateProfileZygoteSettings(profile);
+                    updateProfileSystemPropertiesSettings(profile);
                 }
             }
 
@@ -251,8 +403,21 @@ public class AppProfileSettings extends ContentObserver {
         _staticProfiles = _profiles;
     }
 
-    private void updateProfileZygoteSettings(AppProfile profile) {
-        setZygoteSettings("b.spf.",profile.mPackageName,"" + profile.mSpoofDevice);
+    private void updateProfileSystemPropertiesSettings(AppProfile profile) {
+        if( profile.mSpoofDevice != 0 ) { 
+            setZygoteSettings("b.spf.",profile.mPackageName,"" + profile.mSpoofDevice); 
+        } else {
+            if( !SystemProperties.get("b.spf."+profile.mPackageName,"0").equals("0") ) {
+                setZygoteSettings("b.spf.",profile.mPackageName,"0");
+            }
+        }
+        if( profile.mPreventHwKeyAttestation ) {
+            setZygoteSettings("b.phka.",profile.mPackageName,"" + profile.mPreventHwKeyAttestation);
+        } else {
+            if( !SystemProperties.get("b.phka."+profile.mPackageName,"0").equals("0") ) {
+                setZygoteSettings("b.phka.",profile.mPackageName,"0");
+            }
+        }
     }
 
     private void setZygoteSettings(String propPrefix, String packageName, String value) {
@@ -261,124 +426,6 @@ public class AppProfileSettings extends ContentObserver {
         } catch(Exception e) {
             Slog.e(TAG, "BaikalService: Can't set Zygote settings:" + packageName, e);
         }
-    }
-
-
-    private void updateProfileSystemSettings(AppProfile profile) {
-
-
-        int uid = getAppUidLocked(profile.mPackageName);
-        int runInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_IN_BACKGROUND,
-                uid, profile.mPackageName);        
-
-        int runAnyInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,
-                uid, profile.mPackageName);
-
-        if( mBackend.isSysWhitelisted(profile.mPackageName) ) { 
-            profile.mBackground = -1; 
-            if( runAnyInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-            if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-        }
-        else if( mBackend.isDefaultActiveApp(profile.mPackageName) ) { 
-            profile.mBackground = -1; 
-            if( runAnyInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-            if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-        }
-        else if( mBackend.isWhitelisted(profile.mPackageName) ) {
-            profile.mBackground = -1; 
-            if( runAnyInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-            if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-        }
-        
-        else if( uid != -1 && runInBackground != AppOpsManager.MODE_ALLOWED ) {
-            if( profile.mBackground < 2 ) profile.mBackground = 2; 
-        }
-
-        else if( uid != -1 && runAnyInBackground != AppOpsManager.MODE_ALLOWED ) {
-            if( profile.mBackground < 1 ) profile.mBackground = 1; 
-        }
-    }
-
-    private boolean updateSystemSettingsProfile(AppProfile profile) {
-
-        int uid = getAppUidLocked(profile.mPackageName);
-
-        int runInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_IN_BACKGROUND,
-                uid, profile.mPackageName);        
-
-        int runAnyInBackground = getAppOpsManager().checkOpNoThrow(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,
-                uid, profile.mPackageName);
-
-
-        if( mBackend.isSysWhitelisted(profile.mPackageName) ) { 
-            profile.mBackground = -1; 
-            if( runAnyInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-            if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-            return true;
-        }
-        else if( mBackend.isDefaultActiveApp(profile.mPackageName) ) { 
-            profile.mBackground = -1; 
-            if( runAnyInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-            if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-            return true;
-        }
-        switch(profile.mBackground) {
-            case -1:
-                if( !mBackend.isWhitelisted(profile.mPackageName) ) {
-                    synchronized(mBackend) {
-                        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Add to whitelist packageName=" + profile.mPackageName + ", uid=" + uid);
-                        mBackend.addApp(profile.mPackageName);
-                    }
-                }
-                if( runAnyInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-                if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-                break;
-
-            case 0:
-                if( runAnyInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-                if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-                if( mBackend.isWhitelisted(profile.mPackageName) ) {
-                    synchronized(mBackend) {
-                        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Remove from whitelist packageName=" + profile.mPackageName + ", uid=" + uid);
-                        mBackend.removeApp(profile.mPackageName);
-                    }
-                }
-                break;
-
-            case 1:
-                if( runAnyInBackground != AppOpsManager.MODE_IGNORED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
-                if( runInBackground != AppOpsManager.MODE_ALLOWED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_ALLOWED); 
-                if( mBackend.isWhitelisted(profile.mPackageName) ) {
-                    synchronized(mBackend) {
-                        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Remove from whitelist packageName=" + profile.mPackageName + ", uid=" + uid);
-                        mBackend.removeApp(profile.mPackageName);
-                    }
-                }
-                break;
-
-            case 2:
-                if( runAnyInBackground != AppOpsManager.MODE_IGNORED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
-                if( runInBackground != AppOpsManager.MODE_IGNORED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
-                if( mBackend.isWhitelisted(profile.mPackageName) ) {
-                    synchronized(mBackend) {
-                        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Remove from whitelist packageName=" + profile.mPackageName + ", uid=" + uid);
-                        mBackend.removeApp(profile.mPackageName);
-                    }
-                }
-                break;
-
-            case 3:
-                if( runAnyInBackground != AppOpsManager.MODE_IGNORED ) setBackgroundMode(AppOpsManager.OP_RUN_ANY_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
-                if( runInBackground != AppOpsManager.MODE_IGNORED ) setBackgroundMode(AppOpsManager.OP_RUN_IN_BACKGROUND,uid, profile.mPackageName,AppOpsManager.MODE_IGNORED); 
-                if( mBackend.isWhitelisted(profile.mPackageName) ) {
-                    synchronized(mBackend) {
-                        if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Remove from whitelist packageName=" + profile.mPackageName + ", uid=" + uid);
-                        mBackend.removeApp(profile.mPackageName);
-                    }
-                }
-                break;
-        }
-        return false;
     }
     
     private void setBackgroundMode(int op, int uid, String packageName, int mode) {
@@ -390,16 +437,16 @@ public class AppProfileSettings extends ContentObserver {
  
 
     public void saveLocked() {
+
+        Slog.e(TAG, "saveLocked()");
+
         String val = "";
 
         synchronized(mBackend) {
             mBackend.refreshList();
         }
 
-//        for(AppProfile profile: _profiles) {
-
         for(Map.Entry<String, AppProfile> entry : _profilesByPackgeName.entrySet()) {
-            updateSystemSettingsProfile(entry.getValue());
             if( entry.getValue().isDefault() ) { 
                 if( BaikalConstants.BAIKAL_DEBUG_APP_PROFILE ) Slog.i(TAG, "Skip saving default profile for packageName=" + entry.getValue().mPackageName);
                 continue;
@@ -497,6 +544,7 @@ public class AppProfileSettings extends ContentObserver {
     }
 
     public void save() {
+        Slog.e(TAG, "save()");
         synchronized(this) {
             saveLocked();
         }
@@ -544,59 +592,11 @@ public class AppProfileSettings extends ContentObserver {
         return sInstance;
     }
 
-    /*
-
-    private static Object volumeMultipliersLock = new Object();
-
-    private static HashMap<Integer, Integer> _volumeMultipliers = null;
-    private static HashMap<Integer, Boolean> _audioFocusChange = null;
-
-    private void updateVolumeMultipliers() {
-
-        //_volumeMultipliers
-        HashMap<Integer, Integer> volumeMultipliers = new HashMap<Integer, Integer>();
-        HashMap<Integer, Boolean> audioFocusChange = new HashMap<Integer, Boolean>();
-
-        synchronized(this) {
-            for(Map.Entry<Integer, AppProfile> entry: _profiles.entrySet()) {
-                if( entry.getValue().mVolumeMultiplier >=0 && 
-                    entry.getValue().mVolumeMultiplier <= 200 ) {
-                    Slog.e(TAG, "mVolumeMultiplier for uid=" + entry.getKey() + ", mul=" + entry.getValue().mVolumeMultiplier);
-                    volumeMultipliers.put(entry.getKey(),entry.getValue().mVolumeMultiplier);
-                }
-                if( entry.getValue().mIgnoreAudioFocus ) {
-                    Slog.e(TAG, "mIgnoreAudioFocus for uid=" + entry.getKey() + ", fc=" + entry.getValue().mIgnoreAudioFocus);
-                    audioFocusChange.put(entry.getKey(),entry.getValue().mIgnoreAudioFocus);
-                }
-            }
+    public static AppProfileSettings getInstance(Handler handler,Context context, ContentResolver resolver, IAppProfileSettingsNotifier notifier, boolean boot) {
+        if (sInstance == null) {
+            sInstance = new AppProfileSettings(handler,context,resolver,notifier, boot);
         }
-        synchronized(volumeMultipliersLock){
-            _volumeMultipliers = volumeMultipliers;
-            _audioFocusChange = audioFocusChange;
-        }
+        return sInstance;
     }
 
-    public static float getVolumeMultiplier(int uid) {
-        synchronized(volumeMultipliersLock){
-            if( _volumeMultipliers == null ) { 
-                Slog.e(TAG, "getVolumeMultiplier for uid=" + uid + ", mul=NA");
-                return 100.0F;
-            }
-            Integer mul = _volumeMultipliers.get(uid);
-            Slog.e(TAG, "getVolumeMultiplier for uid=" + uid + ", mul=" + mul);
-            if( mul == null ) { 
-                Slog.e(TAG, "getVolumeMultiplier for uid=" + uid + ", mul=ND");
-                return 100.0F;
-            }
-            return ((float)mul)/100.0F;
-        }
-    }
-
-    public static Boolean isIgnoreAudioFocus(int uid) {
-        synchronized(volumeMultipliersLock){
-            if( _audioFocusChange == null ) return false;
-            return _audioFocusChange.get(uid);
-        }
-    }
-    */
 }
