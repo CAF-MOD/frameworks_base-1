@@ -53,6 +53,8 @@ public class AppProfile {
     public int mRotation;
     public int mAudioMode;
     public int mSpoofDevice;
+    public boolean mKeepOn;
+    public boolean mPreventHwKeyAttestation;
 
     public AppProfile() {
         mPerfProfile = "default";
@@ -77,6 +79,8 @@ public class AppProfile {
             mRotation == 0 &&
             mAudioMode == 0 &&
             mSpoofDevice == 0 &&
+            !mKeepOn &&
+            !mPreventHwKeyAttestation &&
             mPerfProfile.equals("default") &&
             mThermalProfile.equals("default") ) return true;
         return false;
@@ -99,6 +103,8 @@ public class AppProfile {
         if( mRotation != 0 ) result +=  "," + "ro=" + mRotation;
         if( mAudioMode != 0 ) result +=  "," + "am=" + mAudioMode;
         if( mSpoofDevice != 0 ) result +=  "," + "sd=" + mSpoofDevice;
+        if( mKeepOn ) result +=  "," + "ko=" + mKeepOn;
+        if( mPreventHwKeyAttestation ) result +=  "," + "pka=" + mPreventHwKeyAttestation;
         return result;
     }
 
@@ -130,6 +136,8 @@ public class AppProfile {
             profile.mRotation = parser.getInt("ro",0);
             profile.mAudioMode = parser.getInt("am",0);
             profile.mSpoofDevice = parser.getInt("sd",0);
+            profile.mKeepOn = parser.getBoolean("ko",false);
+            profile.mPreventHwKeyAttestation = parser.getBoolean("pka",false);
         } catch( Exception e ) {
 
         }
