@@ -232,8 +232,8 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
         }
     }
 
-        boolean NewIconStyle = Settings.System.getIntForUser(getContext().getContentResolver(),
-                Settings.System.STATUSBAR_ICONS_STYLE, 1, UserHandle.USER_CURRENT) == 1;
+    boolean NewIconStyle = Settings.Global.getInt(getContext().getContentResolver(),
+            Settings.Global.BAIKALOS_STATUSBAR_COLOR_ICONS, 0) == 1;
 
     private void updateIconScaleForNotifications() {
         final float imageBounds = mIncreasedSize ?
@@ -446,6 +446,29 @@ public class StatusBarIconView extends AnimatedImageView implements StatusIconDi
                 mNotification.getPackageContext(getContext()) : getContext();
         return getIcon(getContext(), notifContext, icon);
     }
+
+    public static Drawable getIconLegacy(Context context, StatusBarIcon statusBarIcon) {
+
+            int userId = statusBarIcon.user.getIdentifier();
+            if (userId == UserHandle.USER_ALL) {
+                userId = UserHandle.USER_SYSTEM;
+            }
+
+            Drawable icon = statusBarIcon.icon.loadDrawableAsUser(context, userId);
+
+            TypedValue typedValue = new TypedValue();
+            context.getResources().getValue(R.dimen.status_bar_icon_scale_factor,
+                    typedValue, true);
+            float scaleFactor = typedValue.getFloat();
+
+            // No need to scale the icon, so return it as is.
+            if (scaleFactor == 1.f) {
+                return icon;
+            }
+
+            return new ScalingDrawableWrapper(icon, scaleFactor);
+    } 
+
 
     /**
      * Returns the right icon to use for this item
