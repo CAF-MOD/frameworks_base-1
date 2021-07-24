@@ -41,7 +41,7 @@ public final class ContentCaptureHelper {
     private static final String TAG = ContentCaptureHelper.class.getSimpleName();
 
     public static boolean sVerbose = false;
-    public static boolean sDebug = true;
+    public static boolean sDebug = false;
 
     /**
      * Used to log text that could contain PII.

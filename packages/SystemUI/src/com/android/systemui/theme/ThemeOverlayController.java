@@ -62,7 +62,7 @@ import javax.inject.Singleton;
 @Singleton
 public class ThemeOverlayController extends SystemUI {
     private static final String TAG = "ThemeOverlayController";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private ThemeOverlayManager mThemeManager;
     private UserManager mUserManager;

@@ -108,7 +108,7 @@ import com.android.internal.baikalos.BaikalSettings;
 public class FingerprintService extends BiometricServiceBase {
 
     protected static final String TAG = "FingerprintService";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final String FP_DATA_DIR = "fpdata";
     private static final String ACTION_LOCKOUT_RESET =
             "com.android.server.biometrics.fingerprint.ACTION_LOCKOUT_RESET";

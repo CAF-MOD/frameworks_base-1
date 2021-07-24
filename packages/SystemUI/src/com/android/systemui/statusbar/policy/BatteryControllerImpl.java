@@ -60,7 +60,7 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
 
     private static final String ACTION_LEVEL_TEST = "com.android.systemui.BATTERY_LEVEL_TEST";
 
-    private static final boolean DEBUG = true; //Log.isLoggable(TAG, Log.DEBUG);
+    private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
 
     private final EnhancedEstimates mEstimates;
     protected final BroadcastDispatcher mBroadcastDispatcher;

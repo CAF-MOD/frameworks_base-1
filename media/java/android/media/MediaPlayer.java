@@ -5517,7 +5517,7 @@ public class MediaPlayer extends PlayerBase
         private HandlerThread mHandlerThread;
 
         /** @hide */
-        public boolean DEBUG = true;
+        public boolean DEBUG = false;
 
         public TimeProvider(MediaPlayer mp) {
             mPlayer = mp;

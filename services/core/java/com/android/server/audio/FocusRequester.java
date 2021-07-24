@@ -42,7 +42,7 @@ public class FocusRequester {
 
     // on purpose not using this classe's name, as it will only be used from MediaFocusControl
     private static final String TAG = "MediaFocusControl";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private AudioFocusDeathHandler mDeathHandler; // may be null
     private IAudioFocusDispatcher mFocusDispatcher; // may be null

@@ -58,7 +58,7 @@ import com.android.internal.baikalos.BaikalSettings;
 public class MediaFocusControl implements PlayerFocusEnforcer {
 
     private static final String TAG = "MediaFocusControl";
-    static final boolean DEBUG = true;
+    static final boolean DEBUG = false;
 
     /**
      * set to true so the framework enforces ducking itself, without communicating to apps
