@@ -43,6 +43,10 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.pm.PermissionInfo;
 import android.content.pm.PackageManagerInternal;
 import android.database.ContentObserver;
 import android.net.Uri;
@@ -123,6 +127,9 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.function.Predicate;
+
+import com.android.internal.baikalos.Actions;
+import com.android.internal.baikalos.BaikalSettings;
 
 /**
  * Alarm manager implementation.
@@ -1892,6 +1899,7 @@ class AlarmManagerService extends SystemService {
         }
         removeLocked(operation, directReceiver);
         incrementAlarmCount(a.uid);
+	    BaikalStaticService.processAlarmLocked(a,mPendingIdleUntil);
         setImplLocked(a, false, doValidate);
     }
 
@@ -1999,7 +2007,7 @@ class AlarmManagerService extends SystemService {
             // to pull that earlier if there are existing alarms that have requested to
             // bring us out of idle at an earlier time.
             if (mNextWakeFromIdle != null && a.whenElapsed > mNextWakeFromIdle.whenElapsed) {
-                a.when = a.whenElapsed = a.maxWhenElapsed = mNextWakeFromIdle.whenElapsed;
+                //a.when = a.whenElapsed = a.maxWhenElapsed = mNextWakeFromIdle.whenElapsed;
             }
             // Add fuzz to make the alarm go off some time before the actual desired time.
             final long nowElapsed = mInjector.getElapsedRealtime();
@@ -2189,7 +2197,7 @@ class AlarmManagerService extends SystemService {
             } else if (workSource == null && (callingUid < Process.FIRST_APPLICATION_UID
                     || UserHandle.isSameApp(callingUid, mSystemUiUid)
                     || ((mAppStateTracker != null)
-                        && mAppStateTracker.isUidPowerSaveUserWhitelisted(callingUid)))) {
+                        && mAppStateTracker.isUidPowerSaveWhitelisted(callingUid)))) {
                 flags |= AlarmManager.FLAG_ALLOW_WHILE_IDLE_UNRESTRICTED;
                 flags &= ~AlarmManager.FLAG_ALLOW_WHILE_IDLE;
             }
@@ -3712,15 +3720,15 @@ class AlarmManagerService extends SystemService {
 
     @VisibleForTesting
     static class Alarm {
-        public final int type;
-        public final long origWhen;
-        public final boolean wakeup;
+        public int type;
+        public long origWhen;
+        public boolean wakeup;
         public final PendingIntent operation;
         public final IAlarmListener listener;
         public final String listenerTag;
         public final String statsTag;
         public final WorkSource workSource;
-        public final int flags;
+        public int flags;
         public final AlarmManager.AlarmClockInfo alarmClock;
         public final int uid;
         public final int creatorUid;
@@ -3881,6 +3889,9 @@ class AlarmManagerService extends SystemService {
     }
 
     long currentNonWakeupFuzzLocked(long nowELAPSED) {
+
+        if (BaikalSettings.getAggressiveIdleEnabled() ) return 3*60*60*1000;
+
         long timeSinceOn = nowELAPSED - mNonInteractiveStartTime;
         if (timeSinceOn < 5*60*1000) {
             // If the screen has been off for 5 minutes, only delay by at most two minutes.
@@ -3895,6 +3906,9 @@ class AlarmManagerService extends SystemService {
     }
 
     static int fuzzForDuration(long duration) {
+
+        if (BaikalSettings.getAggressiveIdleEnabled() ) return -1; 
+
         if (duration < 15*60*1000) {
             // If the duration until the time is less than 15 minutes, the maximum fuzz
             // is the duration.

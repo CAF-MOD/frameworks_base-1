@@ -48,6 +48,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 
+import com.android.internal.baikalos.BaikalSettings;
+
+
 /**
  * @hide
  *
@@ -831,6 +834,18 @@ public class MediaFocusControl implements PlayerFocusEnforcer {
                         AudioManager.audioFocusToString(focusChangeHint))
                 //.set(MediaMetrics.Property.SDK, sdk)
                 .record();
+
+        if( BaikalSettings.getBlockFocusSend(Binder.getCallingUid()) ) {
+            mEventLogger.log((new AudioEventLogger.StringEvent(
+                    "requestAudioFocus() blocked from uid/pid " + Binder.getCallingUid()
+                        + "/" + Binder.getCallingPid()
+                        + " clientId=" + clientId + " callingPack=" + callingPackageName
+                        + " req=" + focusChangeHint
+                        + " flags=0x" + Integer.toHexString(flags)
+                        + " sdk=" + sdk))
+                    .printLog(TAG));
+            return AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        }
 
         mEventLogger.log((new AudioEventLogger.StringEvent(
                 "requestAudioFocus() from uid/pid " + Binder.getCallingUid()

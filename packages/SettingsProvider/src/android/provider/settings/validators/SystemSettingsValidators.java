@@ -208,5 +208,6 @@ public class SystemSettingsValidators {
         VALIDATORS.put(System.WIFI_STATIC_DNS2, LENIENT_IP_ADDRESS_VALIDATOR);
         VALIDATORS.put(System.SHOW_BATTERY_PERCENT, new InclusiveIntegerRangeValidator(0, 2));
         VALIDATORS.put(System.NOTIFICATION_LIGHT_PULSE, BOOLEAN_VALIDATOR);
+        VALIDATORS.put(System.FP_WAKE_UNLOCK, BOOLEAN_VALIDATOR);
     }
 }

@@ -218,6 +218,7 @@ public class DisplayHardwareController extends LiveDisplayFeature {
             if (mAnimator != null && mAnimator.isRunning() && !isScreenOn()) {
                 mAnimator.cancel();
             } else if (isScreenOn()) {
+                updateHardware();
                 updateColorAdjustment();
             }
         }

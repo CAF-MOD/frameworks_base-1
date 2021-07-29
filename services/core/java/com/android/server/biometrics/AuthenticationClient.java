@@ -26,6 +26,7 @@ import android.hardware.biometrics.BiometricConstants;
 import android.hardware.biometrics.BiometricsProtoEnums;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.SystemProperties;
 import android.security.KeyStore;
 import android.util.EventLog;
 import android.util.Slog;
@@ -35,6 +36,8 @@ import com.android.server.wm.AppLockService;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.android.internal.baikalos.BaikalUtils;
 
 /**
  * A class to keep track of the authentication state for a given client.
@@ -156,6 +159,8 @@ public abstract class AuthenticationClient extends ClientMonitor {
                     + ", listener: " + listener
                     + ", requireConfirmation: " + mRequireConfirmation
                     + ", user: " + getTargetUserId());
+
+            BaikalUtils.boost();
 
             // Ensure authentication only succeeds if the client activity is on top or is keyguard.
             boolean isBackgroundAuth = false;

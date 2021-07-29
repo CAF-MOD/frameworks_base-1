@@ -63,6 +63,8 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
     protected boolean mHasPinnedNotification;
     protected int mUser;
 
+    protected long mAutoDismissNotificationDecayEdgeLighting = -1;
+
     private final ArrayMap<String, Long> mSnoozedPackages;
     private final AccessibilityManagerWrapper mAccessibilityMgr;
 
@@ -83,6 +85,28 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
         mSnoozeLengthMs = Settings.System.getIntForUser(context.getContentResolver(),
                 Settings.System.HEADS_UP_NOTIFICATION_SNOOZE,
                 defaultSnoozeLengthMs, UserHandle.USER_CURRENT);
+
+        boolean pulseAmbientLightEnabled = Settings.System.getIntForUser(
+                mContext.getContentResolver(), Settings.System.PULSE_AMBIENT_LIGHT, 0,
+                UserHandle.USER_CURRENT) == 1;
+
+        if( pulseAmbientLightEnabled ) {
+
+            int duration = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.PULSE_AMBIENT_LIGHT_DURATION, 2,
+                    UserHandle.USER_CURRENT) * 1000;
+            int repeat = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.PULSE_AMBIENT_LIGHT_REPEAT_COUNT, 0,
+                    UserHandle.USER_CURRENT);
+            if( duration * repeat > mAutoDismissNotificationDecay ) {
+                mAutoDismissNotificationDecayEdgeLighting = duration * repeat;
+            } else {
+                mAutoDismissNotificationDecayEdgeLighting = -1;
+            }
+        } else {
+            mAutoDismissNotificationDecayEdgeLighting = -1;
+        }
+ 
     }
 
     /**
@@ -399,6 +423,29 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
                 Settings.System.HEADS_UP_TIMEOUT,
                 mContext.getResources().getInteger(R.integer.heads_up_notification_decay),
                 UserHandle.USER_CURRENT);
+
+
+            boolean pulseAmbientLightEnabled = Settings.System.getIntForUser(
+                    mContext.getContentResolver(), Settings.System.PULSE_AMBIENT_LIGHT, 0,
+                    UserHandle.USER_CURRENT) == 1;
+
+            if( pulseAmbientLightEnabled ) {
+
+                int duration = Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.PULSE_AMBIENT_LIGHT_DURATION, 2,
+                        UserHandle.USER_CURRENT) * 1000;
+                int repeat = Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.PULSE_AMBIENT_LIGHT_REPEAT_COUNT, 0,
+                        UserHandle.USER_CURRENT);
+                if( duration * repeat > mAutoDismissNotificationDecay ) {
+                    mAutoDismissNotificationDecayEdgeLighting = duration * repeat;
+                } else {
+                    mAutoDismissNotificationDecayEdgeLighting = -1;
+                }
+            } else {
+                mAutoDismissNotificationDecayEdgeLighting = -1;
+            }
+
             super.updateEntry(updatePostTime);
         }
 
@@ -463,8 +510,27 @@ public abstract class HeadsUpManager extends AlertingNotificationManager {
 
         @Override
         protected long calculateFinishTime() {
-            return mPostTime + getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+            //if( mAutoDismissNotificationDecay > 0 ) 
+            //    return mPostTime + mAutoDismissNotificationDecay; //getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+            //else
+            return mPostTime + getDecayDuration(false); //mPostTime + getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
         }
+
+        protected long getDecayDuration(boolean isPulsing) {
+
+            if (isPulsing && mAutoDismissNotificationDecayEdgeLighting != -1 ) {
+                //return getRecommendedHeadsUpTimeoutMs(mAutoHeadsUpNotificationDecay);
+                Log.v(TAG, "getDecayDuration isPulsing&EdgeLighting: " +  mAutoDismissNotificationDecayEdgeLighting);
+                return mAutoDismissNotificationDecayEdgeLighting;
+            }
+            // else {
+                //return getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+                
+            // }
+            Log.v(TAG, "getDecayDuration: " + getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay));
+            return getRecommendedHeadsUpTimeoutMs(mAutoDismissNotificationDecay);
+        }
+
 
         /**
          * Get user-preferred or default timeout duration. The larger one will be returned.

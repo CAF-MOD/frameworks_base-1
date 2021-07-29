@@ -57,7 +57,7 @@ import java.util.function.Consumer;
 @UiThread
 public class ScrollCaptureTargetResolver {
     private static final String TAG = "ScrollCaptureTargetRes";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private final Object mLock = new Object();
 

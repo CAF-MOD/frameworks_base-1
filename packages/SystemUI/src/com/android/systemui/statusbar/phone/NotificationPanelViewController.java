@@ -1079,7 +1079,7 @@ public class NotificationPanelViewController extends PanelViewController {
         if (mQsExpansionEnabled && !isQsSecureExpandDisabled()) {
             mQsExpandImmediate = true;
             mNotificationStackScroller.setShouldShowShelfOnly(true);
-        }
+        } 
         if (isFullyCollapsed()) {
             expand(true /* animate */);
         } else {

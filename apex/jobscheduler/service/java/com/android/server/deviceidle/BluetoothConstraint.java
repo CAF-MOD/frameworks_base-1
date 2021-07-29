@@ -100,7 +100,8 @@ public class BluetoothConstraint implements IDeviceIdleConstraint {
     private void updateAndReportActiveLocked() {
         final boolean connected = isBluetoothConnected(mBluetoothManager);
         if (connected != mConnected) {
-            mConnected = connected;
+            //mConnected = connected;
+            mConnected = false;
             // If we lost all of our connections, we are on track to going into idle state.
             mLocalService.onConstraintStateChanged(this, /* active= */ mConnected);
         }
@@ -126,7 +127,7 @@ public class BluetoothConstraint implements IDeviceIdleConstraint {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(intent.getAction())) {
-                mLocalService.exitIdle("bluetooth");
+                //mLocalService.exitIdle("bluetooth");
             } else {
                 updateAndReportActiveLocked();
             }

@@ -179,8 +179,7 @@ public final class BluetoothCodecConfig implements Parcelable {
     @IntDef(prefix = "CHANNEL_MODE_", value = {
             CHANNEL_MODE_NONE,
             CHANNEL_MODE_MONO,
-            CHANNEL_MODE_STEREO,
-            CHANNEL_MODE_DUAL_CHANNEL
+            CHANNEL_MODE_STEREO
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface ChannelMode {}
@@ -195,20 +194,17 @@ public final class BluetoothCodecConfig implements Parcelable {
     public static final int CHANNEL_MODE_STEREO = 0x1 << 1;
 
     @UnsupportedAppUsage
-    public static final int CHANNEL_MODE_DUAL_CHANNEL = 0x1 << 2;
-
-    @UnsupportedAppUsage
-    public static final int CHANNEL_MODE_JOINT_STEREO = 0x1 << 3;
+    public static final int CHANNEL_MODE_JOINT_STEREO = 0x1 << 2;
 
     private final @SourceCodecType int mCodecType;
     private @CodecPriority int mCodecPriority;
     private final @SampleRate int mSampleRate;
     private final @BitsPerSample int mBitsPerSample;
     private final @ChannelMode int mChannelMode;
-    private final long mCodecSpecific1;
-    private final long mCodecSpecific2;
-    private final long mCodecSpecific3;
-    private final long mCodecSpecific4;
+    private  long mCodecSpecific1;
+    private  long mCodecSpecific2;
+    private  long mCodecSpecific3;
+    private  long mCodecSpecific4;
 
     @UnsupportedAppUsage
     public BluetoothCodecConfig(@SourceCodecType int codecType, @CodecPriority int codecPriority,
@@ -346,9 +342,6 @@ public final class BluetoothCodecConfig implements Parcelable {
         if ((mChannelMode & CHANNEL_MODE_STEREO) != 0) {
             channelModeStr = appendCapabilityToString(channelModeStr, "STEREO");
         }
-        if ((mChannelMode & CHANNEL_MODE_DUAL_CHANNEL) != 0) {
-            channelModeStr = appendCapabilityToString(channelModeStr, "DUAL_CHANNEL");
-        }
 
         return "{codecName:" + getCodecName()
                 + ",mCodecType:" + mCodecType
@@ -467,7 +460,7 @@ public final class BluetoothCodecConfig implements Parcelable {
      * @return true if the codec is mandatory, otherwise false.
      */
     public boolean isMandatoryCodec() {
-        return mCodecType == SOURCE_CODEC_TYPE_SBC && mChannelMode != CHANNEL_MODE_DUAL_CHANNEL;
+        return mCodecType == SOURCE_CODEC_TYPE_SBC;
     }
 
     /**
@@ -533,8 +526,7 @@ public final class BluetoothCodecConfig implements Parcelable {
      * supported channel modes:
      * {@link android.bluetooth.BluetoothCodecConfig#CHANNEL_MODE_NONE} or
      * {@link android.bluetooth.BluetoothCodecConfig#CHANNEL_MODE_MONO} or
-     * {@link android.bluetooth.BluetoothCodecConfig#CHANNEL_MODE_STEREO} or
-     * {@link android.bluetooth.BluetoothCodecConfig#CHANNEL_MODE_DUAL_CHANNEL}
+     * {@link android.bluetooth.BluetoothCodecConfig#CHANNEL_MODE_STEREO}
      *
      * @return the codec channel mode
      * @hide
@@ -588,6 +580,50 @@ public final class BluetoothCodecConfig implements Parcelable {
     }
 
     /**
+     * Gets a codec specific value1.
+     *
+     * @return a codec specific value1.
+     */
+    @UnsupportedAppUsage
+    public void setCodecSpecific1(long codecSpecific1) {
+        mCodecSpecific1 = codecSpecific1;
+    }
+
+    /**
+     * Gets a codec specific value2.
+     *
+     * @return a codec specific value2
+     * @hide
+     */
+    @UnsupportedAppUsage
+    public void setCodecSpecific2(long codecSpecific2) {
+        mCodecSpecific2 = codecSpecific2;
+    }
+
+    /**
+     * Gets a codec specific value3.
+     *
+     * @return a codec specific value3
+     * @hide
+     */
+    @UnsupportedAppUsage
+    public void setCodecSpecific3(long codecSpecific3) {
+        mCodecSpecific3 = codecSpecific3;
+    }
+
+    /**
+     * Gets a codec specific value4.
+     *
+     * @return a codec specific value4
+     * @hide
+     */
+    @UnsupportedAppUsage
+    public void setCodecSpecific4(long codecSpecific4) {
+        mCodecSpecific4 = codecSpecific4;
+    }
+
+
+    /**
      * Checks whether a value set presented by a bitmask has zero or single bit
      *
      * @param valueSet the value set presented by a bitmask
@@ -636,6 +672,7 @@ public final class BluetoothCodecConfig implements Parcelable {
      * @hide
      */
     public boolean sameAudioFeedingParameters(BluetoothCodecConfig other) {
+        if (other == null || other.mCodecSpecific1 != mCodecSpecific1 ) return false; 
         return (other != null && other.mSampleRate == mSampleRate
                 && other.mBitsPerSample == mBitsPerSample
                 && other.mChannelMode == mChannelMode);
@@ -653,6 +690,8 @@ public final class BluetoothCodecConfig implements Parcelable {
         if (other == null || mCodecType != other.mCodecType) {
             return false;
         }
+        if (other.mCodecSpecific1 != mCodecSpecific1 ) return false; 
+
         int sampleRate = other.mSampleRate;
         if (mSampleRate == BluetoothCodecConfig.SAMPLE_RATE_NONE
                 || sampleRate == BluetoothCodecConfig.SAMPLE_RATE_NONE) {
@@ -685,6 +724,8 @@ public final class BluetoothCodecConfig implements Parcelable {
         if (other == null && mCodecType != other.mCodecType) {
             return false;
         }
+        if (other.mCodecSpecific1 != mCodecSpecific1 ) return false; 
+
         // Currently we only care about the LDAC Playback Quality at CodecSpecific1
         switch (mCodecType) {
             case SOURCE_CODEC_TYPE_LDAC:

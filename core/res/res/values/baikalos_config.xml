@@ -1,0 +1,35 @@
+<!--
+     Copyright (C) 2015-2018 AOSiP
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources>
+
+    <!-- User defined performance profile -->
+    <integer name="config_cpu_min_silver">0</integer>
+    <integer name="config_cpu_max_silver">0</integer>
+    <integer name="config_cpu_min_gold">0</integer>
+    <integer name="config_cpu_max_gold">0</integer>
+    <integer name="config_gpu_min">0</integer>
+    <integer name="config_gpu_max">0</integer>
+
+
+    <!-- Whether device has a physical display cutout -->
+    <bool name="config_physicalDisplayCutout">false</bool>
+
+    <!-- Whether device has a big physical display cutout -->
+    <bool name="config_bigPhysicalDisplayCutout">false</bool>
+
+    <bool name="config_readerModeRequireDoze">false</bool>
+
+</resources>

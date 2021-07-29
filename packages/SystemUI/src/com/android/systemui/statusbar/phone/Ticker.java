@@ -278,7 +278,7 @@ public abstract class Ticker implements DarkReceiver {
             }
         }
 
-        final Drawable icon = StatusBarIconView.getIcon(mContext,
+        final Drawable icon = StatusBarIconView.getIconLegacy(mContext,
                 new StatusBarIcon(n.getPackageName(), n.getUser(), n.getNotification().icon, n.getNotification().iconLevel, 0,
                         n.getNotification().tickerText));
         final CharSequence text = n.getNotification().tickerText;

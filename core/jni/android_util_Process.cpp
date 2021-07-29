@@ -299,12 +299,24 @@ void android_os_Process_setProcessGroup(JNIEnv* env, jobject clazz, int pid, jin
         t_pri = getpriority(PRIO_PROCESS, t_pid);
 
         if (t_pri <= ANDROID_PRIORITY_AUDIO) {
+            //ALOGE("Audio thread t_pid %d\n", t_pid);
             int scheduler = sched_getscheduler(t_pid) & ~SCHED_RESET_ON_FORK;
             if ((scheduler == SCHED_FIFO) || (scheduler == SCHED_RR)) {
                 // This task wants to stay in its current audio group so it can keep its budget
                 // don't update its cpuset or cgroup
+                ALOGE("Audio thread SHED_FIFO t_pid %d\n", t_pid);
+                //continue;
+            } else {
+                //ALOGE("Audio thread not SHED_FIFO t_pid %d\n", t_pid);
                 continue;
             }
+            int agrp = SP_AUDIO_SYS;
+            err = SetTaskProfiles(t_pid, {get_cpuset_policy_profile_name((SchedPolicy)agrp)}, true) ? 0 : -1;
+            if (err != NO_ERROR) {
+                signalExceptionForGroupError(env, -err, t_pid);
+                break;
+            }
+            continue;
         }
 
         if (isDefault) {

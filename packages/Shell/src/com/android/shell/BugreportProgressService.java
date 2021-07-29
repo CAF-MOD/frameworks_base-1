@@ -492,6 +492,7 @@ public class BugreportProgressService extends Service {
 
         @Override
         public void handleMessage(Message msg) {
+            /* Disable Google Spy
             if (msg.what == MSG_DELAYED_SCREENSHOT) {
                 takeScreenshot(msg.arg1, msg.arg2);
                 return;
@@ -550,7 +551,7 @@ public class BugreportProgressService extends Service {
                     Log.w(TAG, "Unsupported intent: " + action);
             }
             return;
-
+            */
         }
     }
 

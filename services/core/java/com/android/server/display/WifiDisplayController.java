@@ -816,8 +816,11 @@ final class WifiDisplayController implements DumpUtils.Dump {
             if (!ExtendedRemoteDisplayHelper.isAvailable()) {
                Slog.i(TAG, "Listening for RTSP connection on " + iface
                        + " from Wifi display: " + mConnectedDevice.deviceName);
-               mRemoteDisplay = RemoteDisplay.listen(iface, listener,
-                       mHandler, mContext.getOpPackageName());
+               try { 
+                   mRemoteDisplay = RemoteDisplay.listen(iface, listener,
+                           mHandler, mContext.getOpPackageName());
+               } catch (Exception re) {
+               }
             }
 
             // Use extended timeout value for certification, as some tests require user inputs

@@ -1052,7 +1052,7 @@ public class RingtoneManager {
     /** {@hide} */
     public static Uri getCacheForType(Context context, int type, int userId) {
         return getCacheForTypeForPhoneAccountHandle(type, userId,
-                getDefaultPhoneAccountHandle(context));
+                (type & TYPE_RINGTONE)!=0 ? getDefaultPhoneAccountHandle(context) : null);
     }
 
     private static Uri getCacheForTypeForPhoneAccountHandle(int type, int userId,

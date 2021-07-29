@@ -80,7 +80,7 @@ import java.util.Map;
 public abstract class BiometricServiceBase extends SystemService
         implements IHwBinder.DeathRecipient {
 
-    protected static final boolean DEBUG = true;
+    protected static final boolean DEBUG = false;
 
     private static final String KEY_LOCKOUT_RESET_USER = "lockout_reset_user";
     private static final int MSG_USER_SWITCHING = 10;
@@ -687,8 +687,8 @@ public abstract class BiometricServiceBase extends SystemService
         mPostResetRunnableForAllClients = mContext.getResources().getBoolean(
                 com.android.internal.R.bool
                         .config_fingerprintPostResetRunnableForAllClients);
-        mHasPowerButtonFingerprint = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_powerButtonFingerprint);
+        mHasPowerButtonFingerprint = false; //mContext.getResources().getBoolean(
+                //com.android.internal.R.bool.config_powerButtonFingerprint);
     }
 
     @Override

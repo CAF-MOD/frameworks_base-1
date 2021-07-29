@@ -2888,7 +2888,7 @@ public final class Settings {
         public ArrayMap<String, String> getStringsForPrefix(ContentResolver cr, String prefix,
                 List<String> names) {
             String namespace = prefix.substring(0, prefix.length() - 1);
-            DeviceConfig.enforceReadPermission(ActivityThread.currentApplication(), namespace);
+            //DeviceConfig.enforceReadPermission(ActivityThread.currentApplication(), namespace);
             ArrayMap<String, String> keyValues = new ArrayMap<>();
             int currentGeneration = -1;
 
@@ -6115,6 +6115,12 @@ public final class Settings {
         public static final String VOLUME_BUTTON_MUSIC_CONTROL = "volume_button_music_control";
 
         /**
+         * volume answer
+         * @hide
+         */
+        public static final String ANSWER_VOLUME_BUTTON_BEHAVIOR_ANSWER = "call_volume_answer";
+
+        /**
          * Whether to wake the screen with the home key, the value is boolean.
          * @hide
          */
@@ -6754,6 +6760,15 @@ public final class Settings {
          */
         public static final String FLASHLIGHT_ON_CALL_WAITING = "flashlight_on_call_waiting";
 
+       /**
+         * Should we listen for fingerprints when the screen is off?  Devices
+         * with a rear-mounted sensor want this, but certain devices have
+         * the sensor embedded in the power key and listening all the time
+         * causes a poor experience.
+         * @hide
+         */
+        public static final String FP_WAKE_UNLOCK = "fp_wake_unlock";
+
         /**
          * Whether flashlight_on_call ignores DND (Zen Mode)
          * @hide
@@ -6821,6 +6836,7 @@ public final class Settings {
          * @hide
          */
         public static final String RIGHT_LONG_BACK_SWIPE_ACTION = "right_long_back_swipe_action";
+
 
         /**
          * Gestures nav: right long back swipe app action
@@ -15968,6 +15984,199 @@ public final class Settings {
          */
         public static final String POWER_BUTTON_VERY_LONG_PRESS =
                 "power_button_very_long_press";
+
+        /* BaikalOS Global settings */
+
+        /**
+         * This preference enables Hall sensor.
+         * @hide
+         */
+        public static final String BAIKALOS_HALL_SENSOR = "baikalos_hall_sensor";
+
+        /**
+         * This preference enables Proximity sensor sleep.
+         * @hide
+         */
+        public static final String BAIKALOS_PROXIMITY_SLEEP_SENSOR = "baikalos_proximity_sleep_sensor";
+
+        /**
+         * This preference enables Proximity sensor wake.
+         * @hide
+         */
+        public static final String BAIKALOS_PROXIMITY_WAKE_SENSOR = "baikalos_proximity_wake_sensor";
+
+        /**
+         * This preference enables Torch on incoming call.
+         * @hide
+         */
+        public static final String BAIKALOS_TORCH_INCALL = "baikalos_torch_incall";
+
+        /**
+         * This preference enables Torch on notification call.
+         * @hide
+         */
+        public static final String BAIKALOS_TORCH_NOTIFICATION = "baikalos_torch_notification";
+
+        /**
+         * This preference enables Aggressive Idle.
+         * @hide
+         */
+        public static final String BAIKALOS_AGGRESSIVE_IDLE = "baikalos_aggressive_idle";
+
+        /**
+         * This preference enables Extreme Idle.
+         * @hide
+         */
+        public static final String BAIKALOS_EXTREME_IDLE = "baikalos_extreme_idle";
+
+        /**
+         * This preference enables Stamina Mode.
+         * @hide
+         */
+        public static final String BAIKALOS_STAMINA_ENABLED = "baikalos_stamina_enabled";
+
+        /**
+         * This preference enables Stamina Mode.
+         * @hide
+         */
+        public static final String BAIKALOS_STAMINA_OI_ENABLED = "baikalos_stamina_oi_enabled";
+
+        /**
+         * This preference enables Hide GMS powersave option.
+         * @hide
+         */
+        public static final String BAIKALOS_HIDE_GMS = "baikalos_hide_gms";
+
+        /**
+         * This preference enables Hide GMS powersave option.
+         * @hide
+         */
+        public static final String BAIKALOS_UNRESTRICTED_NET = "baikalos_unrestricted_net";
+
+        /**
+         * This preference holds app profiles.
+         * @hide
+         */
+        public static final String BAIKALOS_APP_PROFILES = "baikalos_app_profiles";
+
+        /**
+         * This preference holds app profiles.
+         * @hide
+         */
+        public static final String BAIKALOS_APP_PROFILES_BACKUP = "baikalos_app_profiles_backup";
+
+        /**
+         * This preference holds app profiles.
+         * @hide
+         */
+        public static final String BAIKALOS_DEV_PROFILES = "baikalos_dev_profiles";
+
+        /**
+         * This preference holds headset detection option.
+         * @hide
+         */
+        public static final String BAIKALOS_DISABLE_HP_DETECT = "baikalos_disable_hp_detect";
+
+
+        /**
+         * This preference holds SBC priority option.
+         * @hide
+         */
+        public static final String BAIKALOS_BT_SBC_PRIORITY = "baikalos_bt_sbc_priority";
+
+        /**
+         * This preference holds SBC disabled option.
+         * @hide
+         */
+        public static final String BAIKALOS_BT_SBC_DISABLED = "baikalos_bt_sbc_disabled";
+
+
+        /**
+         * This preference holds AAC disabled option.
+         * @hide
+         */
+        public static final String BAIKALOS_BT_AAC_DISABLED = "baikalos_bt_aac_disabled";
+
+
+        /**
+         * This preference holds APTX disabled option.
+         * @hide
+         */
+        public static final String BAIKALOS_BT_APTX_DISABLED = "baikalos_bt_aptx_disabled";
+
+        /**
+         * This preference holds APTX HD disabled option.
+         * @hide
+         */
+        public static final String BAIKALOS_BT_APTX_HD_DISABLED = "baikalos_bt_aptx_hd_disabled";
+
+        /**
+         * This preference holds LDAC disabled option.
+         * @hide
+         */
+        public static final String BAIKALOS_BT_LDAC_DISABLED = "baikalos_bt_ldac_disabled";
+
+        /**
+         * This preference holds DLSB enabled option.
+         * @hide
+         */
+        public static final String BAIKALOS_DLSB_ENABLED = "baikalos_dlsb_enabled";
+
+
+        /**
+         * Google Services and Play Market options.
+         * @hide
+         */
+        public static final String BAIKALOS_GMS_BLOCKED = "baikalos_gms_blocked";
+        public static final String BAIKALOS_GMS_RESTRICTED = "baikalos_gms_restricted";
+        public static final String BAIKALOS_GPS_RESTRICTED = "baikalos_gps_restricted";
+        public static final String BAIKALOS_GMS_STAMINA_RESTRICTED = "baikalos_gms_stamina_restricted";
+        public static final String BAIKALOS_GMS_IDLE_RESTRICTED = "baikalos_gms_idle_restricted";
+
+        /**
+         * This preference holds SBC option.
+         * @hide
+         */
+        public static final String BAIKALOS_SBC_BITRATE = "baikalos_sbc_bitrate";
+
+
+        /**
+         * This preference holds App Audio profile.
+         * @hide
+         */
+        public static final String BAIKALOS_AUIDO_PROFILE = "baikalos_audio_profile";
+
+
+        /**
+         * Baikalos Debug options.
+         * @hide
+         */
+        public static final String BAIKALOS_FILTER_SERVICES = "baikalos_filter_services";
+        public static final String BAIKALOS_FILTER_ALARMS = "baikalos_filter_alarms";
+        public static final String BAIKALOS_FILTER_BCAST = "baikalos_filter_bcast";
+        public static final String BAIKALOS_FILTER_ACTIVITY = "baikalos_filter_activity";
+
+        public static final String BAIKALOS_FILTER_SERVICES_IDLE = "baikalos_filter_services_idle";
+        public static final String BAIKALOS_FILTER_ALARMS_IDLE = "baikalos_filter_alarms_idle";
+        public static final String BAIKALOS_FILTER_BCAST_IDLE = "baikalos_filter_bcast_idle";
+        public static final String BAIKALOS_FILTER_ACTIVITY_IDLE = "baikalos_filter_activity_idle";
+
+        public static final String BAIKALOS_ALARMS_NOWAKE = "baikalos_alarms_no_wake";
+
+        public static final String BAIKALOS_DEBUG = "baikalos_debug";
+
+        public static final String BAIKALOS_DEFAULT_ROTATION = "baikalos_default_rotation";
+
+        public static final String BAIKALOS_HEADSUP_INCALL = "baikalos_headsup_incall";
+
+        public static final String BAIKALOS_HEADSUP_FORCE_SMS = "baikalos_headsup_force_sms";
+
+        public static final String BAIKALOS_SMART_NFC = "baikalos_smart_nfc";
+
+        public static final String BAIKALOS_STATUSBAR_COLOR_ICONS = "baikalos_statusbar_color_icons";
+
+        /* End of BaikalOS Global settings */
+
 
         /**
          * Google Hybrid Battery Warnings

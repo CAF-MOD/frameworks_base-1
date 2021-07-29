@@ -27,12 +27,14 @@ import static com.android.internal.widget.LockPatternUtils.StrongAuthTracker.STR
 import static com.android.internal.widget.LockPatternUtils.StrongAuthTracker.STRONG_AUTH_REQUIRED_AFTER_USER_LOCKDOWN;
 import static com.android.systemui.shared.system.QuickStepContract.SYSUI_STATE_GLOBAL_ACTIONS_SHOWING;
 
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.annotation.Nullable;
 import android.app.ActivityManager;
+import android.app.ActivityThread;
 import android.app.ActivityTaskManager;
 import android.app.Dialog;
 import android.app.IActivityManager;
@@ -58,6 +60,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
+import android.nfc.NfcAdapter;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
@@ -271,6 +274,9 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
     @VisibleForTesting
     boolean mShowLockScreenCardsAndControls = false;
 
+    private static NfcAdapter mNfcAdapter;
+    private static boolean mSmartNfcEnabled;
+
     @VisibleForTesting
     public enum GlobalActionsEvent implements UiEventLogger.UiEventEnum {
         @UiEvent(doc = "The global actions / power menu surface became visible on the screen.")
@@ -436,6 +442,25 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
                         onPowerMenuLockScreenSettingsChanged();
                     }
                 });
+
+
+        mSmartNfcEnabled = Settings.Global.getInt(mContext.getContentResolver(), Settings.Global.BAIKALOS_SMART_NFC, 0) != 0;
+
+        mContext.getContentResolver().registerContentObserver(
+                Settings.Global.getUriFor(Settings.Global.BAIKALOS_SMART_NFC),
+                false /* notifyForDescendants */,
+                new ContentObserver(mMainHandler) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        mSmartNfcEnabled = Settings.Global.getInt(mContext.getContentResolver(), Settings.Global.BAIKALOS_SMART_NFC, 0) != 0;
+                    }
+                });
+
+        try {
+            mNfcAdapter = NfcAdapter.getNfcAdapter(mContext);
+        } catch (UnsupportedOperationException e) {
+            mNfcAdapter = null;
+        }
     }
 
     /**
@@ -515,6 +540,7 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             mWindowManagerFuncs.onGlobalActionsShown();
             mDialog.dismiss();
             mDialog = null;
+            Log.d(TAG, "SmartNFC: showOrHideDialog() - dialog dismiss");
         } else {
             handleShow();
         }
@@ -875,6 +901,9 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
                 mContentResolver, Settings.Global.BUGREPORT_IN_POWER_MENU, 0) != 0
                 && (currentUser == null || currentUser.isPrimary());
     }
+
+
+
 
     @Override
     public void onUiModeChanged() {
@@ -1469,6 +1498,8 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
         if (mDialog == dialog) {
             mDialog = null;
         }
+        Log.d(TAG, "SmartNFC: onDismiss() -  dialog dismiss");
+        //disableNfc();
         mUiEventLogger.log(GlobalActionsEvent.GA_POWER_MENU_CLOSE);
         mWindowManagerFuncs.onGlobalActionsHidden();
         mLifecycle.setCurrentState(Lifecycle.State.CREATED);
@@ -2351,6 +2382,7 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
                         } else {
                             mDialog.dismiss();
                         }
+                        Log.d(TAG, "SmartNFC: MESSAGE_DISMISS - dialog dismiss");
                         mDialog = null;
                     }
                     break;
@@ -2494,10 +2526,24 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
         }
 
         private void initializeWalletView() {
+            Log.d(TAG, "SmartNFC: initializeWalletView");
+            boolean delay = enableNfc();
+            if( delay ) {
+                mGlobalActionsLayout.postDelayed(() -> {
+                    initializeWalletViewImpl();
+                },3000); 
+            } else {
+                initializeWalletViewImpl();
+            }
+        }
+
+        private void initializeWalletViewImpl() {
             mWalletViewController = mWalletFactory.get();
             if (!isWalletViewAvailable()) {
                 return;
             }
+
+
 
             int rotation = RotationUtils.getRotation(mContext);
             boolean rotationLocked = RotationPolicy.isRotationLocked(mContext);
@@ -2560,6 +2606,7 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
                         }
                     });
                 }
+                
             }
         }
 
@@ -2799,6 +2846,14 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
         }
 
         private void dismissWallet() {
+
+            Log.d(TAG, "SmartNFC: dismissWallet() -  dialog dismiss");
+
+            mGlobalActionsLayout.postDelayed(() -> {
+                disableNfc();
+            },1000); 
+
+
             if (mWalletViewController != null) {
                 mWalletViewController.onDismissed();
                 // The wallet controller should not be re-used after being dismissed.
@@ -2912,6 +2967,51 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             public boolean locked;
             public int rotation;
         }
+
+        private boolean enableNfc() {
+
+            Log.d(TAG, "SmartNFC: enableNfc()");
+
+            try {
+                if( mSmartNfcEnabled ) {
+                    //SystemProperties.set("baikalos.nfc.lazy", "1");
+                    NfcAdapter adapter = getNfcAdapter();
+                    if( adapter != null ) { 
+                        if( !adapter.isEnabled() ) {
+                            Log.d(TAG, "SmartNFC: enable()");
+                            if( !adapter.enable() ) return false;
+                            return true;
+                        }
+                    }
+                }
+            } catch(Exception e) {
+            }
+            return false;
+        }
+
+        private void disableNfc() {
+
+            Log.d(TAG, "SmartNFC: disableNfc()");
+    
+            try {
+                if( mSmartNfcEnabled ) {
+                    //SystemProperties.set("baikalos.nfc.lazy", "1");
+                    NfcAdapter adapter = getNfcAdapter();
+                    if( adapter != null ) { 
+                        if( adapter.isEnabled() ) {
+                            Log.d(TAG, "SmartNFC: disable()");
+                            adapter.disable();
+                        }
+                    }
+                }
+            } catch(Exception e) {
+            }
+        }
+
+        private static NfcAdapter getNfcAdapter() {
+            return mNfcAdapter;
+        }
+
     }
 
     /**
@@ -2960,4 +3060,6 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
     public static void restartSystemUI(Context ctx) {
         Process.killProcess(Process.myPid());
     }
+
+
 }

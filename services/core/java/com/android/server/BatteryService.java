@@ -497,19 +497,24 @@ public final class BatteryService extends SystemService {
         // assume we are powered if battery state is unknown so
         // the "stay on while plugged in" option will work.
         if (mHealthInfo.batteryStatus == BatteryManager.BATTERY_STATUS_UNKNOWN) {
+            Slog.e(TAG, "health: BATTERY_STATUS_UNKNOWN");
             return true;
         }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_AC) != 0 && mHealthInfo.chargerAcOnline) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_AC");
             return true;
         }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_USB) != 0 && mHealthInfo.chargerUsbOnline) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_USB");
             return true;
         }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_WIRELESS) != 0 && mHealthInfo.chargerWirelessOnline) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_WIRELESS");
             return true;
         }
         if ((plugTypeSet & BatteryManager.BATTERY_PLUGGED_MOD) != 0 &&
                   supplementalOrEmergencyModOnline() && isModBatteryActive()) {
+            Slog.e(TAG, "health: BATTERY_PLUGGED_MOD");
             return true;
         }
         return false;
@@ -694,11 +699,11 @@ public final class BatteryService extends SystemService {
                 mHealthInfo.batteryPresent != mLastBatteryPresent ||
                 mHealthInfo.batteryLevel != mLastBatteryLevel ||
                 mPlugType != mLastPlugType ||
-                mHealthInfo.batteryVoltage != mLastBatteryVoltage ||
-                mHealthInfo.batteryTemperature != mLastBatteryTemperature ||
-                mHealthInfo.maxChargingCurrent != mLastMaxChargingCurrent ||
-                mHealthInfo.maxChargingVoltage != mLastMaxChargingVoltage ||
-                mHealthInfo.batteryChargeCounter != mLastChargeCounter ||
+                (mHealthInfo.batteryVoltage/100) != (mLastBatteryVoltage/100) ||
+                (mHealthInfo.batteryTemperature/10) != (mLastBatteryTemperature/10) ||
+                (mHealthInfo.maxChargingCurrent/1000) != (mLastMaxChargingCurrent/1000) ||
+                (mHealthInfo.maxChargingVoltage/100) != (mLastMaxChargingVoltage/100) ||
+                //mHealthInfo.batteryChargeCounter != mLastChargeCounter ||
                 mInvalidCharger != mLastInvalidCharger ||
                 mDashCharger != mLastDashCharger ||
                 mWarpCharger != mLastWarpCharger ||

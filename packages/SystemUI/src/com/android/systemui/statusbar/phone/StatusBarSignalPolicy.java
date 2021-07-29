@@ -34,6 +34,7 @@ import com.android.systemui.tuner.TunerService.Tunable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Collections;
 
 
 public class StatusBarSignalPolicy implements NetworkControllerImpl.SignalCallback,
@@ -245,6 +246,10 @@ public class StatusBarSignalPolicy implements NetworkControllerImpl.SignalCallba
         if (hasCorrectSubs(subs)) {
             return;
         }
+
+        Collections.sort(subs, (s1, s2) -> {
+            return s1.getSimSlotIndex() - s2.getSimSlotIndex();
+        });
 
         mIconController.removeAllIconsForSlot(mSlotMobile);
         mMobileStates.clear();

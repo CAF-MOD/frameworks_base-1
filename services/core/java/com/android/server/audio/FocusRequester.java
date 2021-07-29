@@ -30,6 +30,8 @@ import com.android.server.audio.MediaFocusControl.AudioFocusDeathHandler;
 
 import java.io.PrintWriter;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 /**
  * @hide
  * Class to handle all the information about a user of audio focus. The lifecycle of each
@@ -320,6 +322,8 @@ public class FocusRequester {
                         + mClientId);
                 }
                 if (mFocusLossWasNotified) {
+                    if (DEBUG) Log.w(TAG, "(1) dispatching focus change with " + mFocusGainRequest
+                        + ", dispatching " + focusGain + " for " + mClientId + " uid=" + mCallingUid);
                     fd.dispatchAudioFocusChange(focusGain, mClientId);
                 }
             }
@@ -387,7 +391,15 @@ public class FocusRequester {
                     mFocusController.notifyExtPolicyFocusLoss_syncAf(
                             toAudioFocusInfo(), true /* wasDispatched */);
                     mFocusLossWasNotified = true;
-                    fd.dispatchAudioFocusChange(mFocusLossReceived, mClientId);
+                    if( BaikalSettings.getBlockFocusRecv(mCallingUid) ) {
+                        if (DEBUG) Log.w(TAG, "(2) dispatching focus change with " + mFocusGainRequest
+                                + ", BLOCKED " + mFocusLossReceived + " for " + mClientId + " uid=" + mCallingUid);
+                    } else {
+    
+                        if (DEBUG) Log.w(TAG, "(2) dispatching focus change with " + mFocusGainRequest
+                                + ", dispatching " + mFocusLossReceived + " for " + mClientId + " uid=" + mCallingUid);
+                        fd.dispatchAudioFocusChange(mFocusLossReceived, mClientId);
+                    }
                 }
             }
         } catch (android.os.RemoteException e) {
@@ -439,11 +451,11 @@ public class FocusRequester {
     int dispatchFocusChange(int focusChange) {
         final IAudioFocusDispatcher fd = mFocusDispatcher;
         if (fd == null) {
-            if (MediaFocusControl.DEBUG) { Log.e(TAG, "dispatchFocusChange: no focus dispatcher"); }
+            if (DEBUG) { Log.e(TAG, "dispatchFocusChange: no focus dispatcher"); }
             return AudioManager.AUDIOFOCUS_REQUEST_FAILED;
         }
         if (focusChange == AudioManager.AUDIOFOCUS_NONE) {
-            if (MediaFocusControl.DEBUG) { Log.v(TAG, "dispatchFocusChange: AUDIOFOCUS_NONE"); }
+            if (DEBUG) { Log.v(TAG, "dispatchFocusChange: AUDIOFOCUS_NONE"); }
             return AudioManager.AUDIOFOCUS_REQUEST_FAILED;
         } else if ((focusChange == AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
                 || focusChange == AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE
@@ -455,9 +467,13 @@ public class FocusRequester {
         } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK
                 || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
                 || focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+            if (DEBUG) Log.w(TAG, "focus gain was requested with " + mFocusGainRequest
+                    + ", dispatching " + focusChange);
             mFocusLossReceived = focusChange;
         }
         try {
+            if (DEBUG) Log.w(TAG, "(3) dispatching focus change with " + mFocusGainRequest
+                    + ", dispatching " + focusChange + " for " + mClientId + " uid=" + mCallingUid);
             fd.dispatchAudioFocusChange(focusChange, mClientId);
         } catch (android.os.RemoteException e) {
             Log.e(TAG, "dispatchFocusChange: error talking to focus listener " + mClientId, e);
@@ -469,7 +485,7 @@ public class FocusRequester {
     void dispatchFocusResultFromExtPolicy(int requestResult) {
         final IAudioFocusDispatcher fd = mFocusDispatcher;
         if (fd == null) {
-            if (MediaFocusControl.DEBUG) {
+            if (DEBUG) {
                 Log.e(TAG, "dispatchFocusResultFromExtPolicy: no focus dispatcher");
             }
             return;

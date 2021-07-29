@@ -299,7 +299,9 @@ public class Camera {
         List<String> packageExcludelist = Arrays.asList(
                 SystemProperties.get("vendor.camera.aux.packageexcludelist", "").split(","));
 
-        return packageList.contains(packageName) && !packageExcludelist.contains(packageName);
+        return 
+            (packageList.contains(packageName) || packageList.contains("*") ) && 
+            (!packageExcludelist.contains(packageName) && !packageExcludelist.contains("*"));
     }
 
     /**

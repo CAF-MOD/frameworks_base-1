@@ -27,6 +27,7 @@ import com.android.systemui.plugins.qs.QSTileView;
 import com.android.systemui.qs.QSHost;
 import com.android.systemui.qs.external.CustomTile;
 import com.android.systemui.qs.tiles.AicpExtrasTile;
+import com.android.systemui.qs.tiles.BaikalExtrasTile;
 import com.android.systemui.qs.tiles.AirplaneModeTile;
 import com.android.systemui.qs.tiles.AntiFlickerTile;
 import com.android.systemui.qs.tiles.AODTile;
@@ -44,7 +45,9 @@ import com.android.systemui.qs.tiles.DcDimmingTile;
 import com.android.systemui.qs.tiles.DndTile;
 import com.android.systemui.qs.tiles.FlashlightTile;
 import com.android.systemui.qs.tiles.FPSInfoTile;
+import com.android.systemui.qs.tiles.RRInfoTile;
 import com.android.systemui.qs.tiles.GamingModeTile;
+import com.android.systemui.qs.tiles.GoogleServicesTile;
 import com.android.systemui.qs.tiles.HeadsUpTile;
 import com.android.systemui.qs.tiles.HotspotTile;
 import com.android.systemui.qs.tiles.HWKeysTile;
@@ -75,6 +78,9 @@ import com.android.systemui.qs.tiles.WeatherTile;
 import com.android.systemui.qs.tiles.WifiTile;
 import com.android.systemui.qs.tiles.WorkModeTile;
 import com.android.systemui.util.leak.GarbageMonitor;
+
+import com.android.systemui.qs.tiles.IdleModeTile;
+import com.android.systemui.qs.tiles.StaminaModeTile;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -131,11 +137,17 @@ public class QSFactoryImpl implements QSFactory {
     private final Provider<HWKeysTile> mHWKeysTileProvider;
     private final Provider<GamingModeTile> mGamingModeTileProvider;
     private final Provider<FPSInfoTile> mFPSInfoTileProvider;
+    private final Provider<RRInfoTile> mRRInfoTileProvider;
     private final Provider<KillappTile> mKillappTileProvider;
     private final Provider<VpnTile> mVpnTileProvider;
     private final Provider<MonoToggleTile> mMonoToggleTileProvider;
     private final Provider<AntiFlickerTile> mAntiFlickerTileProvider;
     private final Provider<DcDimmingTile> mDcDimmingTileProvider;
+
+    private final Provider<IdleModeTile> mIdleModeTileProvider;
+    private final Provider<StaminaModeTile> mStaminaModeTileProvider;
+    private final Provider<BaikalExtrasTile> mBaikalExtrasTileProvider;
+    private final Provider<GoogleServicesTile> mGoogleServicesTileProvider;
 
     private final Lazy<QSHost> mQsHostLazy;
 
@@ -185,8 +197,13 @@ public class QSFactoryImpl implements QSFactory {
             Provider<HWKeysTile> hwkeysTileProvider,
             Provider<GamingModeTile> gamingModeTileProvider,
             Provider<FPSInfoTile> fpsInfoTileProvider,
+            Provider<RRInfoTile> rrInfoTileProvider,
             Provider<KillappTile> killappTileProvider,
             Provider<VpnTile> vpnTileProvider,
+            Provider<IdleModeTile> idleModeTileProvider,
+            Provider<StaminaModeTile> staminaModeTileProvider,
+            Provider<BaikalExtrasTile> baikalExtrasTileProvider,
+            Provider<GoogleServicesTile> googleServicesTileProvider,
             Provider<MonoToggleTile> monoToggleTileProvider,
             Provider<AntiFlickerTile> antiFlickerTileProvider,
             Provider<DcDimmingTile> dcDimTileProvider) {
@@ -235,9 +252,14 @@ public class QSFactoryImpl implements QSFactory {
         mHWKeysTileProvider = hwkeysTileProvider;
         mGamingModeTileProvider = gamingModeTileProvider;
         mFPSInfoTileProvider = fpsInfoTileProvider;
+        mRRInfoTileProvider = rrInfoTileProvider;
         mKillappTileProvider = killappTileProvider;
         mVpnTileProvider = vpnTileProvider;
+        mIdleModeTileProvider = idleModeTileProvider;
+        mStaminaModeTileProvider = staminaModeTileProvider;
+        mBaikalExtrasTileProvider = baikalExtrasTileProvider;
         mMonoToggleTileProvider = monoToggleTileProvider;
+        mGoogleServicesTileProvider = googleServicesTileProvider;
         mAntiFlickerTileProvider = antiFlickerTileProvider;
         mDcDimmingTileProvider = dcDimTileProvider;
     }
@@ -340,12 +362,22 @@ public class QSFactoryImpl implements QSFactory {
                 return mGamingModeTileProvider.get();
             case "fpsinfo":
                 return mFPSInfoTileProvider.get();
+            case "rrinfo":
+                return mRRInfoTileProvider.get();
             case "killapp":
                 return mKillappTileProvider.get();
             case "vpn":
                 return mVpnTileProvider.get();
+            case "idle_mode":
+                return mIdleModeTileProvider.get();
+            case "stamina_mode":
+                return mStaminaModeTileProvider.get();
+            case "baikal_extras":
+                return mBaikalExtrasTileProvider.get();
             case "mono":
                 return mMonoToggleTileProvider.get();
+            case "gms":
+                return mGoogleServicesTileProvider.get();
             case "anti_flicker":
                 return mAntiFlickerTileProvider.get();
             case "dc_dimming":

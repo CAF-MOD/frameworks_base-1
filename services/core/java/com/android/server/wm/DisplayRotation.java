@@ -182,6 +182,8 @@ public class DisplayRotation {
     @Surface.Rotation
     private int mUserRotation = Surface.ROTATION_0;
 
+    private int mBaikalUserRotation = -1;
+
     /**
      * Flag that indicates this is a display that may run better when fixed to user rotation.
      */
@@ -834,6 +836,13 @@ public class DisplayRotation {
         if (!isDefaultDisplay) {
             return mUserRotationMode == WindowManagerPolicy.USER_ROTATION_LOCKED;
         }
+    
+        int baikalUserRotation = Settings.Global.getInt(mContext.getContentResolver(),
+                        Settings.Global.BAIKALOS_DEFAULT_ROTATION,0);
+
+        if( baikalUserRotation > -1 ) {
+            return baikalUserRotation != 0;
+        }
 
         return Settings.System.getIntForUser(mContext.getContentResolver(),
                 Settings.System.ACCELEROMETER_ROTATION, 0, UserHandle.USER_CURRENT) == 0;
@@ -1408,21 +1417,51 @@ public class DisplayRotation {
                 shouldUpdateRotation = true;
             }
 
+            final int baikalUserRotation = Settings.Global.getInt(resolver,
+                        Settings.Global.BAIKALOS_DEFAULT_ROTATION,0);
+            boolean baikalRotationChanged = false;
+            if( baikalUserRotation != mBaikalUserRotation ) {
+                mBaikalUserRotation = baikalUserRotation;
+                shouldUpdateOrientationListener = true;
+                shouldUpdateRotation = true;
+                baikalRotationChanged = true;
+            }
+
+
             final int userRotationAngles = Settings.System.getInt(resolver,
-                    Settings.System.ACCELEROMETER_ROTATION_ANGLES, -1);
+                        Settings.System.ACCELEROMETER_ROTATION_ANGLES, -1);
             if (mUserRotationAngles != userRotationAngles) {
                 mUserRotationAngles = userRotationAngles;
                 shouldUpdateRotation = true;
             }
 
-            final int userRotationMode = Settings.System.getIntForUser(resolver,
-                    Settings.System.ACCELEROMETER_ROTATION, 0, UserHandle.USER_CURRENT) != 0
-                            ? WindowManagerPolicy.USER_ROTATION_FREE
-                            : WindowManagerPolicy.USER_ROTATION_LOCKED;
-            if (mUserRotationMode != userRotationMode) {
-                mUserRotationMode = userRotationMode;
-                shouldUpdateOrientationListener = true;
-                shouldUpdateRotation = true;
+            if( mBaikalUserRotation == -1 )  {
+                final int userRotationMode = Settings.System.getIntForUser(resolver,
+                        Settings.System.ACCELEROMETER_ROTATION, 0, UserHandle.USER_CURRENT) != 0
+                                ? WindowManagerPolicy.USER_ROTATION_FREE
+                                : WindowManagerPolicy.USER_ROTATION_LOCKED;
+                if (mUserRotationMode != userRotationMode) {
+                    mUserRotationMode = userRotationMode;
+                    shouldUpdateOrientationListener = true;
+                    shouldUpdateRotation = true;
+                }
+            } else if( mBaikalUserRotation == 0 ) {
+                if (mUserRotationMode != WindowManagerPolicy.USER_ROTATION_FREE) {
+                    mUserRotationMode = WindowManagerPolicy.USER_ROTATION_FREE;
+                    shouldUpdateOrientationListener = true;
+                    shouldUpdateRotation = true;
+                }
+            } else {
+                if (mUserRotationMode != WindowManagerPolicy.USER_ROTATION_LOCKED) {
+                    mUserRotationMode = WindowManagerPolicy.USER_ROTATION_LOCKED;
+                    shouldUpdateOrientationListener = true;
+                    shouldUpdateRotation = true;
+                }
+                if (mUserRotation != mBaikalUserRotation-1) {
+                    mUserRotation = mBaikalUserRotation-1;
+                    shouldUpdateOrientationListener = true;
+                    shouldUpdateRotation = true;
+                }
             }
 
             if (shouldUpdateOrientationListener) {
@@ -1540,6 +1579,10 @@ public class DisplayRotation {
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.USER_ROTATION), false, this,
                     UserHandle.USER_ALL);
+            resolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_DEFAULT_ROTATION),
+                    false, this);
+
             updateSettings();
         }
 

@@ -37,7 +37,8 @@ public class DozeScreenStatePreventingAdapter extends DozeMachine.Service.Delega
         if (state == Display.STATE_DOZE) {
             state = Display.STATE_ON;
         } else if (state == Display.STATE_DOZE_SUSPEND) {
-            state = Display.STATE_ON_SUSPEND;
+            //state = Display.STATE_ON_SUSPEND;
+            state = Display.STATE_DOZE;
         }
         super.setDozeScreenState(state);
     }

@@ -62,6 +62,10 @@ import java.util.concurrent.ExecutionException;
 import sun.security.util.ObjectIdentifier;
 import sun.security.x509.AlgorithmId;
 
+import com.android.internal.baikalos.AppProfile;
+import com.android.internal.baikalos.AppProfileSettings;
+
+
 /**
  * @hide This should not be made public in its present form because it
  * assumes that private and secret key bytes are available and would
@@ -1126,9 +1130,18 @@ public class KeyStore {
             String alias, KeymasterArguments params, KeymasterCertificateChain outChain) {
         // Prevent Google Play Services from using key attestation for SafetyNet
         if (mContext.getPackageName().equals("com.google.android.gms")) {
+            Log.w(TAG, "Prevent Google Play Services from using HW attestation");
             return KeymasterDefs.KM_ERROR_UNIMPLEMENTED;
         }
 
+        AppProfile profile = AppProfileSettings.getProfileStatic(mContext.getPackageName());
+        if( profile != null && profile.mPreventHwKeyAttestation ) {
+            Log.w(TAG, "Prevent " +  mContext.getPackageName() + " from using HW attestation");
+            return KeymasterDefs.KM_ERROR_UNIMPLEMENTED;
+        }
+
+        Log.w(TAG, "Allow " +  mContext.getPackageName() + " to use HW attestation");
+        
         CertificateChainPromise promise = new CertificateChainPromise();
         try {
             mBinder.asBinder().linkToDeath(promise, 0);

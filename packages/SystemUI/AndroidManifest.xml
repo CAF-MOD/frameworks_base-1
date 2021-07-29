@@ -321,6 +321,11 @@
     <uses-permission android:name="android.permission.MAINLINE_NETWORK_STACK" />
     <uses-permission android:name="android.permission.NETWORK_STACK" />
 
+    <!--
+    RR Tile -->
+    <uses-permission android:name="android.permission.HARDWARE_TEST" /> <!-- For SurfaceFlinger Access -->
+
+
     <protected-broadcast android:name="android.intent.action.SCREEN_STATE_SERVICE_UPDATE" />
 
     <!-- Ambient Indication -->

@@ -107,8 +107,8 @@ public class RestoreUtils {
                     }
 
                     // Installation is current disabled
-                    session.abandon();
-                    // session.commit(receiver.getIntentSender());
+                    //session.abandon();
+                    session.commit(receiver.getIntentSender());
                 }
             } catch (Exception t) {
                 installer.abandonSession(sessionId);
@@ -117,13 +117,13 @@ public class RestoreUtils {
             }
 
             // Installation is current disabled
-            Intent result = null;
-            // Intent result = receiver.getResult();
+            // Intent result = null;
+            Intent result = receiver.getResult();
 
             // Installation is current disabled
-            int status = PackageInstaller.STATUS_FAILURE;
-            // int status = result.getIntExtra(PackageInstaller.EXTRA_STATUS,
-            //        PackageInstaller.STATUS_FAILURE);
+            // int status = PackageInstaller.STATUS_FAILURE;
+            int status = result.getIntExtra(PackageInstaller.EXTRA_STATUS,
+                   PackageInstaller.STATUS_FAILURE);
 
             if (status != PackageInstaller.STATUS_SUCCESS) {
                 // The only time we continue to accept install of data even if the
@@ -148,8 +148,7 @@ public class RestoreUtils {
                     try {
                         PackageInfo pkg = packageManager.getPackageInfoAsUser(info.packageName,
                                 PackageManager.GET_SIGNING_CERTIFICATES, userId);
-                        if ((pkg.applicationInfo.flags & ApplicationInfo.FLAG_ALLOW_BACKUP)
-                                == 0) {
+                        if (AppBackupUtils.appFlagNotAllowBackup(pkg.applicationInfo)) {
                             Slog.w(TAG, "Restore stream contains apk of package "
                                     + info.packageName
                                     + " but it disallows backup/restore");

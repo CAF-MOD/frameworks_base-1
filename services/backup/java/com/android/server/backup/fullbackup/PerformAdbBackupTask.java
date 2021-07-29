@@ -243,9 +243,14 @@ public class PerformAdbBackupTask extends FullBackupTask implements BackupRestor
             for (int i = 0; i < allPackages.size(); i++) {
                 PackageInfo pkg = allPackages.get(i);
                 // Exclude system apps if we've been asked to do so
-                if (mIncludeSystem
-                        || ((pkg.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0)) {
-                    packagesToBackup.put(pkg.packageName, pkg);
+                if (mIncludeSystem) {
+                    if( (pkg.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                        packagesToBackup.put(pkg.packageName, pkg);
+                    }
+                } else {
+                    if( (pkg.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
+                        packagesToBackup.put(pkg.packageName, pkg);
+                    }
                 }
             }
         }

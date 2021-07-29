@@ -2042,7 +2042,7 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
                 && !mSwitchingUser && !isFaceDisabled(user) && becauseCannotSkipBouncer
                 && !mKeyguardGoingAway && mFaceSettingEnabledForUser.get(user) && !mLockIconPressed
                 && strongAuthAllowsScanning && mIsPrimaryUser
-                && !mSecureCameraLaunched && !mIsDeviceInPocket;
+                && !mSecureCameraLaunched && !mIsDeviceInPocket && mScreenOn;
 
         // Aggregate relevant fields for debug logging.
         if (DEBUG_FACE || DEBUG_SPEW) {
@@ -2172,9 +2172,12 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener, Dumpab
      */
     public boolean isFaceAuthEnabledForUser(int userId) {
         // TODO(b/140034352)
-        return whitelistIpcs(() -> mFaceManager != null && mFaceManager.isHardwareDetected()
+        //return whitelistIpcs(() -> mFaceManager != null && mFaceManager.isHardwareDetected()
+        //        && mFaceManager.hasEnrolledTemplates(userId)
+        //        && mFaceSettingEnabledForUser.get(userId));
+        return mFaceManager != null && mFaceManager.isHardwareDetected()
                 && mFaceManager.hasEnrolledTemplates(userId)
-                && mFaceSettingEnabledForUser.get(userId));
+                && mFaceSettingEnabledForUser.get(userId);
     }
 
     private void stopListeningForFingerprint() {

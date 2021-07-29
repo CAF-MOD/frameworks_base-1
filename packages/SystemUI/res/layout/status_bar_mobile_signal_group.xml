@@ -35,11 +35,11 @@
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:visibility="gone"
-            android:paddingStart="3dp"
-            android:paddingEnd="1dp"/>
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"/>
         <FrameLayout
             android:id="@+id/inout_container"
-            android:layout_height="17dp"
+            android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:layout_gravity="center_vertical">
             <ImageView
@@ -48,14 +48,14 @@
                 android:layout_width="wrap_content"
                 android:src="@drawable/ic_activity_down"
                 android:visibility="gone"
-                android:paddingEnd="2dp"
+                android:paddingEnd="0dp"
             />
             <ImageView
                 android:id="@+id/mobile_out"
                 android:layout_height="wrap_content"
                 android:layout_width="wrap_content"
                 android:src="@drawable/ic_activity_up"
-                android:paddingEnd="2dp"
+                android:paddingEnd="0dp"
                 android:visibility="gone"
             />
         </FrameLayout>
@@ -64,8 +64,8 @@
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:layout_gravity="center_vertical"
-            android:paddingStart="2.5dp"
-            android:paddingEnd="1dp"
+            android:paddingStart="1dp"
+            android:paddingEnd="0dp"
             android:visibility="gone" />
         <Space
             android:id="@+id/mobile_roaming_space"
