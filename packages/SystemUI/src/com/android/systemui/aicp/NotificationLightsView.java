@@ -84,6 +84,9 @@ public class NotificationLightsView extends RelativeLayout {
             return;
         }
         mPulsing = pulsing;
+        if( mLightAnimator!=null && !mPulsing ) {
+            mLightAnimator.cancel();
+        }
     }
 
     @Override

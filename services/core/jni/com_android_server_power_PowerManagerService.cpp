@@ -248,20 +248,22 @@ static void setPowerBoostWithHandle(sp<IPowerAidl> handle, Boost boost, int32_t 
             boostSupportedArray = {HalSupport::UNKNOWN};
     size_t idx = static_cast<size_t>(boost);
 
-    // Quick return if boost is not supported by HAL
-    if (idx >= boostSupportedArray.size() || boostSupportedArray[idx] == HalSupport::OFF) {
-        ALOGV("Skipped setPowerBoost %s because HAL doesn't support it", toString(boost).c_str());
-        return;
-    }
-
-    if (boostSupportedArray[idx] == HalSupport::UNKNOWN) {
-        bool isSupported = false;
-        handle->isBoostSupported(boost, &isSupported);
-        boostSupportedArray[idx] = isSupported ? HalSupport::ON : HalSupport::OFF;
-        if (!isSupported) {
-            ALOGV("Skipped setPowerBoost %s because HAL doesn't support it",
-                  toString(boost).c_str());
+    if(  static_cast<int32_t>(boost) < 10000 && static_cast<int32_t>(boost) > 13000 ) {
+        // Quick return if boost is not supported by HAL
+        if (idx >= boostSupportedArray.size() || boostSupportedArray[idx] == HalSupport::OFF) {
+            ALOGE("Skipped setPowerBoost %s because HAL doesn't support it", toString(boost).c_str());
             return;
+        }
+
+        if (boostSupportedArray[idx] == HalSupport::UNKNOWN) {
+            bool isSupported = false;
+            handle->isBoostSupported(boost, &isSupported);
+            boostSupportedArray[idx] = isSupported ? HalSupport::ON : HalSupport::OFF;
+            if (!isSupported) {
+                ALOGE("Skipped setPowerBoost %s because HAL doesn't support it",
+                      toString(boost).c_str());
+                return;
+            }
         }
     }
 
@@ -289,7 +291,7 @@ static bool setPowerModeWithHandle(sp<IPowerAidl> handle, Mode mode, bool enable
 
     // Quick return if mode is not supported by HAL
     if (idx >= modeSupportedArray.size() || modeSupportedArray[idx] == HalSupport::OFF) {
-        ALOGV("Skipped setPowerMode %s because HAL doesn't support it", toString(mode).c_str());
+        ALOGE("Skipped setPowerMode %s because HAL doesn't support it", toString(mode).c_str());
         return false;
     }
 
@@ -298,7 +300,7 @@ static bool setPowerModeWithHandle(sp<IPowerAidl> handle, Mode mode, bool enable
         handle->isModeSupported(mode, &isSupported);
         modeSupportedArray[idx] = isSupported ? HalSupport::ON : HalSupport::OFF;
         if (!isSupported) {
-            ALOGV("Skipped setPowerMode %s because HAL doesn't support it", toString(mode).c_str());
+            ALOGE("Skipped setPowerMode %s because HAL doesn't support it", toString(mode).c_str());
             return false;
         }
     }
@@ -309,6 +311,8 @@ static bool setPowerModeWithHandle(sp<IPowerAidl> handle, Mode mode, bool enable
 }
 
 static bool setPowerMode(Mode mode, bool enabled) {
+
+    //ALOGI("power mode: %s.", toString(mode).c_str());
     std::unique_lock<std::mutex> lock(gPowerHalMutex);
     if (connectPowerHalLocked() != HalVersion::AIDL) {
         ALOGV("Power HAL AIDL not available");
@@ -320,6 +324,8 @@ static bool setPowerMode(Mode mode, bool enabled) {
 }
 
 static void sendPowerHint(PowerHint hintId, uint32_t data) {
+
+    //ALOGI("power hint: %s.", toString(hintId).c_str());
     std::unique_lock<std::mutex> lock(gPowerHalMutex);
     switch (connectPowerHalLocked()) {
         case HalVersion::NONE:
@@ -365,17 +371,13 @@ static void sendPowerHint(PowerHint hintId, uint32_t data) {
                 lock.unlock();
                 setPowerModeWithHandle(handle, Mode::VR, static_cast<bool>(data));
                 break;
-            // TODO: Fix lineage sdk once killed hidl.
-            } else if (hintId == static_cast<PowerHint>(LineagePowerHint1_0::CPU_BOOST)) {
+            } else if (hintId >= static_cast<PowerHint>(10000) && hintId < static_cast<PowerHint>(13000) ) {
+
+                sp<IPowerAidl> handle = gPowerHalAidl_;
                 lock.unlock();
-                sp<ILineagePowerAidl> handle = getLineagePowerHalAidl();
-                handle->setBoost(LineageBoostAidl::CPU_BOOST, data);
+                setPowerBoostWithHandle(handle, static_cast<Boost>(hintId), data);
                 break;
-            } else if (hintId == static_cast<PowerHint>(LineagePowerHint1_0::SET_PROFILE)) {
-                lock.unlock();
-                sp<ILineagePowerAidl> handle = getLineagePowerHalAidl();
-                handle->setBoost(LineageBoostAidl::SET_PROFILE, data);
-                break;
+
             } else {
                 ALOGE("Unsupported power hint: %s.", toString(hintId).c_str());
                 return;

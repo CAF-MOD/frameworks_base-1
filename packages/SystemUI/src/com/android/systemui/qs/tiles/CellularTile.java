@@ -78,6 +78,13 @@ public class CellularTile extends QSTileImpl<SignalState> {
         mDataController = mController.getMobileDataController();
         mDetailAdapter = new CellularDetailAdapter();
         mController.observe(getLifecycle(), mSignalCallback);
+        final KeyguardStateController.Callback callback = new KeyguardStateController.Callback() {
+            @Override
+            public void onKeyguardShowingChanged() {
+                refreshState();
+            }
+        };
+        mKeyguard.observe(this, callback);
     }
 
     @Override
@@ -106,6 +113,16 @@ public class CellularTile extends QSTileImpl<SignalState> {
     @Override
     protected void handleClick() {
         if (getState().state == Tile.STATE_UNAVAILABLE) {
+            return;
+        }
+        if (mKeyguard.isMethodSecure() && !mKeyguard.canDismissLockScreen()) {
+                mActivityStarter.postQSRunnableDismissingKeyguard(() -> {
+                if (mDataController.isMobileDataEnabled()) {
+                    maybeShowDisableDialog();
+                } else {
+                    mDataController.setMobileDataEnabled(true);
+                }
+            });
             return;
         }
         if (mDataController.isMobileDataEnabled()) {
@@ -152,15 +169,27 @@ public class CellularTile extends QSTileImpl<SignalState> {
         if (mDataController.isMobileDataSupported()) {
             if (mKeyguard.isMethodSecure() && !mKeyguard.canDismissLockScreen()) {
                 mActivityStarter.postQSRunnableDismissingKeyguard(() -> {
-                    showDetail(true);
+                    //showDetail(true);
+                    mHost.openPanels();
+                    mActivityStarter
+                        .postStartActivityDismissingKeyguard(getCellularSettingIntent(),0 /* delay */);
+
                 });
                 return;
             }
-            showDetail(true);
+            //showDetail(true);
+            mActivityStarter
+                    .postStartActivityDismissingKeyguard(getCellularSettingIntent(),0 /* delay */);
+
         } else {
             mActivityStarter
                     .postStartActivityDismissingKeyguard(getCellularSettingIntent(),0 /* delay */);
         }
+    }
+
+    @Override
+    protected void handleLongClick() {
+       handleSecondaryClick();
     }
 
     @Override

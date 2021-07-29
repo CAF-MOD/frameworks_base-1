@@ -108,6 +108,13 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
             Bundle savedInstanceState) {
+
+        final boolean dlsbEnabled = Settings.Global.getInt(getContext().getContentResolver(),
+                Settings.Global.BAIKALOS_DLSB_ENABLED, 0) != 0;
+
+        if( dlsbEnabled ) 
+            return inflater.inflate(R.layout.dlsb_status_bar, container, false);
+
         return inflater.inflate(R.layout.status_bar, container, false);
     }
 

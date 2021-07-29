@@ -43,6 +43,8 @@ import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
@@ -1349,7 +1351,9 @@ public final class Display {
      * @hide
      */
     public static boolean isSuspendedState(int state) {
-        return state == STATE_OFF || state == STATE_DOZE_SUSPEND || state == STATE_ON_SUSPEND;
+        if( state == STATE_OFF ) return true;
+        if( BaikalSettings.getReaderMode() ) return false;
+        return state == STATE_DOZE_SUSPEND || state == STATE_ON_SUSPEND;
     }
 
     /**
@@ -1358,6 +1362,7 @@ public final class Display {
      * @hide
      */
     public static boolean isDozeState(int state) {
+        if( BaikalSettings.getReaderMode() ) return false;
         return state == STATE_DOZE || state == STATE_DOZE_SUSPEND;
     }
 
@@ -1367,6 +1372,7 @@ public final class Display {
      * @hide
      */
     public static boolean isActiveState(int state) {
+        if( (state == STATE_DOZE || state == STATE_DOZE_SUSPEND) && BaikalSettings.getReaderMode() ) return true;
         return state == STATE_ON || state == STATE_VR;
     }
 

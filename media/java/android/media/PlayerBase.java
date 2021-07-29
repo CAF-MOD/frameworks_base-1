@@ -34,6 +34,8 @@ import com.android.internal.annotations.GuardedBy;
 import com.android.internal.app.IAppOpsCallback;
 import com.android.internal.app.IAppOpsService;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 
@@ -216,12 +218,18 @@ public abstract class PlayerBase {
     private void updatePlayerVolume() {
         final float finalLeftVol, finalRightVol;
         final boolean isRestricted;
+
+        float baikalMultiplier = BaikalSettings.getVolumeScale(Process.myUid());
+
         synchronized (mLock) {
-            finalLeftVol = mVolMultiplier * mLeftVolume * mPanMultiplierL;
-            finalRightVol = mVolMultiplier * mRightVolume * mPanMultiplierR;
+            finalLeftVol = mVolMultiplier * mLeftVolume * mPanMultiplierL * baikalMultiplier/100.0F;
+            finalRightVol = mVolMultiplier * mRightVolume * mPanMultiplierR * baikalMultiplier/100.0F;
             isRestricted = isRestricted_sync();
         }
-        playerSetVolume(isRestricted /*muting*/, finalLeftVol, finalRightVol);
+        if (DEBUG) Log.e(TAG, "Update volume uid=" + Process.myUid() + ", isRestricted=" + isRestricted + ", mVolMultiplier=" + mVolMultiplier);
+        if (DEBUG) Log.e(TAG, "Update volume uid=" + Process.myUid() + ", mLeftVolume=" + mLeftVolume + ", mRightVolume=" + mRightVolume + ", mPanMultiplierL=" + mPanMultiplierL + ", mPanMultiplierR=" + mPanMultiplierR);
+        if (DEBUG) Log.e(TAG, "Update volume uid=" + Process.myUid() + ", l=" + finalLeftVol + ", r=" + finalRightVol + ", b=" + baikalMultiplier);
+        playerSetVolume(false /*muting*/, finalLeftVol, finalRightVol);
     }
 
     void setVolumeMultiplier(float vol) {

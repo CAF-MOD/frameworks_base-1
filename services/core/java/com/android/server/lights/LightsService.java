@@ -269,7 +269,7 @@ public class LightsService extends SystemService {
             mHwLight = hwLight;
             mDisplayToken = SurfaceControl.getInternalDisplayToken();
             final boolean brightnessSupport = SurfaceControl.getDisplayBrightnessSupport(
-                    mDisplayToken);
+                    mDisplayToken) && hwLight.id == LightsManager.LIGHT_ID_BACKLIGHT;
             if (DEBUG) {
                 Slog.d(TAG, "Display brightness support: " + brightnessSupport);
             }
@@ -315,6 +315,7 @@ public class LightsService extends SystemService {
                     // is determined in the device-specific implementation.
                     if (DEBUG) {
                         Slog.d(TAG, "Using new setBrightness path!");
+                        Slog.d(TAG, "setDisplayBrightness:" + mHwLight.id);
                     }
                     SurfaceControl.setDisplayBrightness(mDisplayToken, brightness);
                 } else {
@@ -503,6 +504,7 @@ public class LightsService extends SystemService {
     private void populateAvailableLightsFromAidl(Context context) {
         try {
             for (HwLight hwLight : mVintfLights.get().getLights()) {
+                Slog.d(TAG, "Set lightimpl from HAL:" + hwLight.id);
                 mLightsById.put(hwLight.id, new LightImpl(context, hwLight));
             }
         } catch (RemoteException ex) {
@@ -517,6 +519,7 @@ public class LightsService extends SystemService {
             hwLight.ordinal = 1;
             hwLight.type = (byte) i;
             mLightsById.put(hwLight.id, new LightImpl(context, hwLight));
+            Slog.d(TAG, "Set lightimpl from HIDL:" + hwLight.id);
         }
     }
 

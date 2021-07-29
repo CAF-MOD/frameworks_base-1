@@ -23,14 +23,8 @@
 
     <!-- The default tiles to display in QuickSettings -->
     <string name="quick_settings_tiles_extra" translatable="false">
-        aicp_extras,aod,caffeine,compass,cpuinfo,dataswitch,dc_dimming,fpsinfo,gaming,heads_up,hwkeys,killapp,locale,mono,music,onthego,powershare,reboot,screenshot,smartpixels,sound,soundsearch,sync,usb_tether,volume_panel,vpn,weather
+        idle_mode,stamina_mode,baikal_extras,gms,cpuinfo,compass,music,reboot,usb_tether,caffeine,aicp_extras,heads_up,smartpixels,aod,locale,sound,livedisplay,powershare,volume_panel,dataswitch,sync,onthego,soundsearch,screenshot,weather,hwkeys,gaming,fpsinfo,rrinfo,killapp,vpn,mono,powershare,dc_dimming,anti_flicker
     </string>
-
-    <!-- The CPU temperature sensor path, defaults to empty -->
-    <string name="config_cpuTempSensor" translatable="false"></string>
-
-    <!-- The CPU temperature divider, if needed -->
-    <integer name="config_cpuTempDivider" translatable="false">1</integer>
 
     <!-- Color of the FOD view -->
     <color name="config_fodColor">#00ff00</color>

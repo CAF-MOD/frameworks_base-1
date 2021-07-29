@@ -19,6 +19,9 @@ package com.android.systemui.statusbar.phone;
 import static com.android.systemui.statusbar.phone.HeadsUpAppearanceController.CONTENT_FADE_DELAY;
 import static com.android.systemui.statusbar.phone.HeadsUpAppearanceController.CONTENT_FADE_DURATION;
 
+import android.os.UserHandle;
+import android.provider.Settings;
+import android.content.ContentResolver;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
@@ -28,6 +31,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Icon;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Property;
 import android.view.View;
@@ -171,6 +175,9 @@ public class NotificationIconContainer extends AlphaOptimizedFrameLayout {
     private Rect mIsolatedIconLocation;
     private int[] mAbsolutePosition = new int[2];
     private View mIsolatedIconForAnimation;
+
+    boolean NewIconStyle = Settings.Global.getInt(getContext().getContentResolver(),
+            Settings.Global.BAIKALOS_STATUSBAR_COLOR_ICONS, 0) == 1;
 
     public NotificationIconContainer(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -803,7 +810,8 @@ public class NotificationIconContainer extends AlphaOptimizedFrameLayout {
                     }
                 }
                 icon.setVisibleState(visibleState, animationsAllowed);
-                icon.setIconColor(iconColor, needsCannedAnimation && animationsAllowed);
+                if (icon.getStatusBarIcon().pkg.contains("systemui") || !NewIconStyle)
+                    icon.setIconColor(iconColor, needsCannedAnimation && animationsAllowed);
                 if (animate) {
                     animateTo(icon, animationProperties);
                 } else {
@@ -825,7 +833,11 @@ public class NotificationIconContainer extends AlphaOptimizedFrameLayout {
         public void initFrom(View view) {
             super.initFrom(view);
             if (view instanceof StatusBarIconView) {
-                iconColor = ((StatusBarIconView) view).getStaticDrawableColor();
+                StatusBarIconView icon = (StatusBarIconView) view;
+                if (icon.getStatusBarIcon().pkg.contains("systemui") || !NewIconStyle)
+                    iconColor = ((StatusBarIconView) view).getStaticDrawableColor();
+                else
+                    return;
             }
         }
     }

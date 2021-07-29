@@ -56,8 +56,8 @@ import javax.inject.Singleton;
 @Singleton
 public class NotificationInterruptStateProviderImpl implements NotificationInterruptStateProvider {
     private static final String TAG = "InterruptionStateProvider";
-    private static final boolean DEBUG = Build.IS_ENG;
-    private static final boolean DEBUG_HEADS_UP = Build.IS_ENG;
+    private static final boolean DEBUG = false; // Build.IS_ENG;
+    private static final boolean DEBUG_HEADS_UP = true; //Build.IS_ENG;
     private static final boolean ENABLE_HEADS_UP = true;
     private static final String SETTING_HEADS_UP_TICKER = "ticker_gets_heads_up";
 
@@ -78,6 +78,10 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
     private boolean mSkipHeadsUp = false;
 
     private boolean mLessBoringHeadsUp;
+    private boolean mInCall = false;
+    private boolean mForceSms = false;
+    private boolean mShowTicker = false;
+
     private TelecomManager mTm;
     private Context mContext;
 
@@ -124,6 +128,20 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
                         mHeadsUpManager.releaseAllImmediately();
                     }
                 }
+
+
+                mInCall = Settings.Global.getInt(
+                        mContentResolver,
+                        Settings.Global.BAIKALOS_HEADSUP_INCALL,0) != 0;
+
+                mForceSms = Settings.Global.getInt(
+                        mContentResolver,
+                        Settings.Global.BAIKALOS_HEADSUP_FORCE_SMS,0) != 0;
+
+                mShowTicker = Settings.System.getInt(mContentResolver,
+                        Settings.System.STATUS_BAR_SHOW_TICKER, 0) != 0;
+
+
             }
         };
 
@@ -139,6 +157,18 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
                     Settings.System.getUriFor(Settings.System.STATUS_BAR_SHOW_TICKER),
                     true,
                     mHeadsUpObserver);
+
+            mContentResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_HEADSUP_INCALL),
+                    true,
+                    mHeadsUpObserver);
+
+            mContentResolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_HEADSUP_FORCE_SMS),
+                    true,
+                    mHeadsUpObserver);
+
+
         }
         mHeadsUpObserver.onChange(true); // set up
     }
@@ -258,11 +288,28 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
             return false;
         }
 
-        if (entry.getImportance() < NotificationManager.IMPORTANCE_HIGH) {
+        String notificationPackageName = sbn.getPackageName();
+
+        if( mInCall && notificationPackageName.equals(getDefaultDialerPackage(mTm)) ) {
+            if( sbn.getTag() == null ) {
+                if (DEBUG_HEADS_UP) {
+                    Log.d(TAG, "No heads up: incoming call notification: " + sbn.getKey());
+                }
+                return false;
+            } 
+        }
+
+        Boolean isImportantHeadsUp = mForceSms & notificationPackageName.equals(getDefaultSmsPackage(mContext));
+
+        if (!mShowTicker && !isImportantHeadsUp && entry.getImportance() < NotificationManager.IMPORTANCE_HIGH) {
             if (DEBUG_HEADS_UP) {
                 Log.d(TAG, "No heads up: unimportant notification: " + sbn.getKey());
             }
             return false;
+        }
+
+        if (DEBUG_HEADS_UP) {
+            Log.d(TAG, "Pulsing: " + sbn /*.getKey()*/);
         }
 
         boolean isDreaming = false;
@@ -304,37 +351,44 @@ public class NotificationInterruptStateProviderImpl implements NotificationInter
 
         if (!mAmbientDisplayConfiguration.pulseOnNotificationEnabled(UserHandle.USER_CURRENT)) {
             if (DEBUG_HEADS_UP) {
-                Log.d(TAG, "No pulsing: disabled by setting: " + sbn.getKey());
+                Log.d(TAG, "No pulsing: disabled by setting: " + sbn /*.getKey()*/);
             }
             return false;
         }
 
         if (mBatteryController.isAodPowerSave()) {
             if (DEBUG_HEADS_UP) {
-                Log.d(TAG, "No pulsing: disabled by battery saver: " + sbn.getKey());
+                Log.d(TAG, "No pulsing: disabled by battery saver: " + sbn /*.getKey()*/);
             }
             return false;
         }
 
         if (!canAlertCommon(entry)) {
             if (DEBUG_HEADS_UP) {
-                Log.d(TAG, "No pulsing: notification shouldn't alert: " + sbn.getKey());
+                Log.d(TAG, "No pulsing: notification shouldn't alert: " + sbn /*.getKey()*/);
             }
             return false;
         }
 
         if (entry.shouldSuppressAmbient()) {
             if (DEBUG_HEADS_UP) {
-                Log.d(TAG, "No pulsing: ambient effect suppressed: " + sbn.getKey());
+                Log.d(TAG, "No pulsing: ambient effect suppressed: " + sbn /*.getKey()*/);
             }
             return false;
         }
 
-        if (entry.getImportance() < NotificationManager.IMPORTANCE_DEFAULT) {
+        String notificationPackageName = sbn.getPackageName();
+
+        Boolean isImportantHeadsUp = mForceSms & notificationPackageName.equals(getDefaultSmsPackage(mContext));
+
+        if (!isImportantHeadsUp && entry.getImportance() < NotificationManager.IMPORTANCE_DEFAULT) {
             if (DEBUG_HEADS_UP) {
-                Log.d(TAG, "No pulsing: not important enough: " + sbn.getKey());
+                Log.d(TAG, "No pulsing: not important enough: " + sbn /*.getKey()*/);
             }
             return false;
+        }
+        if (DEBUG_HEADS_UP) {
+            Log.d(TAG, "Pulsing: " + sbn /*.getKey()*/);
         }
         return true;
     }

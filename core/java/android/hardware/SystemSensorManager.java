@@ -271,6 +271,43 @@ public class SystemSensorManager extends SensorManager {
             }
         }
 
+        if (Settings.Global.getInt(mContext.getContentResolver(),
+                Settings.Global.BAIKALOS_AGGRESSIVE_IDLE, 0) == 1 ||
+	        Settings.Global.getInt(mContext.getContentResolver(),
+                Settings.Global.BAIKALOS_EXTREME_IDLE, 0) == 1) {
+
+            if (sensor.getType() == Sensor.TYPE_SIGNIFICANT_MOTION) {
+                String pkgName = mContext.getPackageName();
+                //for (String blockedPkgName : mContext.getResources().getStringArray(
+                //        com.android.internal.R.array.config_blockPackagesSensorDrain)) {
+                //    if (pkgName.equals(blockedPkgName)) {
+                        Log.w(TAG, "Preventing " + pkgName + " from draining battery using " +
+                                "significant motion sensor");
+                        return true;
+                //    }
+            } else if (sensor.getType() == Sensor. TYPE_ACCELEROMETER || sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
+                String pkgName = mContext.getPackageName();
+                String opPkgName = mContext.getOpPackageName();
+                if(  opPkgName.startsWith("com.google.android.gms" ) || pkgName.startsWith("com.google.android.gms" ) ) {
+                    Log.w(TAG, "Preventing " + pkgName + "(" + opPkgName +") from draining battery using " +
+                           "accelerometer sensor");
+                    return true;
+               
+                } /*else {
+                    for (String blockedPkgName : mContext.getResources().getStringArray(
+                        com.android.internal.R.array.config_blockPackagesSensorDrain)) {
+                            if (pkgName.equals(blockedPkgName)) {
+                                Log.w(TAG, "Preventing " + pkgName + " from draining battery using " +
+                                "accelerometer sensor");
+                                return true;
+                            }
+                    }
+                    Log.w(TAG, "Allow " + pkgName + "(" + opPkgName +") to drain battery using " +
+                           "accelerometer sensor");
+		        }*/
+            }
+        }
+
         // Invariants to preserve:
         // - one Looper per SensorEventListener
         // - one Looper per SensorEventQueue
@@ -334,6 +371,32 @@ public class SystemSensorManager extends SensorManager {
             throw new IllegalStateException("request failed, "
                     + "the trigger listeners size has exceeded the maximum limit "
                     + MAX_LISTENER_COUNT);
+        }
+
+        if (Settings.Global.getInt(mContext.getContentResolver(),
+                Settings.Global.BAIKALOS_AGGRESSIVE_IDLE, 0) == 1) {
+
+            if (sensor.getType() == Sensor.TYPE_SIGNIFICANT_MOTION) {
+                String pkgName = mContext.getPackageName();
+                //for (String blockedPkgName : mContext.getResources().getStringArray(
+                //        com.android.internal.R.array.config_blockPackagesSensorDrain)) {
+                //    if (pkgName.equals(blockedPkgName)) {
+                        Log.w(TAG, "Preventing " + pkgName + " from draining battery using " +
+                                "significant motion sensor");
+                        return true;
+                //    }
+            } else if (sensor.getType() == Sensor. TYPE_ACCELEROMETER) {
+                String pkgName = mContext.getPackageName();
+                String opPkgName = mContext.getOpPackageName();
+                if(  opPkgName.startsWith("com.google.android.gms" ) || pkgName.startsWith("com.google.android.gms" ) ) {
+                    Log.w(TAG, "Preventing " + pkgName + "(" + opPkgName +") from draining battery using " +
+                           "accelerometer sensor");
+                    return true;
+                } else {
+                    Log.w(TAG, "Allow " + pkgName + "(" + opPkgName +") to drain battery using " +
+                           "accelerometer sensor");
+		        }
+            }
         }
 
         synchronized (mTriggerListeners) {

@@ -492,7 +492,8 @@ public class ContrastColorUtil {
         final int resolvedColor = resolveColor(context, notificationColor, isDark);
 
         int color = resolvedColor;
-        color = ContrastColorUtil.ensureTextContrast(color, backgroundColor, isDark);
+        
+        //color = ContrastColorUtil.ensureTextContrast(color, backgroundColor, isDark);
 
         if (color != resolvedColor) {
             if (DEBUG){

@@ -42,6 +42,8 @@ import android.util.MathUtils;
 import android.util.Slog;
 import android.util.TimeUtils;
 
+import com.android.internal.baikalos.BaikalSettings;
+
 import com.android.internal.BrightnessSynchronizer;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.BackgroundThread;
@@ -296,7 +298,7 @@ class AutomaticBrightnessController {
         if (!mAmbientLuxValid) {
             return PowerManager.BRIGHTNESS_INVALID_FLOAT;
         }
-        if (mDisplayPolicy == DisplayPowerRequest.POLICY_DOZE) {
+        if (mDisplayPolicy == DisplayPowerRequest.POLICY_DOZE && !BaikalSettings.getReaderMode()) {
             return mScreenAutoBrightness * mDozeScaleFactor;
         }
         return mScreenAutoBrightness;
@@ -318,7 +320,7 @@ class AutomaticBrightnessController {
         // switch to a wake-up light sensor instead but for now we will simply disable the sensor
         // and hold onto the last computed screen auto brightness.  We save the dozing flag for
         // debugging purposes.
-        boolean dozing = (displayPolicy == DisplayPowerRequest.POLICY_DOZE);
+        boolean dozing =  (displayPolicy == DisplayPowerRequest.POLICY_DOZE) && !BaikalSettings.getReaderMode();
         boolean changed = setBrightnessConfiguration(configuration);
         changed |= setDisplayPolicy(displayPolicy);
         if (userChangedAutoBrightnessAdjustment) {

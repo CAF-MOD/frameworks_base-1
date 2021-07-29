@@ -77,7 +77,8 @@ static jboolean isSELinuxEnabled(JNIEnv *env, jobject) {
  * Exceptions: none
  */
 static jboolean isSELinuxEnforced(JNIEnv *env, jobject) {
-    return (security_getenforce() == 1) ? true : false;
+    //return (security_getenforce() == 1) ? true : false;
+    return true;
 }
 
 static jstring fileSelabelLookup(JNIEnv* env, jobject, jstring pathStr) {

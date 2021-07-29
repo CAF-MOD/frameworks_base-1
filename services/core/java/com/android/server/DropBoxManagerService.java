@@ -257,11 +257,13 @@ public final class DropBoxManagerService extends SystemService {
         }
 
         private void prepareAndSendBroadcast(Intent intent) {
+            /* Disable Google Spy
             if (!DropBoxManagerService.this.mBooted) {
                 intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
             }
             getContext().sendBroadcastAsUser(intent, UserHandle.ALL,
                     android.Manifest.permission.READ_LOGS);
+            */
         }
 
         private Intent createIntent(String tag, long time) {
@@ -463,8 +465,9 @@ public final class DropBoxManagerService extends SystemService {
     public boolean isTagEnabled(String tag) {
         final long token = Binder.clearCallingIdentity();
         try {
-            return !"disabled".equals(Settings.Global.getString(
-                    mContentResolver, Settings.Global.DROPBOX_TAG_PREFIX + tag));
+//            return !"disabled".equals(Settings.Global.getString(
+//                    mContentResolver, Settings.Global.DROPBOX_TAG_PREFIX + tag));
+            return false;
         } finally {
             Binder.restoreCallingIdentity(token);
         }

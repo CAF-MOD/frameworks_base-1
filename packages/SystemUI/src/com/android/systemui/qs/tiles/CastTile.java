@@ -133,6 +133,15 @@ public class CastTile extends QSTileImpl<BooleanState> {
             return;
         }
 
+        if (mKeyguard.isMethodSecure() && !mKeyguard.canDismissLockScreen()) {
+                mActivityStarter.postQSRunnableDismissingKeyguard(() -> {
+                    mHost.openPanels();
+                    showDetail(true);
+            });
+            return;
+        }
+
+
         List<CastDevice> activeDevices = getActiveDevices();
         // We want to pop up the media route selection dialog if we either have no active devices
         // (neither routes nor projection), or if we have an active route. In other cases, we assume
@@ -140,6 +149,7 @@ public class CastTile extends QSTileImpl<BooleanState> {
         // case where multiple devices were active :-/.
         if (activeDevices.isEmpty() || (activeDevices.get(0).tag instanceof RouteInfo)) {
             mActivityStarter.postQSRunnableDismissingKeyguard(() -> {
+                mHost.openPanels();
                 showDetail(true);
             });
         } else {

@@ -47,6 +47,9 @@ import java.util.ArrayList;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.android.internal.baikalos.Actions;
+import com.android.internal.baikalos.BaikalSettings;
+
 /**
  * Default implementation of a {@link BatteryController}. This controller monitors for battery
  * level change events that are broadcasted by the system.
@@ -75,6 +78,7 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
     private boolean mStateUnknown = false;
     private boolean mCharged;
     protected boolean mPowerSave;
+    protected boolean mStamina;
     private boolean mAodPowerSave;
     protected boolean mWirelessCharging;
     private boolean mTestmode = false;
@@ -101,6 +105,7 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
         filter.addAction(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED);
         filter.addAction(ACTION_LEVEL_TEST);
+        filter.addAction(Actions.ACTION_STAMINA_CHANGED);
         mBroadcastDispatcher.registerReceiver(this, filter);
     }
 
@@ -129,12 +134,18 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
         pw.print("  mCharging="); pw.println(mCharging);
         pw.print("  mCharged="); pw.println(mCharged);
         pw.print("  mPowerSave="); pw.println(mPowerSave);
+        pw.print("  mStamina="); pw.println(mStamina);
         pw.print("  mStateUnknown="); pw.println(mStateUnknown);
     }
 
     @Override
     public void setPowerSaveMode(boolean powerSave) {
         BatterySaverUtils.setPowerSaveMode(mContext, powerSave, /*needFirstTimeWarning*/ true);
+    }
+
+    @Override
+    public void setStaminaMode(boolean stamina) {
+        //BatterySaverUtils.setPowerSaveMode(mContext, powerSave, /*needFirstTimeWarning*/ true);
     }
 
     @Override
@@ -185,6 +196,9 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
             fireBatteryLevelChanged();
         } else if (action.equals(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)) {
             updatePowerSave();
+        } else if (action.equals(Actions.ACTION_STAMINA_CHANGED)) {
+            boolean mode = (boolean)intent.getExtra(Actions.EXTRA_BOOL_MODE);
+            updateStamina(mode);
         } else if (action.equals(ACTION_LEVEL_TEST)) {
             mTestmode = true;
             mMainHandler.post(new Runnable() {
@@ -309,6 +323,14 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
         setPowerSave(mPowerManager.isPowerSaveMode());
     }
 
+
+    private void updateStamina(boolean stamina) {
+        //boolean stamina = BaikalSettings.getStaminaMode();
+        if (DEBUG) Log.d(TAG, "update stamina " + (stamina ? "on" : "off"));
+        setStamina(stamina);
+        if (DEBUG) Log.d(TAG, "Stamina  changed to " + (mStamina ? "on" : "off"));
+    }
+
     private void setPowerSave(boolean powerSave) {
         if (powerSave == mPowerSave) return;
         mPowerSave = powerSave;
@@ -319,6 +341,14 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
 
         if (DEBUG) Log.d(TAG, "Power save is " + (mPowerSave ? "on" : "off"));
         firePowerSaveChanged();
+    }
+
+    private void setStamina(boolean isStamina) {
+        //if (isStamina == mStamina) return;
+        mStamina = isStamina;
+
+        if (DEBUG) Log.d(TAG, "Stamina is " + (mStamina ? "on" : "off"));
+        fireStaminaChanged();
     }
 
     protected void fireBatteryLevelChanged() {
@@ -344,6 +374,15 @@ public class BatteryControllerImpl extends BroadcastReceiver implements BatteryC
             final int N = mChangeCallbacks.size();
             for (int i = 0; i < N; i++) {
                 mChangeCallbacks.get(i).onPowerSaveChanged(mPowerSave);
+            }
+        }
+    }
+
+    private void fireStaminaChanged() {
+        synchronized (mChangeCallbacks) {
+            final int N = mChangeCallbacks.size();
+            for (int i = 0; i < N; i++) {
+                mChangeCallbacks.get(i).onStaminaChanged(mStamina);
             }
         }
     }

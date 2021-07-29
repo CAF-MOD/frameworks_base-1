@@ -297,7 +297,8 @@ public class NotificationHistoryDatabase {
                         .addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
                         .putExtra(EXTRA_KEY, file.getAbsolutePath()),
                 PendingIntent.FLAG_UPDATE_CURRENT);
-        mAlarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, deletionTime, pi);
+        //mAlarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, deletionTime, pi);
+        mAlarmManager.setExact(AlarmManager.RTC, deletionTime, pi);
     }
 
     private void writeLocked(AtomicFile file, NotificationHistory notifications)

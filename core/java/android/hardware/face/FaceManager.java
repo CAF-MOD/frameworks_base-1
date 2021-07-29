@@ -58,7 +58,7 @@ import java.util.List;
 public class FaceManager implements BiometricAuthenticator, BiometricFaceConstants {
 
     private static final String TAG = "FaceManager";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final int MSG_ENROLL_RESULT = 100;
     private static final int MSG_ACQUIRED = 101;
     private static final int MSG_AUTHENTICATION_SUCCEEDED = 102;
@@ -239,6 +239,59 @@ public class FaceManager implements BiometricAuthenticator, BiometricFaceConstan
                     callback.onAuthenticationError(FACE_ERROR_HW_UNAVAILABLE,
                             getErrorString(mContext, FACE_ERROR_HW_UNAVAILABLE,
                                     0 /* vendorCode */));
+                }
+            } finally {
+                Trace.endSection();
+            }
+        }
+    }
+
+    /**
+     * Request face authentication enrollment. This call operates the face authentication hardware
+     * and starts capturing images. Progress will be indicated by callbacks to the
+     * {@link EnrollmentCallback} object. It terminates when
+     * {@link EnrollmentCallback#onEnrollmentError(int, CharSequence)} or
+     * {@link EnrollmentCallback#onEnrollmentProgress(int) is called with remaining == 0, at
+     * which point the object is no longer valid. The operation can be canceled by using the
+     * provided cancel object.
+     *
+     * @param token    a unique token provided by a recent creation or verification of device
+     *                 credentials (e.g. pin, pattern or password).
+     * @param cancel   an object that can be used to cancel enrollment
+     * @param flags    optional flags
+     * @param callback an object to receive enrollment events
+     * @hide
+     */
+    @RequiresPermission(MANAGE_BIOMETRIC)
+    public void enroll(byte[] token, CancellationSignal cancel,
+            EnrollmentCallback callback, int[] disabledFeatures) {
+        if (callback == null) {
+            throw new IllegalArgumentException("Must supply an enrollment callback");
+        }
+
+        if (cancel != null) {
+            if (cancel.isCanceled()) {
+                Log.w(TAG, "enrollment already canceled");
+                return;
+            } else {
+                cancel.setOnCancelListener(new OnEnrollCancelListener());
+            }
+        }
+
+        if (mService != null) {
+            try {
+                mEnrollmentCallback = callback;
+                Trace.beginSection("FaceManager#enroll");
+                mService.enrollMoto(mToken, token, mServiceReceiver,
+                        mContext.getOpPackageName(), disabledFeatures);
+            } catch (RemoteException e) {
+                Log.w(TAG, "Remote exception in enroll: ", e);
+                if (callback != null) {
+                    // Though this may not be a hardware issue, it will cause apps to give up or
+                    // try again later.
+                    callback.onEnrollmentError(FACE_ERROR_HW_UNAVAILABLE,
+                            getErrorString(mContext, FACE_ERROR_HW_UNAVAILABLE,
+                                0 /* vendorCode */));
                 }
             } finally {
                 Trace.endSection();

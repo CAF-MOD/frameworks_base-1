@@ -25,6 +25,8 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.os.Trace;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -80,7 +82,8 @@ public class BiometricUnlockController extends KeyguardUpdateMonitorCallback imp
             MODE_UNLOCK_COLLAPSING,
             MODE_UNLOCK_FADING,
             MODE_DISMISS_BOUNCER,
-            MODE_WAKE_AND_UNLOCK_FROM_DREAM
+            MODE_WAKE_AND_UNLOCK_FROM_DREAM,
+            MODE_NOWAKE_AND_UNLOCK
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface WakeAndUnlockMode {}
@@ -133,6 +136,12 @@ public class BiometricUnlockController extends KeyguardUpdateMonitorCallback imp
      * When bouncer is visible and will be dismissed.
      */
     public static final int MODE_DISMISS_BOUNCER = 8;
+
+    /**
+     * Mode in which we directly dismiss Keyguard but do not wake it up. Active when we acquire
+     * a fingerprint while the screen is off and the device was sleeping.
+     */
+    public static final int MODE_NOWAKE_AND_UNLOCK = 9;
 
     /**
      * How much faster we collapse the lockscreen when authenticating with biometric.
@@ -377,8 +386,22 @@ public class BiometricUnlockController extends KeyguardUpdateMonitorCallback imp
         // During wake and unlock, we need to draw black before waking up to avoid abrupt
         // brightness changes due to display state transitions.
         boolean alwaysOnEnabled = mDozeParameters.getAlwaysOn();
-        boolean delayWakeUp = mode == MODE_WAKE_AND_UNLOCK && alwaysOnEnabled && mWakeUpDelay > 0;
+        boolean delayWakeUp = (mode == MODE_NOWAKE_AND_UNLOCK ) || (mode == MODE_WAKE_AND_UNLOCK && alwaysOnEnabled && mWakeUpDelay > 0);
+        int wakeUpDelay = mWakeUpDelay;
+        if( mode == MODE_NOWAKE_AND_UNLOCK ) {
+            wakeUpDelay = 1000; 
+        }
         Runnable wakeUp = ()-> {
+            if( mMode == MODE_NOWAKE_AND_UNLOCK && !mUpdateMonitor.isDeviceInteractive() ) {
+                if (DEBUG_BIO_WAKELOCK) {
+                    Log.i(TAG, "bio wakelock: Screen off, ignore...");
+                }
+
+                Trace.beginSection("release wake-and-unlock");
+                releaseBiometricWakeLock();
+                Trace.endSection();
+                return;
+            }
             if (!wasDeviceInteractive) {
                 if (DEBUG_BIO_WAKELOCK) {
                     Log.i(TAG, "bio wakelock: Authenticated, waking up...");
@@ -389,12 +412,19 @@ public class BiometricUnlockController extends KeyguardUpdateMonitorCallback imp
             if (delayWakeUp) {
                 mKeyguardViewMediator.onWakeAndUnlocking();
             }
+
+            if (mStatusBar.getNavigationBarView() != null) {
+                mStatusBar.getNavigationBarView().setWakeAndUnlocking(true);
+            }
+
+            mStatusBar.notifyBiometricAuthModeChanged();
+
             Trace.beginSection("release wake-and-unlock");
             releaseBiometricWakeLock();
             Trace.endSection();
         };
 
-        if (!delayWakeUp && mMode != MODE_NONE) {
+        if (!delayWakeUp && mMode != MODE_NONE && mMode != MODE_NOWAKE_AND_UNLOCK) {
             wakeUp.run();
         }
         switch (mMode) {
@@ -430,15 +460,22 @@ public class BiometricUnlockController extends KeyguardUpdateMonitorCallback imp
                 }
                 mNotificationShadeWindowController.setNotificationShadeFocusable(false);
                 if (delayWakeUp) {
-                    mHandler.postDelayed(wakeUp, mWakeUpDelay);
+                    mHandler.postDelayed(wakeUp, wakeUpDelay);
                 } else {
                     mKeyguardViewMediator.onWakeAndUnlocking();
-                }
-                if (mStatusBar.getNavigationBarView() != null) {
-                    mStatusBar.getNavigationBarView().setWakeAndUnlocking(true);
+                    if (mStatusBar.getNavigationBarView() != null) {
+                        mStatusBar.getNavigationBarView().setWakeAndUnlocking(true);
+                    }
                 }
                 Trace.endSection();
                 break;
+
+            case MODE_NOWAKE_AND_UNLOCK:
+                Trace.beginSection("MODE_WAKE_AND_UNLOCK");
+                mHandler.postDelayed(wakeUp, wakeUpDelay);
+                Trace.endSection();
+                return;
+
             case MODE_ONLY_WAKE:
             case MODE_NONE:
                 break;
@@ -504,11 +541,17 @@ public class BiometricUnlockController extends KeyguardUpdateMonitorCallback imp
         boolean deviceDreaming = mUpdateMonitor.isDreaming();
 
         if (!mUpdateMonitor.isDeviceInteractive()) {
+
             if (!mKeyguardViewController.isShowing()) {
                 return MODE_ONLY_WAKE;
             } else if (mDozeScrimController.isPulsing() && unlockingAllowed) {
                 return MODE_WAKE_AND_UNLOCK_PULSING;
             } else if (unlockingAllowed || !mKeyguardStateController.isMethodSecure()) {
+                /*if( Settings.System.getIntForUser(
+                        mContext.getContentResolver(), Settings.System.FP_WAKE_UNLOCK, 1,
+                        UserHandle.USER_CURRENT) == 0 ) {
+                    return MODE_NOWAKE_AND_UNLOCK;
+                }*/
                 return MODE_WAKE_AND_UNLOCK;
             } else {
                 return MODE_SHOW_BOUNCER;

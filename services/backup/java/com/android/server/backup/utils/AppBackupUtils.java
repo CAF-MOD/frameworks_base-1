@@ -30,6 +30,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManagerInternal;
 import android.content.pm.Signature;
 import android.content.pm.SigningInfo;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.util.Slog;
 
@@ -69,11 +70,17 @@ public class AppBackupUtils {
                 app, LocalServices.getService(PackageManagerInternal.class), userId);
     }
 
+    public static boolean appFlagNotAllowBackup(ApplicationInfo app) {      
+        if( SystemProperties.get("sys.baikal.force_backup", "0").equals("1") ) return false;
+        return (app.flags & ApplicationInfo.FLAG_ALLOW_BACKUP) == 0;
+    }
+
     @VisibleForTesting
     static boolean appIsEligibleForBackup(
             ApplicationInfo app, PackageManagerInternal packageManager, int userId) {
         // 1. their manifest states android:allowBackup="false"
-        if ((app.flags & ApplicationInfo.FLAG_ALLOW_BACKUP) == 0) {
+        if ( appFlagNotAllowBackup(app) ) {
+            Slog.w(TAG, "App doesn't have FLAG_ALLOW_BACKUP: " + app.packageName);
             return false;
         }
 
@@ -82,22 +89,26 @@ public class AppBackupUtils {
             // and the backup is happening for non-system user on a non-whitelisted package.
             if (userId != UserHandle.USER_SYSTEM
                     && !systemPackagesWhitelistedForAllUsers.contains(app.packageName)) {
+                Slog.w(TAG, "Non-system user on a non-whitelisted package: " + app.packageName);
                 return false;
             }
 
             // or do not supply their own backup agent
             if (app.backupAgentName == null) {
+                Slog.w(TAG, "App do not supply its own backup agent: " + app.packageName);
                 return false;
             }
         }
 
         // 3. it is the special shared-storage backup package used for 'adb backup'
         if (app.packageName.equals(SHARED_BACKUP_AGENT_PACKAGE)) {
+            Slog.w(TAG, "App is the special shared-storage backup package used for adb backup: " + app.packageName);
             return false;
         }
 
         // 4. it is an "instant" app
         if (app.isInstantApp()) {
+            Slog.w(TAG, "App is an instant app: " + app.packageName);
             return false;
         }
 

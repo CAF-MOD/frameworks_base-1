@@ -1522,7 +1522,7 @@ public class UserBackupManagerService {
             PackageInfo pkg = packages.get(a);
             try {
                 ApplicationInfo app = pkg.applicationInfo;
-                if (((app.flags & ApplicationInfo.FLAG_ALLOW_BACKUP) == 0)
+                if ( AppBackupUtils.appFlagNotAllowBackup(app) 
                         || app.backupAgentName == null
                         || (app.flags & ApplicationInfo.FLAG_FULL_BACKUP_ONLY) != 0) {
                     packages.remove(a);
@@ -2146,11 +2146,14 @@ public class UserBackupManagerService {
             // !!! We hardcode the confirmation UI's package name here rather than use a
             //     manifest flag!  TODO something less direct.
             if (!UserHandle.isCore(app.uid)
-                    && !app.packageName.equals("com.android.backupconfirm")) {
+                    && !app.packageName.equals("com.android.backupconfirm")
+                    && !app.packageName.equals("com.android.phone")
+                    && !app.packageName.startsWith("com.android.providers")
+                    ) {
                 if (MORE_DEBUG) {
                     Slog.d(TAG, addUserIdToLogMessage(mUserId, "Killing agent host process"));
                 }
-                mActivityManager.killApplicationProcess(app.processName, app.uid);
+                //mActivityManager.killApplicationProcess(app.processName, app.uid);
             } else {
                 if (MORE_DEBUG) {
                     Slog.d(

@@ -111,6 +111,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import com.android.internal.baikalos.BaikalConstants;
+
 /**
  * All of the code required to compute proc states and oom_adj values.
  */
@@ -729,6 +731,8 @@ public final class OomAdjuster {
             // to the process, do that now.
             if (!app.killedByAm && app.thread != null && app.curAdj
                     >= ProcessList.UNKNOWN_ADJ) {
+
+
                 switch (app.getCurProcState()) {
                     case PROCESS_STATE_CACHED_ACTIVITY:
                     case ActivityManager.PROCESS_STATE_CACHED_ACTIVITY_CLIENT:
@@ -813,6 +817,8 @@ public final class OomAdjuster {
         ArrayList<ProcessRecord> lruList = mProcessList.mLruProcesses;
         final int numLru = lruList.size();
 
+        final ProcessRecord TOP_APP = mService.getTopAppLocked();
+
         final int emptyProcessLimit = mConstants.CUR_MAX_EMPTY_PROCESSES;
         final int cachedProcessLimit = mConstants.CUR_MAX_CACHED_PROCESSES
                 - emptyProcessLimit;
@@ -830,6 +836,22 @@ public final class OomAdjuster {
                 if (app.completedAdjSeq == mAdjSeq) {
                     applyOomAdjLocked(app, true, now, nowElapsed);
                 }
+
+                int baikalAdj = 0;
+                if( app.isPersistent() ) {
+                    baikalAdj = 0;
+                } else {
+                    baikalAdj = BaikalActivityServiceStatic.applyOomAdjLocked(mService,app,TOP_APP);
+                    if( baikalAdj == 2 ) {
+                        app.kill("by baikalos service", 
+                                ApplicationExitInfo.REASON_OTHER,
+                                ApplicationExitInfo.SUBREASON_TRIM_EMPTY,
+                                true);
+                        continue;
+                    } 
+                }
+
+                if( baikalAdj == 0 ) {
 
                 // Count the number of process types.
                 switch (app.getCurProcState()) {
@@ -881,6 +903,7 @@ public final class OomAdjuster {
                         mNumNonCachedProcs++;
                         break;
                 }
+                }
 
                 if (app.isolated && app.numberOfRunningServices() <= 0
                         && app.isolatedEntryPoint == null) {
@@ -891,7 +914,7 @@ public final class OomAdjuster {
                     // definition not re-use the same process again, and it is
                     // good to avoid having whatever code was running in them
                     // left sitting around after no longer needed.
-                    app.kill("isolated not needed", ApplicationExitInfo.REASON_OTHER,
+                    if( baikalAdj == 0 ) app.kill("isolated not needed", ApplicationExitInfo.REASON_OTHER,
                             ApplicationExitInfo.SUBREASON_ISOLATED_NOT_NEEDED, true);
                 } else {
                     // Keeping this process, update its uid.
@@ -1254,7 +1277,7 @@ public final class OomAdjuster {
         } else if (app.getActiveInstrumentation() != null) {
             // Don't want to kill running instrumentation.
             adj = ProcessList.FOREGROUND_APP_ADJ;
-            schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+            schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
             app.adjType = "instrumentation";
             procState = PROCESS_STATE_FOREGROUND_SERVICE;
             if (DEBUG_OOM_ADJ_REASON || logUid == appUid) {
@@ -1339,6 +1362,7 @@ public final class OomAdjuster {
                 procState = PROCESS_STATE_FOREGROUND_SERVICE;
                 app.adjType = "fg-service";
                 app.setCached(false);
+                //schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                 schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
                 if (DEBUG_OOM_ADJ_REASON || logUid == appUid) {
                     reportOomAdjMessageLocked(TAG_OOM_ADJ, "Raise to " + app.adjType + ": "
@@ -1350,7 +1374,8 @@ public final class OomAdjuster {
                 procState = PROCESS_STATE_IMPORTANT_FOREGROUND;
                 app.setCached(false);
                 app.adjType = "has-overlay-ui";
-                schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                //schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                schedGroup = ProcessList.SCHED_GROUP_TOP_APP;
                 if (DEBUG_OOM_ADJ_REASON || logUid == appUid) {
                     reportOomAdjMessageLocked(TAG_OOM_ADJ, "Raise to overlay ui: " + app);
                 }
@@ -1381,7 +1406,7 @@ public final class OomAdjuster {
                 app.setCached(false);
                 app.adjType = "force-imp";
                 app.adjSource = app.forcingToImportant;
-                schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                 if (DEBUG_OOM_ADJ_REASON || logUid == appUid) {
                     reportOomAdjMessageLocked(TAG_OOM_ADJ, "Raise to force imp: " + app);
                 }
@@ -1831,7 +1856,7 @@ public final class OomAdjuster {
                                 if ((cr.flags&Context.BIND_IMPORTANT) != 0) {
                                     schedGroup = ProcessList.SCHED_GROUP_TOP_APP_BOUND;
                                 } else {
-                                    schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                                    schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                                 }
                             }
                             app.setCached(false);
@@ -1943,7 +1968,7 @@ public final class OomAdjuster {
                 if (adj > ProcessList.FOREGROUND_APP_ADJ) {
                     adj = ProcessList.FOREGROUND_APP_ADJ;
                     app.setCurRawAdj(adj);
-                    schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+                    schedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
                     app.setCached(false);
                     app.adjType = "ext-provider";
                     app.adjTarget = cpr.name;
@@ -2032,9 +2057,9 @@ public final class OomAdjuster {
         //      " adj=" + adj + " curAdj=" + app.curAdj + " maxAdj=" + app.maxAdj);
         if (adj > app.maxAdj) {
             adj = app.maxAdj;
-            if (app.maxAdj <= ProcessList.PERCEPTIBLE_LOW_APP_ADJ) {
-                schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
-            }
+            //if (app.maxAdj <= ProcessList.PERCEPTIBLE_LOW_APP_ADJ) {
+            //    schedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+            //}
         }
 
         // Put bound foreground services in a special sched group for additional
@@ -2045,6 +2070,8 @@ public final class OomAdjuster {
                 schedGroup = ProcessList.SCHED_GROUP_RESTRICTED;
             }
         }
+
+        if( BaikalConstants.BAIKAL_DEBUG_ACTIVITY ) Slog.i(TAG,"Baikal OOM: " + app + ": sched=" + schedGroup);
 
         // apply capability from FGS.
         if (app.hasForegroundServices()) {
@@ -2437,7 +2464,7 @@ public final class OomAdjuster {
 
     @GuardedBy("mService")
     void setAttachingSchedGroupLocked(ProcessRecord app) {
-        int initialSchedGroup = ProcessList.SCHED_GROUP_DEFAULT;
+        int initialSchedGroup = ProcessList.SCHED_GROUP_BACKGROUND;
         // If the process has been marked as foreground via Zygote.START_FLAG_USE_TOP_APP_PRIORITY,
         // then verify that the top priority is actually is applied.
         if (app.hasForegroundActivities()) {

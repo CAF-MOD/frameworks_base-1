@@ -24,6 +24,7 @@ import static com.android.server.input.InputManagerService.SW_MICROPHONE_INSERT;
 import static com.android.server.input.InputManagerService.SW_MICROPHONE_INSERT_BIT;
 
 import android.content.Context;
+import android.content.ContentResolver;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Looper;
@@ -35,6 +36,12 @@ import android.util.Log;
 import android.util.Pair;
 import android.util.Slog;
 import android.view.InputDevice;
+
+import android.net.Uri;
+
+import android.database.ContentObserver;
+
+import android.provider.Settings;
 
 import com.android.internal.R;
 import com.android.server.input.InputManagerService;
@@ -55,7 +62,7 @@ import java.util.Locale;
  */
 final class WiredAccessoryManager implements WiredAccessoryCallbacks {
     private static final String TAG = WiredAccessoryManager.class.getSimpleName();
-    private static final boolean LOG = false;
+    private static final boolean LOG = true;
 
     private static final int BIT_HEADSET = (1 << 0);
     private static final int BIT_HEADSET_NO_MIC = (1 << 1);
@@ -91,6 +98,12 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
 
     private int mSwitchValues;
 
+    private int mRealHeadsetState;
+    private boolean mDisableDetect;
+
+    private Context mContext;
+    private BaikalSettingsObserver mBaikalObserver;
+
     private final WiredAccessoryObserver mObserver;
     private final WiredAccessoryExtconObserver mExtconObserver;
     private final InputManagerService mInputManager;
@@ -98,6 +111,9 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
     private final boolean mUseDevInputEventForAudioJack;
 
     public WiredAccessoryManager(Context context, InputManagerService inputManager) {
+
+        mContext = context;
+
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WiredAccessoryManager");
         mWakeLock.setReferenceCounted(false);
@@ -139,6 +155,8 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
         } else {
             mObserver.init();
         }
+
+        mBaikalObserver = new BaikalSettingsObserver(mHandler,mContext.getContentResolver());
     }
 
     @Override
@@ -207,6 +225,20 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
      * @param newState 0 or one of the BIT_xxx variables defined above.
      */
     private void updateLocked(String newName, String address, int newState) {
+
+        mRealHeadsetState = newState;
+
+        if (LOG) {
+            Slog.v(TAG, "updateLocked newState=" + newState );
+        }
+
+        if( mDisableDetect ) {
+            newState &= ~(BIT_HEADSET | BIT_HEADSET_NO_MIC);
+
+            Slog.v(TAG, "HP detect disabled. newState=" + newState);
+
+        }
+
         // Retain only relevant bits
         int headsetState = newState & SUPPORTED_HEADSETS;
         int newDpState = newState & BIT_HDMI_AUDIO;
@@ -794,5 +826,46 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
             maskAndState[0] |= position;
             maskAndState[1] &= ~position;
         }
+    }
+
+    private class BaikalSettingsObserver extends ContentObserver {
+        Handler mHandler;
+        ContentResolver mResolver;
+        private  BaikalSettingsObserver(Handler handler, ContentResolver resolver) {
+            super(handler);
+    	    mHandler = handler;
+            mResolver = resolver;
+            try {
+                resolver.registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.BAIKALOS_DISABLE_HP_DETECT),
+                    false, this);
+
+            } catch( Exception e ) {
+            }
+
+            synchronized (mLock) {
+                updateConstantsLocked();
+            }
+
+        }
+
+        public void updateConstantsLocked() {
+            try {
+
+                mDisableDetect = Settings.Global.getInt(mResolver,
+                    Settings.Global.BAIKALOS_DISABLE_HP_DETECT,0) == 1;
+            } catch (Exception e) {
+                Slog.e(TAG, "Bad BaikalService settings ", e);
+            }       
+            updateLocked("Settings", "", mRealHeadsetState);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            synchronized (mLock) {
+                updateConstantsLocked();
+            }
+        }
+
     }
 }

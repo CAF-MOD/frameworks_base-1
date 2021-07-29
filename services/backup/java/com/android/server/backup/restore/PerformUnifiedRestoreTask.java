@@ -1223,11 +1223,22 @@ public class PerformUnifiedRestoreTask implements BackupRestoreTask {
                 //    3a. the app is a full-data target (TYPE_FULL_STREAM) or
                 //     b. the app does not state android:killAfterRestore="false" in its manifest
                 final int appFlags = mCurrentPackage.applicationInfo.flags;
-                final boolean killAfterRestore =
+                boolean killAfterRestore =
                         !UserHandle.isCore(mCurrentPackage.applicationInfo.uid)
                                 && ((mRestoreDescription.getDataType()
                                 == RestoreDescription.TYPE_FULL_STREAM)
                                 || ((appFlags & ApplicationInfo.FLAG_KILL_AFTER_RESTORE) != 0));
+
+                if (mCurrentPackage.applicationInfo.packageName.equals("com.android.backupconfirm")
+                    || mCurrentPackage.applicationInfo.packageName.equals("com.android.phone")
+                    || mCurrentPackage.applicationInfo.packageName.startsWith("com.android.providers")
+                    || mCurrentPackage.applicationInfo.processName.equals("com.android.backupconfirm")
+                    || mCurrentPackage.applicationInfo.processName.equals("com.android.phone")
+                    || mCurrentPackage.applicationInfo.processName.startsWith("com.android.providers")
+                    ) {
+                    killAfterRestore = false;
+                }
+
 
                 if (mTargetPackage == null && killAfterRestore) {
                     if (DEBUG) {
